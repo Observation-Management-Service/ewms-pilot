@@ -1,4 +1,4 @@
-"""The Client service."""
+"""API for launching an MQ-task pilot."""
 
 
 import pickle
@@ -9,9 +9,8 @@ from pathlib import Path
 from typing import Any, Optional
 
 import asyncstdlib as asl
-import mqclient_pulsar as mq
 
-from . import LOGGER
+from . import LOGGER, mq
 
 OUT_PKL = Path("out_msg.pkl")
 IN_PKL = Path("in_msg.pkl")
