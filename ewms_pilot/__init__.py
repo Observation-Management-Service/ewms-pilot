@@ -10,16 +10,16 @@ LOGGER = logging.getLogger("ewms-pilot")
 
 # find the installed MQClient package
 try:
-    import mqclient_nats as mq
+    import mqclient_nats as mq  # type: ignore[import]
 except ImportError:
     try:
-        import mqclient_rabbitmq as mq
+        import mqclient_rabbitmq as mq  # type: ignore[import]
     except ImportError:
         try:
-            import mqclient_gcp as mq
+            import mqclient_gcp as mq  # type: ignore[import]
         except ImportError:
             try:  # Pulsar is the default, so try it last
-                import mqclient_pulsar as mq
+                import mqclient_pulsar as mq  # type: ignore[import]
             except ImportError:
                 raise ImportError("No MQClient package installed.")
 
