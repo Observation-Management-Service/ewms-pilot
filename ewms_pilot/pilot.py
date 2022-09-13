@@ -1,7 +1,6 @@
 """The Client service."""
 
 
-import logging
 import pickle
 import subprocess
 import sys
@@ -12,10 +11,10 @@ from typing import Any, Optional
 import asyncstdlib as asl
 import mqclient_pulsar as mq
 
+from . import LOGGER
+
 OUT_PKL = Path("out_msg.pkl")
 IN_PKL = Path("in_msg.pkl")
-
-LOGGER = logging.getLogger("skyscan-client")
 
 
 def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> Path:

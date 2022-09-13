@@ -1,10 +1,14 @@
 """Init."""
 
+import logging
+
 from .pilot import consume_and_reply
 
 __all__ = [
     "consume_and_reply",
 ]
+
+LOGGER = logging.getLogger("ewms-pilot")
 
 # version is a human-readable version number.
 __version__ = "0.0.0"
