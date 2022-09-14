@@ -38,9 +38,46 @@ jobs:
       - id: versions
         uses: WIPACrepo/wipac-dev-py-versions-action@v1
 
+  tests:
+    needs: [py-versions]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v3
+        with:
+          python-version: ${{ matrix.py3_versions }}
+      - name: Pytest (Default)
+        run: |
+          pip install --upgrade pip wheel setuptools pytest
+          pip install .
+          # pytest -vvvv
+      - name: Pytest [Pulsar]
+        run: |
+          pip install --upgrade pip wheel setuptools pytest
+          pip install .[pulsar]
+          # pytest -vvvv
+      - name: Pytest [RabbitMQ]
+        run: |
+          pip install --upgrade pip wheel setuptools pytest
+          pip install .[rabbitmq]
+          # pytest -vvvv
+      - name: Pytest [GCP]
+        run: |
+          pip install --upgrade pip wheel setuptools pytest
+          pip install .[gcp]
+          # pytest -vvvv
+      - name: Pytest [NATS]
+        run: |
+          pip install --upgrade pip wheel setuptools pytest
+          pip install .[nats]
+          # pytest -vvvv
+
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-    needs: [py-setup]
+    needs: [py-setup, tests]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
