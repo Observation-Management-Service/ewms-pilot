@@ -2,7 +2,7 @@
 
 import logging
 
-from .pilot import consume_and_reply
+from .pilot import consume_and_reply, main
 
 __all__ = ["consume_and_reply", "mq"]
 
@@ -46,3 +46,7 @@ version_info = (
     int(__version__.split(".")[2]),
     0,
 )
+
+# main
+if __name__ == "__main__":
+    main()
