@@ -27,7 +27,6 @@ class FileType(enum.Enum):
     PICKLE = "pkl"
     PLAIN_TEXT = "txt"
     JSON = "json"
-    BINARY = "bin"
 
 
 class UniversalFileInterface:
@@ -56,10 +55,6 @@ class UniversalFileInterface:
         elif fpath.suffix == FileType.JSON.value:
             with open(fpath, "w") as f:
                 json.dump(in_msg, f)
-        # BINARY
-        elif fpath.suffix == FileType.BINARY.value:
-            with open(fpath, "wb") as f:
-                f.write(in_msg)
         # ???
         else:
             raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
@@ -88,10 +83,6 @@ class UniversalFileInterface:
         elif fpath.suffix == FileType.JSON.value:
             with open(fpath, "r") as f:
                 return json.load(f)
-        # BINARY
-        elif fpath.suffix == FileType.BINARY.value:
-            with open(fpath, "wb") as f:
-                return f.read()
         # ???
         else:
             raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
