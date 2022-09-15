@@ -3,6 +3,7 @@
 
 import argparse
 import asyncio
+import enum
 import pickle
 import subprocess
 import sys
@@ -17,6 +18,82 @@ from . import LOGGER, mq
 
 OUT_PKL = Path("out_msg.pkl")
 IN_PKL = Path("in_msg.pkl")
+
+
+# class DefaultPresumeExtension:
+#     """A stand-in for fancy file-extension determination logic."""
+
+
+# DEFAULT_PRESUME_EXTENSION = DefaultPresumeExtension()
+
+
+class FileEncoding(enum.Enum):
+    """Various field extensions/encodings."""
+
+    PICKLE = "pkl"
+    PLAIN_TEXT = "txt"
+    JSON = "json"
+    BINARY = "bin"
+
+
+class FileEncodingInterface:
+    def __init__(self, encoding: FileEncoding):
+        self.encoding = encoding
+
+    def _get_fpath(self, fname_no_ext: str) -> Path:
+        return Path(f"./{fname_no_ext}.{self.encoding.value}")
+
+    def write(self, stuff: Any, fname_no_ext: str = "in_msg") -> int:
+        """Write `stuff` to `file` per `self.encoding`.
+
+        By default, `fname_no_ext` is 'out.<ext>', where the `<ext>`
+        is the corresponding extension for `self.encoding`.
+        """
+
+        # PICKLE
+        if self.encoding == FileEncoding.PICKLE:
+            self._get_fpath(fname_no_ext)
+            pass
+        # PLAIN_TEXT
+        elif self.encoding == FileEncoding.PLAIN_TEXT:
+            self._get_fpath(fname_no_ext)
+            pass
+        # JSON
+        elif self.encoding == FileEncoding.JSON:
+            self._get_fpath(fname_no_ext)
+            pass
+        # BINARY
+        elif self.encoding == FileEncoding.BINARY:
+            self._get_fpath(fname_no_ext)
+            pass
+        # pass through...
+        raise ValueError(f"Unknown file encoding: {self.encoding}")
+
+    def read(self, fname_no_ext: str = "out_msg") -> Any:
+        """Read and return contents of `file` per `self.encoding`.
+
+        By default, `fname_no_ext` is 'in.<ext>', where the `<ext>`
+        is the corresponding extension for `self.encoding`.
+        """
+
+        # PICKLE
+        if self.encoding == FileEncoding.PICKLE:
+            self._get_fpath(fname_no_ext)
+            pass
+        # PLAIN_TEXT
+        elif self.encoding == FileEncoding.PLAIN_TEXT:
+            self._get_fpath(fname_no_ext)
+            pass
+        # JSON
+        elif self.encoding == FileEncoding.JSON:
+            self._get_fpath(fname_no_ext)
+            pass
+        # BINARY
+        elif self.encoding == FileEncoding.BINARY:
+            self._get_fpath(fname_no_ext)
+            pass
+        # pass through...
+        raise ValueError(f"Unknown file encoding: {self.encoding}")
 
 
 def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> Path:
