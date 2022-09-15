@@ -242,11 +242,18 @@ def main() -> None:
         help="the command to give the subprocess script",
     )
     parser.add_argument(
-        "-e",
-        "--encoding",
-        default=FileEncoding.PICKLE.value,
-        choices=[e.value for e in FileEncoding],
-        help="which file encoding to use for in- & out-files",
+        "--in",
+        dest="infile",
+        default=Path("./in.pkl"),
+        type=Path,
+        help="which file to write for the client subprocess",
+    )
+    parser.add_argument(
+        "--out",
+        dest="outfile",
+        default=Path("./out.pkl"),
+        type=Path,
+        help="which file to read from the client subprocess",
     )
 
     # mq args
@@ -322,8 +329,8 @@ def main() -> None:
             queue_from_clients=f"from-clients-{args.mq_basename}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
-            fpath_to_client=Path(f"./in.{args.encoding}"),
-            fpath_from_client=Path(f"./out.{args.encoding}"),
+            fpath_to_client=args.infile,
+            fpath_from_client=args.outfile,
             debug_dir=args.debug_directory,
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
