@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TypeVar
 
 import asyncstdlib as asl
 from wipac_dev_tools import logging_tools
@@ -21,8 +21,8 @@ from .mq import mq
 LOGGER = logging.getLogger("ewms-pilot")
 
 
-class FileEncoding(enum.Enum):
-    """Various field extensions/encodings."""
+class FileType(enum.Enum):
+    """Various file types/extensions."""
 
     PICKLE = "pkl"
     PLAIN_TEXT = "txt"
@@ -31,7 +31,7 @@ class FileEncoding(enum.Enum):
 
 
 class UniversalFileInterface:
-    """Support reading and writing for any `FileEncoding` file extension."""
+    """Support reading and writing for any `FileType` file extension."""
 
     @classmethod
     def write(cls, in_msg: Any, fpath: Path) -> None:
@@ -45,24 +45,24 @@ class UniversalFileInterface:
         LOGGER.debug(in_msg)
 
         # PICKLE
-        if fpath.suffix == FileEncoding.PICKLE.value:
+        if fpath.suffix == FileType.PICKLE.value:
             with open(fpath, "wb") as f:
                 pickle.dump(in_msg, f)
         # PLAIN_TEXT
-        elif fpath.suffix == FileEncoding.PLAIN_TEXT.value:
+        elif fpath.suffix == FileType.PLAIN_TEXT.value:
             with open(fpath, "w") as f:
                 f.write(in_msg)
         # JSON
-        elif fpath.suffix == FileEncoding.JSON.value:
+        elif fpath.suffix == FileType.JSON.value:
             with open(fpath, "w") as f:
                 json.dump(in_msg, f)
         # BINARY
-        elif fpath.suffix == FileEncoding.BINARY.value:
+        elif fpath.suffix == FileType.BINARY.value:
             with open(fpath, "wb") as f:
                 f.write(in_msg)
         # ???
         else:
-            raise ValueError(f"Unsupported file encoding: {fpath.suffix} ({fpath})")
+            raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
 
     @classmethod
     def read(cls, fpath: Path) -> Any:
@@ -77,24 +77,24 @@ class UniversalFileInterface:
         LOGGER.info(f"Reading payload from file @ {fpath}")
 
         # PICKLE
-        if fpath.suffix == FileEncoding.PICKLE.value:
+        if fpath.suffix == FileType.PICKLE.value:
             with open(fpath, "rb") as f:
                 return pickle.load(f)
         # PLAIN_TEXT
-        elif fpath.suffix == FileEncoding.PLAIN_TEXT.value:
+        elif fpath.suffix == FileType.PLAIN_TEXT.value:
             with open(fpath, "r") as f:
                 return f.read()
         # JSON
-        elif fpath.suffix == FileEncoding.JSON.value:
+        elif fpath.suffix == FileType.JSON.value:
             with open(fpath, "r") as f:
                 return json.load(f)
         # BINARY
-        elif fpath.suffix == FileEncoding.BINARY.value:
+        elif fpath.suffix == FileType.BINARY.value:
             with open(fpath, "wb") as f:
                 return f.read()
         # ???
         else:
-            raise ValueError(f"Unsupported file encoding: {fpath.suffix} ({fpath})")
+            raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
 
 
 def write_to_client(
@@ -231,6 +231,14 @@ def main() -> None:
         path.mkdir(parents=True, exist_ok=True)
         return path
 
+    T = TypeVar("T")
+
+    def _validate_arg(val: T, test: bool, exc: Exception) -> T:
+        """Validation `val` by checking `test` and raise `exc` if that is falsy."""
+        if test:
+            return val
+        raise exc
+
     parser = argparse.ArgumentParser(
         description="Start up EWMS Pilot subprocess to perform an MQ task",
         epilog="",
@@ -245,14 +253,22 @@ def main() -> None:
         "--in",
         dest="infile",
         default=Path("./in.pkl"),
-        type=Path,
+        type=lambda x: _validate_arg(
+            Path(x),
+            Path(x).suffix in [e.value for e in FileType],
+            argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
+        ),
         help="which file to write for the client subprocess",
     )
     parser.add_argument(
         "--out",
         dest="outfile",
         default=Path("./out.pkl"),
-        type=Path,
+        type=lambda x: _validate_arg(
+            Path(x),
+            Path(x).suffix in [e.value for e in FileType],
+            argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
+        ),
         help="which file to read from the client subprocess",
     )
 
