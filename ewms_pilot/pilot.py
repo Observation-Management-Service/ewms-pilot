@@ -160,6 +160,13 @@ def main() -> None:
         required=True,
         help="the command to give the subprocess script",
     )
+    parser.add_argument(
+        "-e",
+        "--encoding",
+        default=FileEncoding.PICKLE.value,
+        choices=[e.value for e in FileEncoding],
+        help="which file encoding to use for in- & out-files",
+    )
 
     # mq args
     parser.add_argument(
