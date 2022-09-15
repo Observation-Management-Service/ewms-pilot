@@ -11,10 +11,10 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Callable, Optional, TypeVar
+from typing import Any, Callable, Optional
 
 import asyncstdlib as asl
-from wipac_dev_tools import logging_tools
+from wipac_dev_tools import argparse_tools, logging_tools
 
 from .mq import mq
 
@@ -224,21 +224,6 @@ async def consume_and_reply(
 def main() -> None:
     """Start up EWMS Pilot subprocess to perform an MQ task."""
 
-    def _create_dir(val: str) -> Optional[Path]:
-        if not val:
-            return None
-        path = Path(val)
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-
-    T = TypeVar("T")
-
-    def _validate_arg(val: T, test: bool, exc: Exception) -> T:
-        """Validation `val` by checking `test` and raise `exc` if that is falsy."""
-        if test:
-            return val
-        raise exc
-
     parser = argparse.ArgumentParser(
         description="Start up EWMS Pilot subprocess to perform an MQ task",
         epilog="",
@@ -253,7 +238,7 @@ def main() -> None:
         "--in",
         dest="infile",
         default=Path("./in.pkl"),
-        type=lambda x: _validate_arg(
+        type=lambda x: argparse_tools.validate_arg(
             Path(x),
             Path(x).suffix in [e.value for e in FileType],
             argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
@@ -264,7 +249,7 @@ def main() -> None:
         "--out",
         dest="outfile",
         default=Path("./out.pkl"),
-        type=lambda x: _validate_arg(
+        type=lambda x: argparse_tools.validate_arg(
             Path(x),
             Path(x).suffix in [e.value for e in FileType],
             argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
@@ -320,7 +305,7 @@ def main() -> None:
     parser.add_argument(
         "--debug-directory",
         default="",
-        type=_create_dir,
+        type=argparse_tools.create_dir,
         help="a directory to write all the incoming/outgoing .pkl files "
         "(useful for debugging)",
     )
