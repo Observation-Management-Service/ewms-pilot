@@ -119,7 +119,6 @@ def write_to_client(
 def read_from_client(
     fpath_from_client: Path,
     debug_subdir: Optional[Path],
-    file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
 ) -> Any:
     """Read the msg from the `OUT` file.
@@ -131,11 +130,12 @@ def read_from_client(
         raise RuntimeError("Out file was not written for in-payload")
 
     out_msg = file_reader(fpath_from_client)
-    fpath_from_client.unlink()  # rm
 
     # persist the file?
     if debug_subdir:
-        file_writer(out_msg, debug_subdir / fpath_from_client.name)
+        fpath_from_client.rename(debug_subdir)  # mv
+    else:
+        fpath_from_client.unlink()  # rm
 
     return out_msg
 
@@ -205,9 +205,7 @@ async def consume_and_reply(
                 raise subprocess.CalledProcessError(result.returncode, cmd.split())
 
             # get
-            out_msg = read_from_client(
-                fpath_from_client, debug_subdir, file_writer, file_reader
-            )
+            out_msg = read_from_client(fpath_from_client, debug_subdir, file_reader)
 
             # send
             LOGGER.info("Sending out-payload to server...")
