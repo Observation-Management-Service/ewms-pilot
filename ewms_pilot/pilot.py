@@ -5,6 +5,7 @@ import argparse
 import asyncio
 import enum
 import json
+import logging
 import pickle
 import subprocess
 import sys
@@ -15,7 +16,9 @@ from typing import Any, Callable, Optional
 import asyncstdlib as asl
 from wipac_dev_tools import logging_tools
 
-from . import LOGGER, mq
+from .mq import mq
+
+LOGGER = logging.getLogger("ewms-pilot")
 
 
 class FileEncoding(enum.Enum):
