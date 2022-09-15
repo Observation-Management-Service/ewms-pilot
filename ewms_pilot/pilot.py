@@ -10,7 +10,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import asyncstdlib as asl
 from wipac_dev_tools import logging_tools
@@ -28,14 +28,16 @@ class FileEncoding(enum.Enum):
 
 
 class UniversalFileInterface:
-    """ """
+    """Support reading and writing for any `FileEncoding` file extension."""
 
-    def write(self, in_msg: Any, fpath: Path) -> None:
+    @classmethod
+    def write(cls, in_msg: Any, fpath: Path) -> None:
         """Write `stuff` to `fpath` per `fpath.suffix`."""
-        self._write(in_msg, fpath)
+        cls._write(in_msg, fpath)
         LOGGER.info(f"File Written :: {fpath} ({fpath.stat().st_size} bytes)")
 
-    def _write(self, in_msg: Any, fpath: Path) -> None:
+    @classmethod
+    def _write(cls, in_msg: Any, fpath: Path) -> None:
         LOGGER.info(f"Writing payload to file @ {fpath}")
         LOGGER.debug(in_msg)
 
@@ -59,20 +61,16 @@ class UniversalFileInterface:
         else:
             raise ValueError(f"Unsupported file encoding: {fpath.suffix} ({fpath})")
 
-    def read_rm(self, fpath: Path) -> Any:
-        """Read and return contents of `fpath` per `fpath.suffix`, then rm the file."""
-        msg = self.read(fpath)
-        msg.unlink()
-        return msg
-
-    def read(self, fpath: Path) -> Any:
+    @classmethod
+    def read(cls, fpath: Path) -> Any:
         """Read and return contents of `fpath` per `fpath.suffix`."""
-        msg = self._read(fpath)
+        msg = cls._read(fpath)
         LOGGER.info(f"File Read :: {fpath} ({fpath.stat().st_size} bytes)")
         LOGGER.debug(msg)
         return msg
 
-    def _read(self, fpath: Path) -> Any:
+    @classmethod
+    def _read(cls, fpath: Path) -> Any:
         LOGGER.info(f"Reading payload from file @ {fpath}")
 
         # PICKLE
@@ -96,48 +94,67 @@ class UniversalFileInterface:
             raise ValueError(f"Unsupported file encoding: {fpath.suffix} ({fpath})")
 
 
-def inmsg_to_infile(
-    in_msg_path: Path, in_msg: Any, debug_infile: Optional[Path]
+def write_to_client(
+    fpath_to_client: Path,
+    in_msg: Any,
+    debug_subdir: Optional[Path],
+    file_writer: Callable[[Any, Path], None],
 ) -> Path:
     """Write the msg to the `IN` file.
 
     Also, dump to a file for debugging (if not "").
     """
-    UniversalFileInterface().write(in_msg, in_msg_path)
+    file_writer(in_msg, fpath_to_client)
 
-    if debug_infile:  # for debugging
-        UniversalFileInterface().write(in_msg, debug_infile)
+    # persist the file?
+    if debug_subdir:
+        file_writer(in_msg, debug_subdir / fpath_to_client.name)
 
-    return in_msg_path
+    return fpath_to_client
 
 
-def outfile_to_outmsg(out_msg_path: Path, debug_outfile: Optional[Path]) -> Any:
+def read_from_client(
+    fpath_from_client: Path,
+    debug_subdir: Optional[Path],
+    file_writer: Callable[[Any, Path], None],
+    file_reader: Callable[[Path], Any],
+) -> Any:
     """Read the msg from the `OUT` file.
 
     Also, dump to a file for debugging (if not "").
     """
-    if not out_msg_path.exists():
+    if not fpath_from_client.exists():
         LOGGER.error("Out file was not written for in-payload")
         raise RuntimeError("Out file was not written for in-payload")
 
-    out_msg = UniversalFileInterface().read_rm(out_msg_path)
+    out_msg = file_reader(fpath_from_client)
+    fpath_from_client.unlink()  # rm
 
-    if debug_outfile:  # for debugging
-        UniversalFileInterface().write(out_msg, debug_outfile)
+    # persist the file?
+    if debug_subdir:
+        file_writer(out_msg, debug_subdir / fpath_from_client.name)
 
     return out_msg
 
 
 async def consume_and_reply(
     cmd: str,
+    #
     broker: str,  # for mq
     auth_token: str,  # for mq
     queue_to_clients: str,  # for mq
     queue_from_clients: str,  # for mq
+    #
     timeout_to_clients: int,  # for mq
     timeout_from_clients: int,  # for mq
-    file_encoding: FileEncoding = FileEncoding.PICKLE,
+    #
+    fpath_to_client: Path = Path("./in.pkl"),
+    fpath_from_client: Path = Path("./out.pkl"),
+    #
     debug_dir: Optional[Path] = None,
+    #
+    file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
+    file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses."""
     LOGGER.info("Making MQClient queue connections...")
@@ -163,16 +180,13 @@ async def consume_and_reply(
             LOGGER.info(f"Got a message to process (#{i}): {str(in_msg)}")
 
             # debugging logic
-            debug_infile, debug_outfile = None, None
+            debug_subdir = None
             if debug_dir:
-                debug_time = time.time()
-                debug_infile = debug_dir / f"{debug_time}.in.{file_encoding.value}"
-                debug_outfile = debug_dir / f"{debug_time}.out.{file_encoding.value}"
+                debug_subdir = debug_dir / str(time.time())
+                debug_subdir.mkdir(parents=True, exist_ok=False)
 
             # write
-            inmsg_to_infile(
-                Path(f"./in_msg.{file_encoding.value}"), in_msg, debug_infile
-            )
+            write_to_client(fpath_to_client, in_msg, debug_subdir, file_writer)
 
             # call & check outputs
             LOGGER.info(f"Executing: {cmd.split()}")
@@ -188,8 +202,8 @@ async def consume_and_reply(
                 raise subprocess.CalledProcessError(result.returncode, cmd.split())
 
             # get
-            out_msg = outfile_to_outmsg(
-                Path(f"./out_msg.{file_encoding.value}"), debug_outfile
+            out_msg = read_from_client(
+                fpath_from_client, debug_subdir, file_writer, file_reader
             )
 
             # send
@@ -305,8 +319,11 @@ def main() -> None:
             queue_from_clients=f"from-clients-{args.mq_basename}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
-            file_encoding=FileEncoding(args.encoding),
+            fpath_to_client=Path(f"./in.{args.encoding}"),
+            fpath_from_client=Path(f"./out.{args.encoding}"),
             debug_dir=args.debug_directory,
+            # file_writer=UniversalFileInterface.write,
+            # file_reader=UniversalFileInterface.read,
         )
     )
     LOGGER.info("Done.")
