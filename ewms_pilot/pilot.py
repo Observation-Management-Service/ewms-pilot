@@ -124,7 +124,7 @@ def read_from_client(
 
     # persist the file?
     if debug_subdir:
-        fpath_from_client.rename(debug_subdir)  # mv
+        fpath_from_client.rename(debug_subdir / fpath_from_client.name)  # mv
     else:
         fpath_from_client.unlink()  # rm
 
