@@ -2,6 +2,11 @@ name: wipac ci/cd
 
 on: [push]
 
+
+env:
+  PULSAR_CONTAINER: pulsar_local
+
+
 jobs:
 
   flake8:
@@ -46,6 +51,17 @@ jobs:
       matrix: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v3
+      - name: Start up Pulsar Server Docker Container
+        run: |
+          docker run -i -d --rm \
+              -p 6650:6650 \
+              -p 8080:8080 \
+              --name $PULSAR_CONTAINER apachepulsar/pulsar:2.6.0 /bin/bash \
+              -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
+          export DOCKERIZE_VERSION=v0.3.0
+          wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+          dockerize -wait tcp://localhost:8080 -timeout 1m
+          dockerize -wait tcp://localhost:6650 -timeout 1m
       - uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.py3_versions }}
