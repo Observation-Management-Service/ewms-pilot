@@ -48,7 +48,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+      matrix:
+        version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+        broker: ["", pulsar, rabbitmq, gcp, nats]
     steps:
       - uses: actions/checkout@v3
       - name: Start up Pulsar Server Docker Container
@@ -64,31 +66,11 @@ jobs:
           dockerize -wait tcp://localhost:6650 -timeout 1m
       - uses: actions/setup-python@v3
         with:
-          python-version: ${{ matrix.py3_versions }}
-      - name: Pytest (Default)
+          python-version: ${{ matrix.py3_versions.version }}
+      - name: Pytest
         run: |
           pip install --upgrade pip wheel setuptools pytest
-          pip install .
-          # pytest -vvvv
-      - name: Pytest [Pulsar]
-        run: |
-          pip install --upgrade pip wheel setuptools pytest
-          pip install .[pulsar]
-          # pytest -vvvv
-      - name: Pytest [RabbitMQ]
-        run: |
-          pip install --upgrade pip wheel setuptools pytest
-          pip install .[rabbitmq]
-          # pytest -vvvv
-      - name: Pytest [GCP]
-        run: |
-          pip install --upgrade pip wheel setuptools pytest
-          pip install .[gcp]
-          # pytest -vvvv
-      - name: Pytest [NATS]
-        run: |
-          pip install --upgrade pip wheel setuptools pytest
-          pip install .[nats]
+          pip install .[${{ broker }}]
           # pytest -vvvv
 
   release:
