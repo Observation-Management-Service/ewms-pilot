@@ -70,7 +70,7 @@ jobs:
       - name: Pytest
         run: |
           pip install --upgrade pip wheel setuptools pytest
-          pip install .[${{ broker }}]
+          pip install .[${{ matrix.broker }}]
           # pytest -vvvv
 
   release:
