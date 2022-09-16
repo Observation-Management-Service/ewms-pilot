@@ -134,21 +134,24 @@ def read_from_client(
 async def consume_and_reply(
     cmd: str,
     #
-    broker: str,  # for mq
-    auth_token: str,  # for mq
-    queue_to_clients: str,  # for mq
-    queue_from_clients: str,  # for mq
+    # for mq
+    broker: str,
+    auth_token: str,
     #
-    timeout_to_clients: int,  # for mq
-    timeout_from_clients: int,  # for mq
+    queue_to_clients: str,
+    queue_from_clients: str,
     #
+    timeout_to_clients: int = mq.TIMEOUT_MILLIS_DEFAULT,
+    timeout_from_clients: int = mq.TIMEOUT_MILLIS_DEFAULT,
+    #
+    # for subprocess
     fpath_to_client: Path = Path("./in.pkl"),
     fpath_from_client: Path = Path("./out.pkl"),
     #
-    debug_dir: Optional[Path] = None,
-    #
     file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
     file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
+    #
+    debug_dir: Optional[Path] = None,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses."""
     LOGGER.info("Making MQClient queue connections...")
