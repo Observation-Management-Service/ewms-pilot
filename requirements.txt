@@ -24,7 +24,7 @@ typing-extensions==4.3.0
     # via wipac-dev-tools
 urllib3==1.26.12
     # via requests
-wipac-dev-tools==1.4.0
+wipac-dev-tools==1.5.0
     # via wipac-mqclient-pulsar
 wipac-mqclient==0.5.1
     # via wipac-mqclient-pulsar

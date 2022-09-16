@@ -3,78 +3,152 @@
 
 import argparse
 import asyncio
+import enum
+import json
+import logging
 import pickle
 import subprocess
 import sys
 import time
 from pathlib import Path
-from typing import Any, Optional
+from typing import Any, Callable, Optional
 
 import asyncstdlib as asl
-from wipac_dev_tools import logging_tools
+from wipac_dev_tools import argparse_tools, logging_tools
 
-from . import LOGGER, mq
+from .mq import mq
 
-OUT_PKL = Path("out_msg.pkl")
-IN_PKL = Path("in_msg.pkl")
+LOGGER = logging.getLogger("ewms-pilot")
 
 
-def inmsg_to_infile(in_msg: Any, debug_infile: Optional[Path]) -> Path:
+class FileType(enum.Enum):
+    """Various file types/extensions."""
+
+    PICKLE = "pkl"
+    PLAIN_TEXT = "txt"
+    JSON = "json"
+
+
+class UniversalFileInterface:
+    """Support reading and writing for any `FileType` file extension."""
+
+    @classmethod
+    def write(cls, in_msg: Any, fpath: Path) -> None:
+        """Write `stuff` to `fpath` per `fpath.suffix`."""
+        cls._write(in_msg, fpath)
+        LOGGER.info(f"File Written :: {fpath} ({fpath.stat().st_size} bytes)")
+
+    @classmethod
+    def _write(cls, in_msg: Any, fpath: Path) -> None:
+        LOGGER.info(f"Writing payload to file @ {fpath}")
+        LOGGER.debug(in_msg)
+
+        # PICKLE
+        if fpath.suffix == FileType.PICKLE.value:
+            with open(fpath, "wb") as f:
+                pickle.dump(in_msg, f)
+        # PLAIN_TEXT
+        elif fpath.suffix == FileType.PLAIN_TEXT.value:
+            with open(fpath, "w") as f:
+                f.write(in_msg)
+        # JSON
+        elif fpath.suffix == FileType.JSON.value:
+            with open(fpath, "w") as f:
+                json.dump(in_msg, f)
+        # ???
+        else:
+            raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
+
+    @classmethod
+    def read(cls, fpath: Path) -> Any:
+        """Read and return contents of `fpath` per `fpath.suffix`."""
+        msg = cls._read(fpath)
+        LOGGER.info(f"File Read :: {fpath} ({fpath.stat().st_size} bytes)")
+        LOGGER.debug(msg)
+        return msg
+
+    @classmethod
+    def _read(cls, fpath: Path) -> Any:
+        LOGGER.info(f"Reading payload from file @ {fpath}")
+
+        # PICKLE
+        if fpath.suffix == FileType.PICKLE.value:
+            with open(fpath, "rb") as f:
+                return pickle.load(f)
+        # PLAIN_TEXT
+        elif fpath.suffix == FileType.PLAIN_TEXT.value:
+            with open(fpath, "r") as f:
+                return f.read()
+        # JSON
+        elif fpath.suffix == FileType.JSON.value:
+            with open(fpath, "r") as f:
+                return json.load(f)
+        # ???
+        else:
+            raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
+
+
+def write_to_client(
+    fpath_to_client: Path,
+    in_msg: Any,
+    debug_subdir: Optional[Path],
+    file_writer: Callable[[Any, Path], None],
+) -> Path:
     """Write the msg to the `IN` file.
 
     Also, dump to a file for debugging (if not "").
     """
-    with open(IN_PKL, "wb") as f:
-        LOGGER.info(f"Pickle-dumping in-payload to file: {str(in_msg)} @ {IN_PKL}")
-        pickle.dump(in_msg, f)
-    LOGGER.info(f"Pickle File:: {IN_PKL} ({IN_PKL.stat().st_size} bytes)")
+    file_writer(in_msg, fpath_to_client)
 
-    if debug_infile:  # for debugging
-        with open(debug_infile, "wb") as f:
-            LOGGER.info(
-                f"Pickle-dumping in-payload to file: {str(in_msg)} @ {debug_infile}"
-            )
-            pickle.dump(in_msg, f)
-        LOGGER.info(
-            f"Pickle File:: {debug_infile} ({debug_infile.stat().st_size} bytes)"
-        )
+    # persist the file?
+    if debug_subdir:
+        file_writer(in_msg, debug_subdir / fpath_to_client.name)
 
-    return IN_PKL
+    return fpath_to_client
 
 
-def outfile_to_outmsg(debug_outfile: Optional[Path]) -> Any:
+def read_from_client(
+    fpath_from_client: Path,
+    debug_subdir: Optional[Path],
+    file_reader: Callable[[Path], Any],
+) -> Any:
     """Read the msg from the `OUT` file.
 
     Also, dump to a file for debugging (if not "").
     """
-    with open(OUT_PKL, "rb") as f:
-        out_msg = pickle.load(f)
-        LOGGER.info(f"Pickle-loaded out-payload from file: {str(out_msg)} @ {OUT_PKL}")
-    LOGGER.info(f"Pickle File:: {OUT_PKL} ({OUT_PKL.stat().st_size} bytes)")
-    OUT_PKL.unlink()  # rm
+    if not fpath_from_client.exists():
+        LOGGER.error("Out file was not written for in-payload")
+        raise RuntimeError("Out file was not written for in-payload")
 
-    if debug_outfile:  # for debugging
-        with open(debug_outfile, "wb") as f:
-            LOGGER.info(
-                f"Pickle-dumping out-payload to file: {str(out_msg)} @ {debug_outfile}"
-            )
-            pickle.dump(out_msg, f)
-        LOGGER.info(
-            f"Pickle File:: {debug_outfile} ({debug_outfile.stat().st_size} bytes)"
-        )
+    out_msg = file_reader(fpath_from_client)
+
+    # persist the file?
+    if debug_subdir:
+        fpath_from_client.rename(debug_subdir / fpath_from_client.name)  # mv
+    else:
+        fpath_from_client.unlink()  # rm
 
     return out_msg
 
 
 async def consume_and_reply(
     cmd: str,
+    #
     broker: str,  # for mq
     auth_token: str,  # for mq
     queue_to_clients: str,  # for mq
     queue_from_clients: str,  # for mq
+    #
     timeout_to_clients: int,  # for mq
     timeout_from_clients: int,  # for mq
-    debug_directory: Optional[Path] = None,
+    #
+    fpath_to_client: Path = Path("./in.pkl"),
+    fpath_from_client: Path = Path("./out.pkl"),
+    #
+    debug_dir: Optional[Path] = None,
+    #
+    file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
+    file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses."""
     LOGGER.info("Making MQClient queue connections...")
@@ -100,14 +174,13 @@ async def consume_and_reply(
             LOGGER.info(f"Got a message to process (#{i}): {str(in_msg)}")
 
             # debugging logic
-            debug_infile, debug_outfile = None, None
-            if debug_directory:
-                debug_time = time.time()
-                debug_infile = debug_directory / f"{debug_time}.in.pkl"
-                debug_outfile = debug_directory / f"{debug_time}.out.pkl"
+            debug_subdir = None
+            if debug_dir:
+                debug_subdir = debug_dir / str(time.time())
+                debug_subdir.mkdir(parents=True, exist_ok=False)
 
             # write
-            inmsg_to_infile(in_msg, debug_infile)
+            write_to_client(fpath_to_client, in_msg, debug_subdir, file_writer)
 
             # call & check outputs
             LOGGER.info(f"Executing: {cmd.split()}")
@@ -121,12 +194,9 @@ async def consume_and_reply(
             print(result.stderr, file=sys.stderr)
             if result.returncode != 0:
                 raise subprocess.CalledProcessError(result.returncode, cmd.split())
-            if not OUT_PKL.exists():
-                LOGGER.error("Out file was not written for in-payload")
-                raise RuntimeError("Out file was not written for in-payload")
 
             # get
-            out_msg = outfile_to_outmsg(debug_outfile)
+            out_msg = read_from_client(fpath_from_client, debug_subdir, file_reader)
 
             # send
             LOGGER.info("Sending out-payload to server...")
@@ -143,13 +213,6 @@ async def consume_and_reply(
 def main() -> None:
     """Start up EWMS Pilot subprocess to perform an MQ task."""
 
-    def _create_dir(val: str) -> Optional[Path]:
-        if not val:
-            return None
-        path = Path(val)
-        path.mkdir(parents=True, exist_ok=True)
-        return path
-
     parser = argparse.ArgumentParser(
         description="Start up EWMS Pilot subprocess to perform an MQ task",
         epilog="",
@@ -159,6 +222,28 @@ def main() -> None:
         "--cmd",  # alternatively we can go with a condor-like --executable and --arguments
         required=True,
         help="the command to give the subprocess script",
+    )
+    parser.add_argument(
+        "--in",
+        dest="infile",
+        default=Path("./in.pkl"),
+        type=lambda x: argparse_tools.validate_arg(
+            Path(x),
+            Path(x).suffix in [e.value for e in FileType],
+            argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
+        ),
+        help="which file to write for the client subprocess",
+    )
+    parser.add_argument(
+        "--out",
+        dest="outfile",
+        default=Path("./out.pkl"),
+        type=lambda x: argparse_tools.validate_arg(
+            Path(x),
+            Path(x).suffix in [e.value for e in FileType],
+            argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
+        ),
+        help="which file to read from the client subprocess",
     )
 
     # mq args
@@ -209,7 +294,7 @@ def main() -> None:
     parser.add_argument(
         "--debug-directory",
         default="",
-        type=_create_dir,
+        type=argparse_tools.create_dir,
         help="a directory to write all the incoming/outgoing .pkl files "
         "(useful for debugging)",
     )
@@ -234,7 +319,11 @@ def main() -> None:
             queue_from_clients=f"from-clients-{args.mq_basename}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
-            debug_directory=args.debug_directory,
+            fpath_to_client=args.infile,
+            fpath_from_client=args.outfile,
+            debug_dir=args.debug_directory,
+            # file_writer=UniversalFileInterface.write,
+            # file_reader=UniversalFileInterface.read,
         )
     )
     LOGGER.info("Done.")

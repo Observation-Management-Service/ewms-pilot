@@ -1,36 +1,9 @@
 """Init."""
 
-import logging
 
 from .pilot import consume_and_reply, main
 
-__all__ = ["consume_and_reply", "mq"]
-
-LOGGER = logging.getLogger("ewms-pilot")
-
-# find the installed MQClient package
-try:
-    import mqclient_nats  # type: ignore[import]
-
-    mq = mqclient_nats
-except ImportError:
-    try:
-        import mqclient_rabbitmq  # type: ignore[import]
-
-        mq = mqclient_rabbitmq
-    except ImportError:
-        try:
-            import mqclient_gcp  # type: ignore[import]
-
-            mq = mqclient_gcp
-        except ImportError:
-            try:
-                # Pulsar is the default, so try it last
-                import mqclient_pulsar  # type: ignore[import]
-
-                mq = mqclient_pulsar
-            except ImportError:
-                raise ImportError("No MQClient package installed.")
+__all__ = ["consume_and_reply"]
 
 # version is a human-readable version number.
 __version__ = "0.0.3"
