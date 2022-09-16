@@ -75,7 +75,7 @@ jobs:
           else
             pip install .[${{ matrix.broker }}]
           fi
-          # pytest -vvvv
+          pytest -vvv
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
