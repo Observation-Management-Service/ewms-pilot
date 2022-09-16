@@ -41,14 +41,15 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v1
+        uses: WIPACrepo/wipac-dev-py-versions-action@fix-output-type
 
   tests:
     needs: [py-versions]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+      matrix:
+        version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
         broker: ["", pulsar, rabbitmq, gcp, nats]
     steps:
       - uses: actions/checkout@v3
@@ -65,7 +66,7 @@ jobs:
           dockerize -wait tcp://localhost:6650 -timeout 1m
       - uses: actions/setup-python@v3
         with:
-          python-version: ${{ matrix.py3_versions.version }}
+          python-version: ${{ matrix.version }}
       - name: Pytest
         run: |
           pip install --upgrade pip wheel setuptools pytest
