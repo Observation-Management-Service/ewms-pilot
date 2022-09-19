@@ -17,6 +17,7 @@ import asyncstdlib as asl
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .mq import mq
+from .mq.mq.queue.mqclient.backend_interface import TIMEOUT_MILLIS_DEFAULT
 
 LOGGER = logging.getLogger("ewms-pilot")
 
@@ -141,8 +142,8 @@ async def consume_and_reply(
     queue_to_clients: str,
     queue_from_clients: str,
     #
-    timeout_to_clients: int = mq.TIMEOUT_MILLIS_DEFAULT,
-    timeout_from_clients: int = mq.TIMEOUT_MILLIS_DEFAULT,
+    timeout_to_clients: int = TIMEOUT_MILLIS_DEFAULT,
+    timeout_from_clients: int = TIMEOUT_MILLIS_DEFAULT,
     #
     # for subprocess
     fpath_to_client: Path = Path("./in.pkl"),
