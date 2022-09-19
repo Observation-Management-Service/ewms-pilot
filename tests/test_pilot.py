@@ -3,13 +3,29 @@
 from pathlib import Path
 
 import asyncstdlib as asl
+import pytest
 from ewms_pilot import consume_and_reply
 from ewms_pilot.mq import mq
 
 BROKER = "localhost"
 
 
-async def test_(queue_to_clients: str, queue_from_clients: str) -> None:
+@pytest.fixture
+def queue_to_clients() -> str:
+    """Get the name of a queue for talking to client(s)."""
+    return mq.Queue.make_name()
+
+
+@pytest.fixture
+def queue_from_clients() -> str:
+    """Get the name of a queue for talking "from" client(s)."""
+    return mq.Queue.make_name()
+
+
+async def test_(
+    queue_to_clients: str,  # pylint: disable=redefined-outer-name
+    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+) -> None:
     """Test... something"""
 
     # populate queue
