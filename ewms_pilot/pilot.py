@@ -312,7 +312,7 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # GO!
-    LOGGER.info(f"Starting up an EWMS Pilot for MQ task: {args.mq_basename=}")
+    LOGGER.info(f"Starting up an EWMS Pilot for MQ task: {args.mq_basename} (basename)")
     asyncio.get_event_loop().run_until_complete(
         consume_and_reply(
             cmd=args.cmd,
