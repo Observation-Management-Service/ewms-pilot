@@ -27,15 +27,16 @@ async def test_(
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
 ) -> None:
     """Test... something"""
+    out_messages = [1, 2, 3, 4, 5]
 
     # populate queue
-    msgs_sent = 0
+    n_sent = 0
     to_client_q = mq.Queue(address=BROKER, name=queue_to_clients)
     async with to_client_q.open_pub() as pub:
-        for out_msg in [1, 2, 3, 4, 5]:
-            await pub.send(out_msg)
-            msgs_sent += 1
-    assert msgs_sent
+        for msg in out_messages:
+            await pub.send(msg)
+            n_sent += 1
+    assert n_sent == len(out_messages)
 
     # call consume_and_reply
     await consume_and_reply(
@@ -52,12 +53,10 @@ async def test_(
     )
 
     # assert results
-    msgs_received = 0
+    n_received = 0
     from_client_q = mq.Queue(address=BROKER, name=queue_from_clients)
     async with from_client_q.open_sub() as sub:
-        async for i, in_msg in asl.enumerate(sub):
-            print(f"{i}: {in_msg}")
-            msgs_received += 1
-    assert msgs_received
-
-    assert msgs_sent == msgs_received
+        async for i, msg in asl.enumerate(sub):
+            print(f"{i}: {msg}")
+            n_received += 1
+    assert n_received == len(out_messages)
