@@ -1,5 +1,9 @@
 """Logic for getting the installed MWClient broker/backend API."""
 
+from types import ModuleType
+
+mq: ModuleType
+
 # find the installed MQClient package
 try:
     import mqclient_nats  # type: ignore[import]
