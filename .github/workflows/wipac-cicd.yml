@@ -33,7 +33,7 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - uses: WIPACrepo/wipac-dev-py-setup-action@extras
           with:
-              base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Managment Service"
+            base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Managment Service"
 
   py-versions:
     needs: [py-setup]
