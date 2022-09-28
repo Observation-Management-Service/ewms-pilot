@@ -23,9 +23,9 @@ LOGGER = logging.getLogger("ewms-pilot")
 class FileType(enum.Enum):
     """Various file types/extensions."""
 
-    PICKLE = "pkl"
-    PLAIN_TEXT = "txt"
-    JSON = "json"
+    PICKLE = ".pkl"
+    PLAIN_TEXT = ".txt"
+    JSON = ".json"
 
 
 class UniversalFileInterface:
