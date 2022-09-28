@@ -14,9 +14,8 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import asyncstdlib as asl
+import wipac_mqclient as mq
 from wipac_dev_tools import argparse_tools, logging_tools
-
-from .mq import mq
 
 LOGGER = logging.getLogger("ewms-pilot")
 
@@ -135,14 +134,15 @@ async def consume_and_reply(
     cmd: str,
     #
     # for mq
-    broker: str,
+    broker_client: str,
+    broker_address: str,
     auth_token: str,
     #
     queue_to_clients: str,
     queue_from_clients: str,
     #
-    timeout_to_clients: int = mq.queue.mqclient.backend_interface.TIMEOUT_MILLIS_DEFAULT,
-    timeout_from_clients: int = mq.queue.mqclient.backend_interface.TIMEOUT_MILLIS_DEFAULT,
+    timeout_to_clients: int = mq.broker_client_interface.TIMEOUT_MILLIS_DEFAULT,
+    timeout_from_clients: int = mq.broker_client_interface.TIMEOUT_MILLIS_DEFAULT,
     #
     # for subprocess
     fpath_to_client: Path = Path("./in.pkl"),
@@ -157,14 +157,16 @@ async def consume_and_reply(
     LOGGER.info("Making MQClient queue connections...")
     except_errors = False  # if there's an error, have the cluster try again (probably a system error)
     in_queue = mq.Queue(
-        address=broker,
+        broker_client,
+        address=broker_address,
         name=queue_to_clients,
         auth_token=auth_token,
         except_errors=except_errors,
         timeout=timeout_to_clients,
     )
     out_queue = mq.Queue(
-        address=broker,
+        broker_client,
+        address=broker_address,
         name=queue_from_clients,
         auth_token=auth_token,
         except_errors=except_errors,
@@ -256,6 +258,12 @@ def main() -> None:
         help="base identifier to correspond to a task for its MQ incoming & outgoing connections",
     )
     parser.add_argument(
+        "--broker-client",
+        default="pulsar",
+        choices=["pulsar", "rabbitmq", "nats", "gcp"],
+        help="which kind of broker",
+    )
+    parser.add_argument(
         "-b",
         "--broker",
         required=True,
@@ -316,7 +324,8 @@ def main() -> None:
     asyncio.get_event_loop().run_until_complete(
         consume_and_reply(
             cmd=args.cmd,
-            broker=args.broker,
+            broker_client=args.broker_client,
+            broker_address=args.broker,
             auth_token=args.auth_token,
             queue_to_clients=f"to-clients-{args.mq_basename}",
             queue_from_clients=f"from-clients-{args.mq_basename}",
