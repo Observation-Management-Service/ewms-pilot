@@ -191,7 +191,7 @@ async def consume_and_reply(
             # call & check outputs
             LOGGER.info(f"Executing: {shlex.split(cmd)}")
             result = subprocess.run(
-                cmd.split(),
+                shlex.split(cmd),
                 capture_output=True,
                 check=False,
                 text=True,
@@ -199,7 +199,7 @@ async def consume_and_reply(
             print(result.stdout)
             print(result.stderr, file=sys.stderr)
             if result.returncode != 0:
-                raise subprocess.CalledProcessError(result.returncode, cmd.split())
+                raise subprocess.CalledProcessError(result.returncode, shlex.split(cmd))
 
             # get
             out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)

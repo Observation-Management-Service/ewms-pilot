@@ -58,7 +58,7 @@ async def test_(
 
     # call consume_and_reply
     await consume_and_reply(
-        cmd="cat in.txt in.txt > out.txt",  # double cat
+        cmd="""python3 -c "print(open('in.txt').read() * 2, file=open('out.txt','w'))" """,  # double cat
         broker_client=BROKER_CLIENT,
         broker_address=BROKER_ADDRESS,
         auth_token="",
