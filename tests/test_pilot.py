@@ -9,6 +9,7 @@ import pytest
 from ewms_pilot import consume_and_reply
 
 BROKER_ADDRESS = "localhost"
+BROKER_CLIENT = os.getenv("BROKER_CLIENT", "")
 
 
 @pytest.fixture
@@ -32,7 +33,7 @@ async def test_(
 
     # populate queue
     to_client_q = mq.Queue(
-        os.getenv("BROKER_CLIENT"),
+        BROKER_CLIENT,
         address=BROKER_ADDRESS,
         name=queue_to_clients,
     )
@@ -46,7 +47,7 @@ async def test_(
     # call consume_and_reply
     await consume_and_reply(
         cmd="TODO",
-        broker_client=os.getenv("BROKER_CLIENT"),
+        broker_client=BROKER_CLIENT,
         broker_address=BROKER_ADDRESS,
         auth_token="",
         queue_to_clients=queue_to_clients,
@@ -60,7 +61,7 @@ async def test_(
 
     # assert results
     from_client_q = mq.Queue(
-        os.getenv("BROKER_CLIENT"),
+        BROKER_CLIENT,
         address=BROKER_ADDRESS,
         name=queue_from_clients,
     )
