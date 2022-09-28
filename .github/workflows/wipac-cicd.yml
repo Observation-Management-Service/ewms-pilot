@@ -66,20 +66,24 @@ jobs:
           # Pulsar
           if [ -z "${{ matrix.broker }}" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
             wget https://github.com/WIPACrepo/MQClient/blob/master/resources/docker-pulsar.sh
+            chmod +x ./docker-pulsar.sh
             ./docker-pulsar.sh
           fi
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
             wget https://github.com/WIPACrepo/MQClient/blob/master/resources/docker-rabbitmq.sh
+            chmod +x ./docker-rabbitmq.sh
             ./docker-rabbitmq.sh
           # GCP
           elif [ "${{ matrix.broker }}" = "gcp" ]; then
             wget https://github.com/WIPACrepo/MQClient/blob/master/resources/local-gcp-emulator.sh
             export PUBSUB_EMULATOR_HOST=localhost:8085
+            chmod +x ./local-gcp-emulator.sh
             ./local-gcp-emulator.sh
           # NATS
           elif [ "${{ matrix.broker }}" = "nats" ]; then
             wget https://github.com/WIPACrepo/MQClient/blob/master/resources/local-nats-js.sh
+            chmod +x ./local-nats-js.sh
             ./local-nats-js.sh
           fi
 
