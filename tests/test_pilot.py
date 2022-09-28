@@ -1,13 +1,14 @@
 """Test pilot submodule."""
 
+import os
 from pathlib import Path
 
 import asyncstdlib as asl
 import pytest
+import wipac_mqclient as mq
 from ewms_pilot import consume_and_reply
-from ewms_pilot.mq import mq
 
-BROKER = "localhost"
+BROKER_ADDRESS = "localhost"
 
 
 @pytest.fixture
@@ -30,8 +31,12 @@ async def test_(
     out_messages = [1, 2, 3, 4, 5]
 
     # populate queue
+    to_client_q = mq.Queue(
+        os.getenv("BROKER_CLIENT"),
+        address=BROKER_ADDRESS,
+        name=queue_to_clients,
+    )
     n_sent = 0
-    to_client_q = mq.Queue(address=BROKER, name=queue_to_clients)
     async with to_client_q.open_pub() as pub:
         for msg in out_messages:
             await pub.send(msg)
@@ -41,7 +46,8 @@ async def test_(
     # call consume_and_reply
     await consume_and_reply(
         cmd="TODO",
-        broker=BROKER,
+        broker_client=os.getenv("BROKER_CLIENT"),
+        broker_address=BROKER_ADDRESS,
         auth_token="",
         queue_to_clients=queue_to_clients,
         queue_from_clients=queue_from_clients,
@@ -53,8 +59,12 @@ async def test_(
     )
 
     # assert results
+    from_client_q = mq.Queue(
+        os.getenv("BROKER_CLIENT"),
+        address=BROKER_ADDRESS,
+        name=queue_from_clients,
+    )
     n_received = 0
-    from_client_q = mq.Queue(address=BROKER, name=queue_from_clients)
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
