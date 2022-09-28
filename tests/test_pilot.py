@@ -39,7 +39,8 @@ async def test_(
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test... something"""
-    out_messages = ["foo", "bar", "baz"]
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_from_subproc = ["111", "222", "333"]
 
     # populate queue
     to_client_q = mq.Queue(
@@ -49,14 +50,14 @@ async def test_(
     )
     n_sent = 0
     async with to_client_q.open_pub() as pub:
-        for msg in out_messages:
+        for msg in msgs_to_subproc:
             await pub.send(msg)
             n_sent += 1
-    assert n_sent == len(out_messages)
+    assert n_sent == len(msgs_to_subproc)
 
     # call consume_and_reply
     await consume_and_reply(
-        cmd="TODO",
+        cmd="date +%s",
         broker_client=BROKER_CLIENT,
         broker_address=BROKER_ADDRESS,
         auth_token="",
@@ -75,9 +76,10 @@ async def test_(
         address=BROKER_ADDRESS,
         name=queue_from_clients,
     )
-    n_received = 0
+    received = []
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
-            n_received += 1
-    assert n_received == len(out_messages)
+            received += msg
+    assert len(received) == len(msgs_to_subproc)
+    assert set(received) == set(msgs_from_subproc)
