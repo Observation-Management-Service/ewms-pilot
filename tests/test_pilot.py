@@ -4,8 +4,8 @@ import os
 from pathlib import Path
 
 import asyncstdlib as asl
+import mqclient as mq
 import pytest
-import wipac_mqclient as mq
 from ewms_pilot import consume_and_reply
 
 BROKER_ADDRESS = "localhost"

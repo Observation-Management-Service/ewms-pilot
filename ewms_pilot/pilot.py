@@ -14,7 +14,7 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import asyncstdlib as asl
-import wipac_mqclient as mq
+import mqclient as mq
 from wipac_dev_tools import argparse_tools, logging_tools
 
 LOGGER = logging.getLogger("ewms-pilot")
