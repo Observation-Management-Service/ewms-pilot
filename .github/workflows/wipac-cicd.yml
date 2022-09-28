@@ -55,32 +55,47 @@ jobs:
         broker: ["", pulsar, rabbitmq, gcp, nats]
     steps:
       - uses: actions/checkout@v3
-      - name: Start up Broker Docker Container
-        run: |
-          # Pulsar
-          if [ -z "${{ matrix.broker }}" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
-            docker run -i -d --rm \
-                -p 6650:6650 \
-                -p 8080:8080 \
-                --name $PULSAR_CONTAINER apachepulsar/pulsar:2.6.0 /bin/bash \
-                -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone"
-            export DOCKERIZE_VERSION=v0.3.0
-            wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-            dockerize -wait tcp://localhost:8080 -timeout 1m
-            dockerize -wait tcp://localhost:6650 -timeout 1m
-          # elif
-          fi
       - uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.version }}
-      - name: Pytest
+      - name: Integrate
         run: |
+          echo "--------------------------------------------------------------"
+          echo "starting broker..."
+
+          # Pulsar
+          if [ -z "${{ matrix.broker }}" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
+            wget https://github.com/WIPACrepo/MQClient/blob/master/resources/docker-pulsar.sh
+            ./docker-pulsar.sh
+          fi
+          # RabbitMQ
+          elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
+            wget https://github.com/WIPACrepo/MQClient/blob/master/resources/docker-rabbitmq.sh
+            ./docker-rabbitmq.sh
+          # GCP
+          elif [ "${{ matrix.broker }}" = "gcp" ]; then
+            wget https://github.com/WIPACrepo/MQClient/blob/master/resources/local-gcp-emulator.sh
+            export PUBSUB_EMULATOR_HOST=localhost:8085
+            ./local-gcp-emulator.sh
+          # NATS
+          elif [ "${{ matrix.broker }}" = "nats" ]; then
+            wget https://github.com/WIPACrepo/MQClient/blob/master/resources/local-nats-js.sh
+            ./local-nats-js.sh
+          fi
+
+          echo "--------------------------------------------------------------"
+          echo "waiting for broker..."
+          sleep 15
+
+          echo "--------------------------------------------------------------"
+          echo "running tets..."
+
           pip install --upgrade pip wheel setuptools pytest
           if [ -z "${{ matrix.broker }}" ]; then
-            export BROKER_CLIENT=pulsar
+            export broker=pulsar
             pip install .[test]
           else
-            export BROKER_CLIENT=${{ matrix.broker }}
+            export broker=${{ matrix.broker }}
             pip install .[test,${{ matrix.broker }}]
           fi
           pytest -vvv
