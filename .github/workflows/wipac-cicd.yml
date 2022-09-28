@@ -68,7 +68,6 @@ jobs:
             wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/docker-pulsar.sh
             chmod +x ./docker-pulsar.sh
             ./docker-pulsar.sh
-          fi
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
             wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/docker-rabbitmq.sh
