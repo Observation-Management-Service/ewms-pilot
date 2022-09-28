@@ -7,6 +7,7 @@ import enum
 import json
 import logging
 import pickle
+import shlex
 import subprocess
 import sys
 import time
@@ -188,7 +189,7 @@ async def consume_and_reply(
             write_to_subproc(fpath_to_subproc, in_msg, debug_subdir, file_writer)
 
             # call & check outputs
-            LOGGER.info(f"Executing: {cmd.split()}")
+            LOGGER.info(f"Executing: {shlex.split(cmd)}")
             result = subprocess.run(
                 cmd.split(),
                 capture_output=True,
