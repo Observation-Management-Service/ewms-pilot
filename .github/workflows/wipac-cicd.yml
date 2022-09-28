@@ -77,8 +77,10 @@ jobs:
         run: |
           pip install --upgrade pip wheel setuptools pytest
           if [ -z "${{ matrix.broker }}" ]; then
+            export BROKER_CLIENT=pulsar
             pip install .[test]
           else
+            export BROKER_CLIENT=${{ matrix.broker }}
             pip install .[test,${{ matrix.broker }}]
           fi
           pytest -vvv
