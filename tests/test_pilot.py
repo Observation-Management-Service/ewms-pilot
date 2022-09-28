@@ -1,6 +1,7 @@
 """Test pilot submodule."""
 
 import os
+import time
 from pathlib import Path
 
 import asyncstdlib as asl
@@ -24,9 +25,18 @@ def queue_from_clients() -> str:
     return mq.Queue.make_name()
 
 
+@pytest.fixture
+def debug_dir() -> Path:
+    """Make a unique debug directory and return its Path."""
+    dirpath = Path(f"./debug-dir/{time.time()}")
+    dirpath.mkdir(parents=True)
+    return dirpath
+
+
 async def test_(
     queue_to_clients: str,  # pylint: disable=redefined-outer-name
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test... something"""
     out_messages = ["foo", "bar", "baz"]
@@ -56,7 +66,7 @@ async def test_(
         fpath_from_client=Path("out.txt"),  # TODO in diff test
         # file_writer=UniversalFileInterface.write, # TODO in diff test
         # file_reader=UniversalFileInterface.read, # TODO in diff test
-        debug_dir=Path("./TODO/"),  # TODO
+        debug_dir=debug_dir,
     )
 
     # assert results
