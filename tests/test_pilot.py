@@ -40,7 +40,7 @@ async def test_(
 ) -> None:
     """Test... something"""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["111", "222", "333"]
+    msgs_from_subproc = ["foo\nfoo\n", "bar\nbar\n", "baz\nbaz\n"]
 
     # populate queue
     to_client_q = mq.Queue(
@@ -57,7 +57,7 @@ async def test_(
 
     # call consume_and_reply
     await consume_and_reply(
-        cmd="date +%s",
+        cmd="cat in.txt in.txt > out.txt",  # double cat
         broker_client=BROKER_CLIENT,
         broker_address=BROKER_ADDRESS,
         auth_token="",
