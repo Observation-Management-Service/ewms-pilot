@@ -3,6 +3,7 @@
 import os
 import time
 from pathlib import Path
+from typing import List
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -76,7 +77,7 @@ async def test_(
         address=BROKER_ADDRESS,
         name=queue_from_clients,
     )
-    received = []
+    received: List[str] = []
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
