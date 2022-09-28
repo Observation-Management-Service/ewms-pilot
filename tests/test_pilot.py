@@ -29,7 +29,7 @@ async def test_(
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
 ) -> None:
     """Test... something"""
-    out_messages = [1, 2, 3, 4, 5]
+    out_messages = ["foo", "bar", "baz"]
 
     # populate queue
     to_client_q = mq.Queue(
