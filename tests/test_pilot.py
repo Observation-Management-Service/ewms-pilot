@@ -63,8 +63,8 @@ async def test_(
         auth_token="",
         queue_to_clients=queue_to_clients,
         queue_from_clients=queue_from_clients,
-        fpath_to_client=Path("in.txt"),  # TODO in diff test
-        fpath_from_client=Path("out.txt"),  # TODO in diff test
+        fpath_to_subproc=Path("in.txt"),  # TODO in diff test
+        fpath_from_subproc=Path("out.txt"),  # TODO in diff test
         # file_writer=UniversalFileInterface.write, # TODO in diff test
         # file_reader=UniversalFileInterface.read, # TODO in diff test
         debug_dir=debug_dir,

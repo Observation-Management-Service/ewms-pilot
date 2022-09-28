@@ -87,8 +87,8 @@ class UniversalFileInterface:
             raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
 
 
-def write_to_client(
-    fpath_to_client: Path,
+def write_to_subproc(
+    fpath_to_subproc: Path,
     in_msg: Any,
     debug_subdir: Optional[Path],
     file_writer: Callable[[Any, Path], None],
@@ -97,17 +97,17 @@ def write_to_client(
 
     Also, dump to a file for debugging (if not "").
     """
-    file_writer(in_msg, fpath_to_client)
+    file_writer(in_msg, fpath_to_subproc)
 
     # persist the file?
     if debug_subdir:
-        file_writer(in_msg, debug_subdir / fpath_to_client.name)
+        file_writer(in_msg, debug_subdir / fpath_to_subproc.name)
 
-    return fpath_to_client
+    return fpath_to_subproc
 
 
-def read_from_client(
-    fpath_from_client: Path,
+def read_from_subproc(
+    fpath_from_subproc: Path,
     debug_subdir: Optional[Path],
     file_reader: Callable[[Path], Any],
 ) -> Any:
@@ -115,17 +115,17 @@ def read_from_client(
 
     Also, dump to a file for debugging (if not "").
     """
-    if not fpath_from_client.exists():
+    if not fpath_from_subproc.exists():
         LOGGER.error("Out file was not written for in-payload")
         raise RuntimeError("Out file was not written for in-payload")
 
-    out_msg = file_reader(fpath_from_client)
+    out_msg = file_reader(fpath_from_subproc)
 
     # persist the file?
     if debug_subdir:
-        fpath_from_client.rename(debug_subdir / fpath_from_client.name)  # mv
+        fpath_from_subproc.rename(debug_subdir / fpath_from_subproc.name)  # mv
     else:
-        fpath_from_client.unlink()  # rm
+        fpath_from_subproc.unlink()  # rm
 
     return out_msg
 
@@ -145,8 +145,8 @@ async def consume_and_reply(
     timeout_from_clients: int = mq.broker_client_interface.TIMEOUT_MILLIS_DEFAULT,
     #
     # for subprocess
-    fpath_to_client: Path = Path("./in.pkl"),
-    fpath_from_client: Path = Path("./out.pkl"),
+    fpath_to_subproc: Path = Path("./in.pkl"),
+    fpath_from_subproc: Path = Path("./out.pkl"),
     #
     file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
     file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
@@ -185,7 +185,7 @@ async def consume_and_reply(
                 debug_subdir.mkdir(parents=True, exist_ok=False)
 
             # write
-            write_to_client(fpath_to_client, in_msg, debug_subdir, file_writer)
+            write_to_subproc(fpath_to_subproc, in_msg, debug_subdir, file_writer)
 
             # call & check outputs
             LOGGER.info(f"Executing: {cmd.split()}")
@@ -201,7 +201,7 @@ async def consume_and_reply(
                 raise subprocess.CalledProcessError(result.returncode, cmd.split())
 
             # get
-            out_msg = read_from_client(fpath_from_client, debug_subdir, file_reader)
+            out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
 
             # send
             LOGGER.info("Sending out-payload to server...")
@@ -237,7 +237,7 @@ def main() -> None:
             Path(x).suffix in [e.value for e in FileType],
             argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
         ),
-        help="which file to write for the client subprocess",
+        help="which file to write for the client/pilot's subprocess",
     )
     parser.add_argument(
         "--out",
@@ -248,7 +248,7 @@ def main() -> None:
             Path(x).suffix in [e.value for e in FileType],
             argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
         ),
-        help="which file to read from the client subprocess",
+        help="which file to read from the client/pilot's subprocess",
     )
 
     # mq args
@@ -331,8 +331,8 @@ def main() -> None:
             queue_from_clients=f"from-clients-{args.mq_basename}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
-            fpath_to_client=args.infile,
-            fpath_from_client=args.outfile,
+            fpath_to_subproc=args.infile,
+            fpath_from_subproc=args.outfile,
             debug_dir=args.debug_directory,
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
