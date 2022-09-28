@@ -36,7 +36,6 @@ jobs:
           base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Managment Service"
 
   py-versions:
-    needs: [py-setup]
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
