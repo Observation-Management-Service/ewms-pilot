@@ -8,7 +8,7 @@ asyncstdlib==3.10.5
     # via ewms-pilot (setup.py)
 cachetools==5.2.0
     # via google-auth
-certifi==2022.9.14
+certifi==2022.9.24
     # via
     #   pulsar-client
     #   requests
@@ -17,28 +17,28 @@ charset-normalizer==2.1.1
 google-api-core[grpc]==2.10.1
     # via
     #   google-cloud-pubsub
-    #   wipac-mqclient-gcp
-google-auth==2.11.1
+    #   wipac-mqclient
+google-auth==2.12.0
     # via
     #   google-api-core
-    #   wipac-mqclient-gcp
-google-cloud-pubsub==2.13.6
-    # via wipac-mqclient-gcp
+    #   wipac-mqclient
+google-cloud-pubsub==2.13.7
+    # via wipac-mqclient
 googleapis-common-protos[grpc]==1.56.4
     # via
     #   google-api-core
     #   grpc-google-iam-v1
     #   grpcio-status
-    #   wipac-mqclient-gcp
+    #   wipac-mqclient
 grpc-google-iam-v1==0.12.4
     # via google-cloud-pubsub
-grpcio==1.48.1
+grpcio==1.49.1
     # via
     #   google-api-core
     #   google-cloud-pubsub
     #   grpc-google-iam-v1
     #   grpcio-status
-grpcio-status==1.48.1
+grpcio-status==1.49.1
     # via
     #   google-api-core
     #   google-cloud-pubsub
@@ -54,7 +54,7 @@ protobuf==4.21.6
     #   grpcio-status
     #   proto-plus
 pulsar-client==2.10.1
-    # via wipac-mqclient-pulsar
+    # via wipac-mqclient
 pyasn1==0.4.8
     # via
     #   pyasn1-modules
@@ -76,13 +76,7 @@ typing-extensions==4.3.0
     # via wipac-dev-tools
 urllib3==1.26.12
     # via requests
-wipac-dev-tools==1.5.0
-    # via wipac-mqclient-pulsar
-wipac-mqclient==0.5.1
-    # via
-    #   wipac-mqclient-gcp
-    #   wipac-mqclient-pulsar
-wipac-mqclient-gcp==0.4.0
-    # via ewms-pilot (setup.py)
-wipac-mqclient-pulsar==0.4.4
+wipac-dev-tools==1.5.1
+    # via wipac-mqclient
+wipac-mqclient[gcp,pulsar]==0.6.0
     # via ewms-pilot (setup.py)
