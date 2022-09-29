@@ -79,6 +79,7 @@ jobs:
             export PUBSUB_EMULATOR_HOST=localhost:8085
             chmod +x ./local-gcp-emulator.sh
             ./local-gcp-emulator.sh
+            sleep 30  # gcp takes a while to launch...
           # NATS
           elif [ "${{ matrix.broker }}" = "nats" ]; then
             wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/local-nats-js.sh
