@@ -41,7 +41,7 @@ async def test_(
 ) -> None:
     """Test... something"""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["foofoo", "barbar", "bazbaz"]
+    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     # populate queue
     to_client_q = mq.Queue(
