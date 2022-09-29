@@ -58,14 +58,14 @@ async def test_txt(
     await consume_and_reply(
         cmd="""python3 -c "
 output = open('in.txt').read().strip() * 2;
-print(output, file=open('out.txt','w'))" """,  # double cat
+print(output, file=open('out.txt','w'))" """.replace('\n',' '),  # double cat
         broker_client=BROKER_CLIENT,
         broker_address=BROKER_ADDRESS,
         auth_token="",
         queue_to_clients=queue_to_clients,
         queue_from_clients=queue_from_clients,
-        fpath_to_subproc=Path("in.txt"),  # TODO in diff test
-        fpath_from_subproc=Path("out.txt"),  # TODO in diff test
+        fpath_to_subproc=Path("in.txt"),
+        fpath_from_subproc=Path("out.txt"),
         # file_writer=UniversalFileInterface.write, # TODO in diff test
         # file_reader=UniversalFileInterface.read, # TODO in diff test
         debug_dir=debug_dir,
