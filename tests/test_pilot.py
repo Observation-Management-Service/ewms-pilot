@@ -34,12 +34,12 @@ def debug_dir() -> Path:
     return dirpath
 
 
-async def test_(
+async def test_txt(
     queue_to_clients: str,  # pylint: disable=redefined-outer-name
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
-    """Test... something"""
+    """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
@@ -49,16 +49,16 @@ async def test_(
         address=BROKER_ADDRESS,
         name=queue_to_clients,
     )
-    n_sent = 0
     async with to_client_q.open_pub() as pub:
-        for msg in msgs_to_subproc:
+        for i, msg in enumerate(msgs_to_subproc):
             await pub.send(msg)
-            n_sent += 1
-    assert n_sent == len(msgs_to_subproc)
+    assert i+1 == len(msgs_to_subproc)
 
     # call consume_and_reply
     await consume_and_reply(
-        cmd="""python3 -c "print(open('in.txt').read().strip() * 2, file=open('out.txt','w'))" """,  # double cat
+        cmd="""python3 -c "
+output = open('in.txt').read().strip() * 2;
+print(output, file=open('out.txt','w'))" """,  # double cat
         broker_client=BROKER_CLIENT,
         broker_address=BROKER_ADDRESS,
         auth_token="",
