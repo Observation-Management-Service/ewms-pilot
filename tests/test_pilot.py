@@ -53,7 +53,7 @@ async def test_txt(
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
             await pub.send(msg)
-    assert i+1 == len(msgs_to_subproc)
+    assert i + 1 == len(msgs_to_subproc)
 
     # call consume_and_reply
     await consume_and_reply(
@@ -94,8 +94,8 @@ async def test_json(
 ) -> None:
     """Test a normal .json-based pilot."""
     # some messages that would make sense json'ing
-    msgs_to_subproc = [{'attr-0':v} for v in ["foo", "bar", "baz"]]
-    msgs_from_subproc = [{'attr-a':v, 'attr-b':v+v} for v in ["foo", "bar", "baz"]]
+    msgs_to_subproc = [{"attr-0": v} for v in ["foo", "bar", "baz"]]
+    msgs_from_subproc = [{"attr-a": v, "attr-b": v + v} for v in ["foo", "bar", "baz"]]
 
     # populate queue
     to_client_q = mq.Queue(
@@ -106,7 +106,7 @@ async def test_json(
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
             await pub.send(msg)
-    assert i+1 == len(msgs_to_subproc)
+    assert i + 1 == len(msgs_to_subproc)
 
     # call consume_and_reply
     await consume_and_reply(
@@ -151,7 +151,7 @@ async def test_pickle(
     """Test a normal .pkl-based pilot."""
     # some messages that would make sense pickling
     msgs_to_subproc = [date(1995, 12, 3), date(2022, 9, 29), date(2063, 4, 5)]
-    msgs_from_subproc = [d+timedelta(days=1) for d in msgs_to_subproc]
+    msgs_from_subproc = [d + timedelta(days=1) for d in msgs_to_subproc]
 
     # populate queue
     to_client_q = mq.Queue(
@@ -162,7 +162,7 @@ async def test_pickle(
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
             await pub.send(msg)
-    assert i+1 == len(msgs_to_subproc)
+    assert i + 1 == len(msgs_to_subproc)
 
     # call consume_and_reply
     await consume_and_reply(
@@ -197,4 +197,3 @@ pickle.dump(output, open('out.pkl','wb'))" """,
             received.append(msg)
     assert len(received) == len(msgs_to_subproc)
     assert set(received) == set(msgs_from_subproc)
-
