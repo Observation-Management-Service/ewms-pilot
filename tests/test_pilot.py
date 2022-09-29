@@ -86,6 +86,7 @@ print(output, file=open('out.txt','w'))" """,  # double cat
     assert len(received) == len(msgs_to_subproc)
     assert set(received) == set(msgs_from_subproc)
 
+
 async def test_json(
     queue_to_clients: str,  # pylint: disable=redefined-outer-name
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
@@ -140,6 +141,7 @@ json.dump(output, open('out.json','w'))" """,
             received.append(msg)
     assert len(received) == len(msgs_to_subproc)
     assert set(received) == set(msgs_from_subproc)
+
 
 async def test_pickle(
     queue_to_clients: str,  # pylint: disable=redefined-outer-name
