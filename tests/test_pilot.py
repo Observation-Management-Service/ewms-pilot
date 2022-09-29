@@ -81,6 +81,6 @@ async def test_(
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
-            received += msg
+            received.append(msg)
     assert len(received) == len(msgs_to_subproc)
     assert set(received) == set(msgs_from_subproc)
