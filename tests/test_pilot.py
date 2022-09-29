@@ -133,7 +133,7 @@ json.dump(output, open('out.json','w'))" """,
         address=BROKER_ADDRESS,
         name=queue_from_clients,
     )
-    received: List[str] = []
+    received: List[dict] = []
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
@@ -188,7 +188,7 @@ pickle.dump(output, open('out.pkl','wb'))" """,
         address=BROKER_ADDRESS,
         name=queue_from_clients,
     )
-    received: List[str] = []
+    received: List[date] = []
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
