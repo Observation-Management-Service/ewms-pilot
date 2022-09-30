@@ -138,37 +138,6 @@ print(output, file=open('out.txt','w'))" """,  # double cat
     assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
 
 
-async def test_001__txt(
-    queue_to_clients: str,  # pylint: disable=redefined-outer-name
-    queue_from_clients: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-) -> None:
-    """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
-
-    await populate_queue(queue_to_clients, msgs_to_subproc)
-
-    await consume_and_reply(
-        cmd="""python3 -c "
-output = open('in.txt').read().strip() * 2;
-print(output, file=open('out.txt','w'))" """,  # double cat
-        broker_client=BROKER_CLIENT,
-        broker_address=BROKER_ADDRESS,
-        auth_token="",
-        queue_to_clients=queue_to_clients,
-        queue_from_clients=queue_from_clients,
-        # fpath_to_subproc=Path("in.txt"),
-        # fpath_from_subproc=Path("out.txt"),
-        # file_writer=UniversalFileInterface.write, # see other tests
-        # file_reader=UniversalFileInterface.read, # see other tests
-        debug_dir=debug_dir,
-    )
-
-    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
-
-
 async def test_100__json(
     queue_to_clients: str,  # pylint: disable=redefined-outer-name
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
@@ -230,6 +199,41 @@ pickle.dump(output, open('out.pkl','wb'))" """,
         queue_from_clients=queue_from_clients,
         fpath_to_subproc=Path("in.pkl"),
         fpath_from_subproc=Path("out.pkl"),
+        # file_writer=UniversalFileInterface.write, # see other tests
+        # file_reader=UniversalFileInterface.read, # see other tests
+        debug_dir=debug_dir,
+    )
+
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.pkl"), Path("out.pkl"), msgs_from_subproc)
+
+
+async def test_201__pickle(
+    queue_to_clients: str,  # pylint: disable=redefined-outer-name
+    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    debug_dir: Path,  # pylint:disable=redefined-outer-name
+) -> None:
+    """Test a normal .pkl-based pilot."""
+    # some messages that would make sense pickling
+    msgs_to_subproc = [date(1995, 12, 3), date(2022, 9, 29), date(2063, 4, 5)]
+    msgs_from_subproc = [d + timedelta(days=1) for d in msgs_to_subproc]
+
+    await populate_queue(queue_to_clients, msgs_to_subproc)
+
+    await consume_and_reply(
+        cmd="""python3 -c "
+import pickle;
+from datetime import date, timedelta;
+input=pickle.load(open('in.pkl','rb'));
+output=input+timedelta(days=1);
+pickle.dump(output, open('out.pkl','wb'))" """,
+        broker_client=BROKER_CLIENT,
+        broker_address=BROKER_ADDRESS,
+        auth_token="",
+        queue_to_clients=queue_to_clients,
+        queue_from_clients=queue_from_clients,
+        # fpath_to_subproc=Path("in.pkl"),
+        # fpath_from_subproc=Path("out.pkl"),
         # file_writer=UniversalFileInterface.write, # see other tests
         # file_reader=UniversalFileInterface.read, # see other tests
         debug_dir=debug_dir,
