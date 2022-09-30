@@ -183,11 +183,44 @@ pickle.dump(output, open('out.pkl','wb'))" """,
 
     # assert results
     await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+
+
+async def test_300__writer_reader(
+    queue_to_clients: str,  # pylint: disable=redefined-outer-name
+    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    debug_dir: Path,  # pylint:disable=redefined-outer-name
+) -> None:
+    """Test a normal .txt-based pilot."""
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_from_subproc = ["output: oofoof\n", "output: rabrab\n", "output: zabzab\n"]
+
+    # populate queue
+    await populate_queue(queue_to_clients, msgs_to_subproc)
+
+    def reverse_writer(text: str) -> None:
+        with open(Path("in.txt"), "w") as f:
+            f.write(text[::-1])
+
+    def reader_w_prefix() -> str:
+        with open(Path("out.txt")) as f:
+            return f"output: {f.read()}"
+
+    # call consume_and_reply
+    await consume_and_reply(
+        cmd="""python3 -c "
+output = open('in.txt').read().strip() * 2;
+print(output, file=open('out.txt','w'))" """,  # double cat
+        broker_client=BROKER_CLIENT,
+        broker_address=BROKER_ADDRESS,
+        auth_token="",
+        queue_to_clients=queue_to_clients,
+        queue_from_clients=queue_from_clients,
+        fpath_to_subproc=Path("in.txt"),
+        fpath_from_subproc=Path("out.txt"),
+        file_writer=reverse_writer,
+        file_reader=reader_w_prefix,
+        debug_dir=debug_dir,
     )
-    received: List[date] = []
-    async with from_client_q.open_sub() as sub:
-        async for i, msg in asl.enumerate(sub):
-            print(f"{i}: {msg}")
-            received.append(msg)
-    assert len(received) == len(msgs_to_subproc)
-    assert set(received) == set(msgs_from_subproc)
+
+    # assert results
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
