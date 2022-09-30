@@ -4,7 +4,7 @@ import os
 import time
 from datetime import date, timedelta
 from pathlib import Path
-from typing import List
+from typing import List, TypeVar
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -35,7 +35,50 @@ def debug_dir() -> Path:
     return dirpath
 
 
-async def test_txt(
+async def populate_queue(
+    queue_to_clients: str,  # pylint: disable=redefined-outer-name
+    msgs_to_subproc: List,
+) -> None:
+    """Send messages to queue."""
+    to_client_q = mq.Queue(
+        BROKER_CLIENT,
+        address=BROKER_ADDRESS,
+        name=queue_to_clients,
+    )
+    async with to_client_q.open_pub() as pub:
+        for i, msg in enumerate(msgs_to_subproc):
+            await pub.send(msg)
+    assert i + 1 == len(msgs_to_subproc)  # pylint:disable=undefined-loop-variable
+
+
+T = TypeVar("T")
+
+
+async def assert_results(
+    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    msgs_to_subproc: List[T],
+    msgs_from_subproc: List[T],
+) -> None:
+    """Get messages and assert against expected results."""
+    from_client_q = mq.Queue(
+        BROKER_CLIENT,
+        address=BROKER_ADDRESS,
+        name=queue_from_clients,
+    )
+    received: List[T] = []
+    async with from_client_q.open_sub() as sub:
+        async for i, msg in asl.enumerate(sub):
+            print(f"{i}: {msg}")
+            received.append(msg)
+    assert len(received) == len(msgs_to_subproc)
+
+    if isinstance(msgs_from_subproc[0], dict):
+        assert set(str(r) for r in received) == set(str(m) for m in msgs_from_subproc)
+    else:
+        assert set(received) == set(msgs_from_subproc)
+
+
+async def test_000__txt(
     queue_to_clients: str,  # pylint: disable=redefined-outer-name
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
@@ -45,15 +88,7 @@ async def test_txt(
     msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     # populate queue
-    to_client_q = mq.Queue(
-        BROKER_CLIENT,
-        address=BROKER_ADDRESS,
-        name=queue_to_clients,
-    )
-    async with to_client_q.open_pub() as pub:
-        for i, msg in enumerate(msgs_to_subproc):
-            await pub.send(msg)
-    assert i + 1 == len(msgs_to_subproc)
+    await populate_queue(queue_to_clients, msgs_to_subproc)
 
     # call consume_and_reply
     await consume_and_reply(
@@ -67,27 +102,16 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         queue_from_clients=queue_from_clients,
         fpath_to_subproc=Path("in.txt"),
         fpath_from_subproc=Path("out.txt"),
-        # file_writer=UniversalFileInterface.write, # TODO in diff test
-        # file_reader=UniversalFileInterface.read, # TODO in diff test
+        # file_writer=UniversalFileInterface.write, # see other tests
+        # file_reader=UniversalFileInterface.read, # see other tests
         debug_dir=debug_dir,
     )
 
     # assert results
-    from_client_q = mq.Queue(
-        BROKER_CLIENT,
-        address=BROKER_ADDRESS,
-        name=queue_from_clients,
-    )
-    received: List[str] = []
-    async with from_client_q.open_sub() as sub:
-        async for i, msg in asl.enumerate(sub):
-            print(f"{i}: {msg}")
-            received.append(msg)
-    assert len(received) == len(msgs_to_subproc)
-    assert set(received) == set(msgs_from_subproc)
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
 
 
-async def test_json(
+async def test_100__json(
     queue_to_clients: str,  # pylint: disable=redefined-outer-name
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
@@ -98,15 +122,7 @@ async def test_json(
     msgs_from_subproc = [{"attr-a": v, "attr-b": v + v} for v in ["foo", "bar", "baz"]]
 
     # populate queue
-    to_client_q = mq.Queue(
-        BROKER_CLIENT,
-        address=BROKER_ADDRESS,
-        name=queue_to_clients,
-    )
-    async with to_client_q.open_pub() as pub:
-        for i, msg in enumerate(msgs_to_subproc):
-            await pub.send(msg)
-    assert i + 1 == len(msgs_to_subproc)
+    await populate_queue(queue_to_clients, msgs_to_subproc)
 
     # call consume_and_reply
     await consume_and_reply(
@@ -123,28 +139,16 @@ json.dump(output, open('out.json','w'))" """,
         queue_from_clients=queue_from_clients,
         fpath_to_subproc=Path("in.json"),
         fpath_from_subproc=Path("out.json"),
-        # file_writer=UniversalFileInterface.write, # TODO in diff test
-        # file_reader=UniversalFileInterface.read, # TODO in diff test
+        # file_writer=UniversalFileInterface.write, # see other tests
+        # file_reader=UniversalFileInterface.read, # see other tests
         debug_dir=debug_dir,
     )
 
     # assert results
-    from_client_q = mq.Queue(
-        BROKER_CLIENT,
-        address=BROKER_ADDRESS,
-        name=queue_from_clients,
-    )
-    received: List[dict] = []
-    async with from_client_q.open_sub() as sub:
-        async for i, msg in asl.enumerate(sub):
-            print(f"{i}: {msg}")
-            received.append(msg)
-    assert len(received) == len(msgs_to_subproc)
-    # cast each dict to a str so it can be hashed
-    assert set(str(r) for r in received) == set(str(m) for m in msgs_from_subproc)
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
 
 
-async def test_pickle(
+async def test_200__pickle(
     queue_to_clients: str,  # pylint: disable=redefined-outer-name
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
@@ -155,15 +159,7 @@ async def test_pickle(
     msgs_from_subproc = [d + timedelta(days=1) for d in msgs_to_subproc]
 
     # populate queue
-    to_client_q = mq.Queue(
-        BROKER_CLIENT,
-        address=BROKER_ADDRESS,
-        name=queue_to_clients,
-    )
-    async with to_client_q.open_pub() as pub:
-        for i, msg in enumerate(msgs_to_subproc):
-            await pub.send(msg)
-    assert i + 1 == len(msgs_to_subproc)
+    await populate_queue(queue_to_clients, msgs_to_subproc)
 
     # call consume_and_reply
     await consume_and_reply(
@@ -180,16 +176,13 @@ pickle.dump(output, open('out.pkl','wb'))" """,
         queue_from_clients=queue_from_clients,
         fpath_to_subproc=Path("in.pkl"),
         fpath_from_subproc=Path("out.pkl"),
-        # file_writer=UniversalFileInterface.write, # TODO in diff test
-        # file_reader=UniversalFileInterface.read, # TODO in diff test
+        # file_writer=UniversalFileInterface.write, # see other tests
+        # file_reader=UniversalFileInterface.read, # see other tests
         debug_dir=debug_dir,
     )
 
     # assert results
-    from_client_q = mq.Queue(
-        BROKER_CLIENT,
-        address=BROKER_ADDRESS,
-        name=queue_from_clients,
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
     )
     received: List[date] = []
     async with from_client_q.open_sub() as sub:
