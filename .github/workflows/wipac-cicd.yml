@@ -68,7 +68,7 @@ jobs:
             wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/docker-pulsar.sh
             chmod +x ./docker-pulsar.sh
             ./docker-pulsar.sh
-            sleep 15 # pulsar takes a while to launch...
+            sleep 240 # pulsar takes a while to launch...
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
             wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/docker-rabbitmq.sh
