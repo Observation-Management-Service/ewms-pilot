@@ -96,10 +96,12 @@ def assert_debug_dir(
         # look for in/out files
         for subpath in path.iterdir():
             assert subpath.is_file()
-        assert [p.name for p in path.iterdir()] == [
-            fpath_to_subproc.name,
-            fpath_from_subproc.name,
-        ]
+        assert sorted(p.name for p in path.iterdir()) == sorted(
+            [
+                fpath_to_subproc.name,
+                fpath_from_subproc.name,
+            ]
+        )
 
 
 ########################################################################################
