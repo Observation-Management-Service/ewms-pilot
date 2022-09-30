@@ -87,6 +87,8 @@ def assert_debug_dir(
     assert len(list(debug_dir.iterdir())) == len(msgs_from_subproc)
     for path in debug_dir.iterdir():
         assert path.is_dir()
+        # this is an epoch timestamp
+        assert (time.time() - 60) < float(path.name) < time.time()
         for subpath in path.iterdir():
             assert subpath.is_file()
         assert [p.name for p in path.iterdir()] == [
