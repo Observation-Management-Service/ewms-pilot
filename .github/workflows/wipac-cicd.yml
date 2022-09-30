@@ -91,7 +91,7 @@ jobs:
           sleep 15
 
           echo "--------------------------------------------------------------"
-          echo "running tets..."
+          echo "running tests..."
 
           pip install --upgrade pip wheel setuptools pytest
           if [ -z "${{ matrix.broker }}" ]; then
