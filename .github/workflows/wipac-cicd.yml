@@ -68,6 +68,7 @@ jobs:
             wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/docker-pulsar.sh
             chmod +x ./docker-pulsar.sh
             ./docker-pulsar.sh
+            sleep 15 # pulsar takes a while to launch...
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
             wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/docker-rabbitmq.sh
@@ -79,7 +80,7 @@ jobs:
             export PUBSUB_EMULATOR_HOST=localhost:8085
             chmod +x ./local-gcp-emulator.sh
             ./local-gcp-emulator.sh
-            sleep 30  # gcp takes a while to launch...
+            sleep 15  # gcp takes a while to launch...
           # NATS
           elif [ "${{ matrix.broker }}" = "nats" ]; then
             wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/local-nats-js.sh
