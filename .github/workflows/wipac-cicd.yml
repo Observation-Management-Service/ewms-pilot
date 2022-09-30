@@ -2,6 +2,11 @@ name: wipac ci/cd
 
 on: [push]
 
+
+env:
+  PULSAR_CONTAINER: pulsar_local
+
+
 jobs:
 
   flake8:
@@ -16,7 +21,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v3
-      - uses: WIPACrepo/wipac-dev-mypy-action@v1
+      - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
 
   py-setup:
     runs-on: ubuntu-latest
@@ -26,7 +31,9 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.7.1
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.8
+        with:
+          base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Managment Service"
 
   py-versions:
     needs: [py-setup]
@@ -36,44 +43,57 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v1
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2
 
   tests:
     needs: [py-versions]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+      matrix:
+        version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+        broker: ["", pulsar, rabbitmq, gcp, nats]
     steps:
       - uses: actions/checkout@v3
+      - name: Checkout MQClient repo
+        uses: actions/checkout@v3
+        with:
+          repository: WIPACrepo/MQClient
+          path: MQClient
       - uses: actions/setup-python@v3
         with:
-          python-version: ${{ matrix.py3_versions }}
-      - name: Pytest (Default)
+          python-version: ${{ matrix.version }}
+      - name: Integrate
         run: |
+          set -x
+
+          # Pulsar
+          if [ -z "${{ matrix.broker }}" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
+            ./MQClient/resources/docker-pulsar.sh
+          # RabbitMQ
+          elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
+            ./MQClient/resources/docker-rabbitmq.sh
+          # GCP
+          elif [ "${{ matrix.broker }}" = "gcp" ]; then
+            export PUBSUB_EMULATOR_HOST=localhost:8085
+            ./MQClient/resources/local-gcp-emulator.sh
+          # NATS
+          elif [ "${{ matrix.broker }}" = "nats" ]; then
+            ./MQClient/resources/local-nats-js.sh
+          fi
+
+          echo "--------------------------------------------------------------"
+          echo "running tests..."
+
           pip install --upgrade pip wheel setuptools pytest
-          pip install .
-          # pytest -vvvv
-      - name: Pytest [Pulsar]
-        run: |
-          pip install --upgrade pip wheel setuptools pytest
-          pip install .[pulsar]
-          # pytest -vvvv
-      - name: Pytest [RabbitMQ]
-        run: |
-          pip install --upgrade pip wheel setuptools pytest
-          pip install .[rabbitmq]
-          # pytest -vvvv
-      - name: Pytest [GCP]
-        run: |
-          pip install --upgrade pip wheel setuptools pytest
-          pip install .[gcp]
-          # pytest -vvvv
-      - name: Pytest [NATS]
-        run: |
-          pip install --upgrade pip wheel setuptools pytest
-          pip install .[nats]
-          # pytest -vvvv
+          if [ -z "${{ matrix.broker }}" ]; then
+            export BROKER_CLIENT=pulsar
+            pip install .[test]
+          else
+            export BROKER_CLIENT=${{ matrix.broker }}
+            pip install .[test,${{ matrix.broker }}]
+          fi
+          python -m pytest -vvv tests
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}

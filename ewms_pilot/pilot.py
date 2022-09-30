@@ -7,6 +7,7 @@ import enum
 import json
 import logging
 import pickle
+import shlex
 import subprocess
 import sys
 import time
@@ -14,9 +15,9 @@ from pathlib import Path
 from typing import Any, Callable, Optional
 
 import asyncstdlib as asl
+import mqclient as mq
+from mqclient.broker_client_interface import TIMEOUT_MILLIS_DEFAULT
 from wipac_dev_tools import argparse_tools, logging_tools
-
-from .mq import mq
 
 LOGGER = logging.getLogger("ewms-pilot")
 
@@ -24,9 +25,9 @@ LOGGER = logging.getLogger("ewms-pilot")
 class FileType(enum.Enum):
     """Various file types/extensions."""
 
-    PICKLE = "pkl"
-    PLAIN_TEXT = "txt"
-    JSON = "json"
+    PICKLE = ".pkl"
+    PLAIN_TEXT = ".txt"
+    JSON = ".json"
 
 
 class UniversalFileInterface:
@@ -88,8 +89,8 @@ class UniversalFileInterface:
             raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
 
 
-def write_to_client(
-    fpath_to_client: Path,
+def write_to_subproc(
+    fpath_to_subproc: Path,
     in_msg: Any,
     debug_subdir: Optional[Path],
     file_writer: Callable[[Any, Path], None],
@@ -98,17 +99,17 @@ def write_to_client(
 
     Also, dump to a file for debugging (if not "").
     """
-    file_writer(in_msg, fpath_to_client)
+    file_writer(in_msg, fpath_to_subproc)
 
     # persist the file?
     if debug_subdir:
-        file_writer(in_msg, debug_subdir / fpath_to_client.name)
+        file_writer(in_msg, debug_subdir / fpath_to_subproc.name)
 
-    return fpath_to_client
+    return fpath_to_subproc
 
 
-def read_from_client(
-    fpath_from_client: Path,
+def read_from_subproc(
+    fpath_from_subproc: Path,
     debug_subdir: Optional[Path],
     file_reader: Callable[[Path], Any],
 ) -> Any:
@@ -116,17 +117,17 @@ def read_from_client(
 
     Also, dump to a file for debugging (if not "").
     """
-    if not fpath_from_client.exists():
+    if not fpath_from_subproc.exists():
         LOGGER.error("Out file was not written for in-payload")
         raise RuntimeError("Out file was not written for in-payload")
 
-    out_msg = file_reader(fpath_from_client)
+    out_msg = file_reader(fpath_from_subproc)
 
     # persist the file?
     if debug_subdir:
-        fpath_from_client.rename(debug_subdir / fpath_from_client.name)  # mv
+        fpath_from_subproc.rename(debug_subdir / fpath_from_subproc.name)  # mv
     else:
-        fpath_from_client.unlink()  # rm
+        fpath_from_subproc.unlink()  # rm
 
     return out_msg
 
@@ -134,34 +135,40 @@ def read_from_client(
 async def consume_and_reply(
     cmd: str,
     #
-    broker: str,  # for mq
-    auth_token: str,  # for mq
-    queue_to_clients: str,  # for mq
-    queue_from_clients: str,  # for mq
+    # for mq
+    broker_client: str,
+    broker_address: str,
+    auth_token: str,
     #
-    timeout_to_clients: int,  # for mq
-    timeout_from_clients: int,  # for mq
+    queue_to_clients: str,
+    queue_from_clients: str,
     #
-    fpath_to_client: Path = Path("./in.pkl"),
-    fpath_from_client: Path = Path("./out.pkl"),
+    timeout_to_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
+    timeout_from_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
     #
-    debug_dir: Optional[Path] = None,
+    # for subprocess
+    fpath_to_subproc: Path = Path("./in.pkl"),
+    fpath_from_subproc: Path = Path("./out.pkl"),
     #
     file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
     file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
+    #
+    debug_dir: Optional[Path] = None,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses."""
     LOGGER.info("Making MQClient queue connections...")
     except_errors = False  # if there's an error, have the cluster try again (probably a system error)
     in_queue = mq.Queue(
-        address=broker,
+        broker_client,
+        address=broker_address,
         name=queue_to_clients,
         auth_token=auth_token,
         except_errors=except_errors,
         timeout=timeout_to_clients,
     )
     out_queue = mq.Queue(
-        address=broker,
+        broker_client,
+        address=broker_address,
         name=queue_from_clients,
         auth_token=auth_token,
         except_errors=except_errors,
@@ -180,12 +187,12 @@ async def consume_and_reply(
                 debug_subdir.mkdir(parents=True, exist_ok=False)
 
             # write
-            write_to_client(fpath_to_client, in_msg, debug_subdir, file_writer)
+            write_to_subproc(fpath_to_subproc, in_msg, debug_subdir, file_writer)
 
             # call & check outputs
-            LOGGER.info(f"Executing: {cmd.split()}")
+            LOGGER.info(f"Executing: {shlex.split(cmd)}")
             result = subprocess.run(
-                cmd.split(),
+                shlex.split(cmd),
                 capture_output=True,
                 check=False,
                 text=True,
@@ -193,10 +200,10 @@ async def consume_and_reply(
             print(result.stdout)
             print(result.stderr, file=sys.stderr)
             if result.returncode != 0:
-                raise subprocess.CalledProcessError(result.returncode, cmd.split())
+                raise subprocess.CalledProcessError(result.returncode, shlex.split(cmd))
 
             # get
-            out_msg = read_from_client(fpath_from_client, debug_subdir, file_reader)
+            out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
 
             # send
             LOGGER.info("Sending out-payload to server...")
@@ -232,7 +239,7 @@ def main() -> None:
             Path(x).suffix in [e.value for e in FileType],
             argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
         ),
-        help="which file to write for the client subprocess",
+        help="which file to write for the client/pilot's subprocess",
     )
     parser.add_argument(
         "--out",
@@ -243,7 +250,7 @@ def main() -> None:
             Path(x).suffix in [e.value for e in FileType],
             argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
         ),
-        help="which file to read from the client subprocess",
+        help="which file to read from the client/pilot's subprocess",
     )
 
     # mq args
@@ -251,6 +258,12 @@ def main() -> None:
         "--mq-basename",
         required=True,
         help="base identifier to correspond to a task for its MQ incoming & outgoing connections",
+    )
+    parser.add_argument(
+        "--broker-client",
+        default="pulsar",
+        choices=["pulsar", "rabbitmq", "nats", "gcp"],
+        help="which kind of broker",
     )
     parser.add_argument(
         "-b",
@@ -309,18 +322,19 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # GO!
-    LOGGER.info(f"Starting up an EWMS Pilot for MQ task: {args.mq_basename=}")
+    LOGGER.info(f"Starting up an EWMS Pilot for MQ task: {args.mq_basename} (basename)")
     asyncio.get_event_loop().run_until_complete(
         consume_and_reply(
             cmd=args.cmd,
-            broker=args.broker,
+            broker_client=args.broker_client,
+            broker_address=args.broker,
             auth_token=args.auth_token,
             queue_to_clients=f"to-clients-{args.mq_basename}",
             queue_from_clients=f"from-clients-{args.mq_basename}",
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
-            fpath_to_client=args.infile,
-            fpath_from_client=args.outfile,
+            fpath_to_subproc=args.infile,
+            fpath_from_subproc=args.outfile,
             debug_dir=args.debug_directory,
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
