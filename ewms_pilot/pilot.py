@@ -16,6 +16,7 @@ from typing import Any, Callable, Optional
 
 import asyncstdlib as asl
 import mqclient as mq
+from mqclient.broker_client_interface import TIMEOUT_MILLIS_DEFAULT
 from wipac_dev_tools import argparse_tools, logging_tools
 
 LOGGER = logging.getLogger("ewms-pilot")
@@ -142,9 +143,8 @@ async def consume_and_reply(
     queue_to_clients: str,
     queue_from_clients: str,
     #
-    timeout_to_clients: int = mq.broker_client_interface.TIMEOUT_MILLIS_DEFAULT / 1000,
-    timeout_from_clients: int = mq.broker_client_interface.TIMEOUT_MILLIS_DEFAULT
-    / 1000,
+    timeout_to_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
+    timeout_from_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
     #
     # for subprocess
     fpath_to_subproc: Path = Path("./in.pkl"),
