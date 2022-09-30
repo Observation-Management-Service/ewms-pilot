@@ -140,7 +140,8 @@ json.dump(output, open('out.json','w'))" """,
             print(f"{i}: {msg}")
             received.append(msg)
     assert len(received) == len(msgs_to_subproc)
-    assert set(received) == set(msgs_from_subproc)
+    # cast each dict to a str so it can be hashed
+    assert set(str(r) for r in received) == set(str(m) for m in msgs_from_subproc)
 
 
 async def test_pickle(
@@ -170,7 +171,7 @@ async def test_pickle(
 import pickle;
 from datetime import date, timedelta;
 input=pickle.load(open('in.pkl','rb'));
-output=d+timedelta(days=1);
+output=input+timedelta(days=1);
 pickle.dump(output, open('out.pkl','wb'))" """,
         broker_client=BROKER_CLIENT,
         broker_address=BROKER_ADDRESS,
