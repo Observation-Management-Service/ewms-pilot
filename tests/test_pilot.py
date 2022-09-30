@@ -197,12 +197,12 @@ async def test_300__writer_reader(
     # populate queue
     await populate_queue(queue_to_clients, msgs_to_subproc)
 
-    def reverse_writer(text: str) -> None:
-        with open(Path("in.txt"), "w") as f:
+    def reverse_writer(fpath: Path, text: str) -> None:
+        with open(fpath, "w") as f:
             f.write(text[::-1])
 
-    def reader_w_prefix() -> str:
-        with open(Path("out.txt")) as f:
+    def reader_w_prefix(fpath: Path) -> str:
+        with open(fpath) as f:
             return f"output: {f.read()}"
 
     # call consume_and_reply
