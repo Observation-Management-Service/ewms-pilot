@@ -55,7 +55,7 @@ jobs:
         broker: ["", pulsar, rabbitmq, gcp, nats]
     steps:
       - uses: actions/checkout@v3
-      - name: Checkout tools repo
+      - name: Checkout MQClient repo
         uses: actions/checkout@v3
         with:
           repository: WIPACrepo/MQClient
@@ -65,6 +65,7 @@ jobs:
           python-version: ${{ matrix.version }}
       - name: Integrate
         run: |
+          set -x
           echo "--------------------------------------------------------------"
           echo "starting broker..."
 
