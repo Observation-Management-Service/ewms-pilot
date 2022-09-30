@@ -4,7 +4,7 @@ import os
 import time
 from datetime import date, timedelta
 from pathlib import Path
-from typing import List, TypeVar
+from typing import Any, List, TypeVar
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -197,7 +197,7 @@ async def test_300__writer_reader(
     # populate queue
     await populate_queue(queue_to_clients, msgs_to_subproc)
 
-    def reverse_writer(fpath: Path, text: str) -> None:
+    def reverse_writer(text: Any, fpath: Path) -> None:
         with open(fpath, "w") as f:
             f.write(text[::-1])
 
