@@ -90,8 +90,8 @@ def assert_debug_dir(
         for subpath in path.iterdir():
             assert subpath.is_file()
         assert [p.name for p in path.iterdir()] == [
-            fpath_to_subproc,
-            fpath_from_subproc,
+            fpath_to_subproc.name,
+            fpath_from_subproc.name,
         ]
 
 
