@@ -66,13 +66,10 @@ jobs:
       - name: Integrate
         run: |
           set -x
-          echo "--------------------------------------------------------------"
-          echo "starting broker..."
 
           # Pulsar
           if [ -z "${{ matrix.broker }}" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
             ./MQClient/resources/docker-pulsar.sh
-            sleep 15 # pulsar takes a while to launch...
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
             ./MQClient/resources/docker-rabbitmq.sh
@@ -80,15 +77,10 @@ jobs:
           elif [ "${{ matrix.broker }}" = "gcp" ]; then
             export PUBSUB_EMULATOR_HOST=localhost:8085
             ./MQClient/resources/local-gcp-emulator.sh
-            sleep 15  # gcp takes a while to launch...
           # NATS
           elif [ "${{ matrix.broker }}" = "nats" ]; then
             ./MQClient/resources/local-nats-js.sh
           fi
-
-          echo "--------------------------------------------------------------"
-          echo "waiting for broker..."
-          sleep 15
 
           echo "--------------------------------------------------------------"
           echo "running tests..."
