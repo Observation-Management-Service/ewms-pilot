@@ -78,6 +78,26 @@ async def assert_results(
         assert set(received) == set(msgs_from_subproc)
 
 
+def assert_debug_dir(
+    debug_dir: Path,  # pylint: disable=redefined-outer-name
+    fpath_to_subproc: Path,
+    fpath_from_subproc: Path,
+    msgs_from_subproc: List[T],
+) -> None:
+    assert len(list(debug_dir.iterdir())) == len(msgs_from_subproc)
+    for path in debug_dir.iterdir():
+        assert path.is_dir()
+        for subpath in path.iterdir():
+            assert subpath.is_file()
+        assert [p.name for p in path.iterdir()] == [
+            fpath_to_subproc,
+            fpath_from_subproc,
+        ]
+
+
+########################################################################################
+
+
 async def test_000__txt(
     queue_to_clients: str,  # pylint: disable=redefined-outer-name
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
@@ -87,10 +107,8 @@ async def test_000__txt(
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
-    # populate queue
     await populate_queue(queue_to_clients, msgs_to_subproc)
 
-    # call consume_and_reply
     await consume_and_reply(
         cmd="""python3 -c "
 output = open('in.txt').read().strip() * 2;
@@ -107,8 +125,8 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         debug_dir=debug_dir,
     )
 
-    # assert results
     await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
 
 
 async def test_100__json(
@@ -121,10 +139,8 @@ async def test_100__json(
     msgs_to_subproc = [{"attr-0": v} for v in ["foo", "bar", "baz"]]
     msgs_from_subproc = [{"attr-a": v, "attr-b": v + v} for v in ["foo", "bar", "baz"]]
 
-    # populate queue
     await populate_queue(queue_to_clients, msgs_to_subproc)
 
-    # call consume_and_reply
     await consume_and_reply(
         cmd="""python3 -c "
 import json;
@@ -144,8 +160,8 @@ json.dump(output, open('out.json','w'))" """,
         debug_dir=debug_dir,
     )
 
-    # assert results
     await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.json"), Path("out.json"), msgs_from_subproc)
 
 
 async def test_200__pickle(
@@ -158,10 +174,8 @@ async def test_200__pickle(
     msgs_to_subproc = [date(1995, 12, 3), date(2022, 9, 29), date(2063, 4, 5)]
     msgs_from_subproc = [d + timedelta(days=1) for d in msgs_to_subproc]
 
-    # populate queue
     await populate_queue(queue_to_clients, msgs_to_subproc)
 
-    # call consume_and_reply
     await consume_and_reply(
         cmd="""python3 -c "
 import pickle;
@@ -181,8 +195,8 @@ pickle.dump(output, open('out.pkl','wb'))" """,
         debug_dir=debug_dir,
     )
 
-    # assert results
     await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.pkl"), Path("out.pkl"), msgs_from_subproc)
 
 
 async def test_300__writer_reader(
@@ -194,7 +208,6 @@ async def test_300__writer_reader(
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_from_subproc = ["output: oofoof\n", "output: rabrab\n", "output: zabzab\n"]
 
-    # populate queue
     await populate_queue(queue_to_clients, msgs_to_subproc)
 
     def reverse_writer(text: Any, fpath: Path) -> None:
@@ -205,7 +218,6 @@ async def test_300__writer_reader(
         with open(fpath) as f:
             return f"output: {f.read()}"
 
-    # call consume_and_reply
     await consume_and_reply(
         cmd="""python3 -c "
 output = open('in.txt').read().strip() * 2;
@@ -222,5 +234,5 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         debug_dir=debug_dir,
     )
 
-    # assert results
     await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
