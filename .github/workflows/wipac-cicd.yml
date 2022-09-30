@@ -55,6 +55,11 @@ jobs:
         broker: ["", pulsar, rabbitmq, gcp, nats]
     steps:
       - uses: actions/checkout@v3
+      - name: Checkout tools repo
+        uses: actions/checkout@v3
+        with:
+          repository: WIPACrepo/MQClient
+          path: MQClient
       - uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.version }}
@@ -65,27 +70,19 @@ jobs:
 
           # Pulsar
           if [ -z "${{ matrix.broker }}" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
-            wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/docker-pulsar.sh
-            chmod +x ./docker-pulsar.sh
-            ./docker-pulsar.sh
+            ./MQClient/resources/docker-pulsar.sh
             sleep 15 # pulsar takes a while to launch...
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
-            wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/docker-rabbitmq.sh
-            chmod +x ./docker-rabbitmq.sh
-            ./docker-rabbitmq.sh
+            ./MQClient/resources/docker-rabbitmq.sh
           # GCP
           elif [ "${{ matrix.broker }}" = "gcp" ]; then
-            wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/local-gcp-emulator.sh
             export PUBSUB_EMULATOR_HOST=localhost:8085
-            chmod +x ./local-gcp-emulator.sh
-            ./local-gcp-emulator.sh
+            ./MQClient/resources/local-gcp-emulator.sh
             sleep 15  # gcp takes a while to launch...
           # NATS
           elif [ "${{ matrix.broker }}" = "nats" ]; then
-            wget https://raw.githubusercontent.com/WIPACrepo/MQClient/master/resources/local-nats-js.sh
-            chmod +x ./local-nats-js.sh
-            ./local-nats-js.sh
+            ./MQClient/resources/local-nats-js.sh
           fi
 
           echo "--------------------------------------------------------------"
