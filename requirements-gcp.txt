@@ -76,7 +76,7 @@ typing-extensions==4.3.0
     # via wipac-dev-tools
 urllib3==1.26.12
     # via requests
-wipac-dev-tools==1.5.1
+wipac-dev-tools==1.5.5
     # via wipac-mqclient
-wipac-mqclient[gcp,pulsar]==0.6.1
+wipac-mqclient[gcp,pulsar]==0.6.2
     # via ewms-pilot (setup.py)
