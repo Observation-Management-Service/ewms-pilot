@@ -16,7 +16,7 @@ ed25519==1.5
     # via nkeys
 idna==3.4
     # via requests
-nats-py[nkeys]==2.1.7
+nats-py[nkeys]==2.2.0
     # via wipac-mqclient
 nkeys==0.1.0
     # via nats-py
@@ -30,7 +30,7 @@ typing-extensions==4.3.0
     # via wipac-dev-tools
 urllib3==1.26.12
     # via requests
-wipac-dev-tools==1.5.1
+wipac-dev-tools==1.5.5
     # via wipac-mqclient
-wipac-mqclient[nats,pulsar]==0.6.1
+wipac-mqclient[nats,pulsar]==0.6.2
     # via ewms-pilot (setup.py)
