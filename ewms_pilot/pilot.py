@@ -8,6 +8,7 @@ import json
 import logging
 import pickle
 import shlex
+import shutil
 import subprocess
 import sys
 import time
@@ -125,7 +126,8 @@ def read_from_subproc(
 
     # persist the file?
     if debug_subdir:
-        fpath_from_subproc.rename(debug_subdir / fpath_from_subproc.name)  # mv
+        # fpath_from_subproc.rename(debug_subdir / fpath_from_subproc.name)  # mv
+        shutil.move(fpath_from_subproc, debug_subdir / fpath_from_subproc.name)
     else:
         fpath_from_subproc.unlink()  # rm
 
