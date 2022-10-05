@@ -127,6 +127,7 @@ def read_from_subproc(
     # persist the file?
     if debug_subdir:
         # fpath_from_subproc.rename(debug_subdir / fpath_from_subproc.name)  # mv
+        # NOTE: https://github.com/python/cpython/pull/30650
         shutil.move(fpath_from_subproc, debug_subdir / fpath_from_subproc.name)
     else:
         fpath_from_subproc.unlink()  # rm
