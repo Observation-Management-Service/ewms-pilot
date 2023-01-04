@@ -24,7 +24,7 @@ jobs:
         with:
           python-version: '3.10'
       - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
-      - run:
+      - run: |
           # pulsar will eventually support 3.11
           # so let's set a timer for six months from now:
           echo "How's https://github.com/WIPACrepo/MQClient/issues/61 coming along?"
