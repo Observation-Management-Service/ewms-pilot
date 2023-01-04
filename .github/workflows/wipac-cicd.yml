@@ -2,10 +2,12 @@ name: wipac ci/cd
 
 on: [push]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 env:
   PULSAR_CONTAINER: pulsar_local
-
 
 jobs:
 
