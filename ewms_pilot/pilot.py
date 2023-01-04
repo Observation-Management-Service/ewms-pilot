@@ -201,7 +201,6 @@ async def consume_and_reply(
             subprocess.run(
                 shlex.split(cmd),
                 check=True,
-                text=True,
                 timeout=subproc_timeout,
             )
 
