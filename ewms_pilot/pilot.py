@@ -6,6 +6,7 @@ import asyncio
 import enum
 import json
 import logging
+import os
 import pickle
 import shlex
 import shutil
@@ -176,6 +177,10 @@ async def consume_and_reply(
         except_errors=except_errors,
         timeout=timeout_from_clients,
     )
+    try:
+        subproc_timeout = int(os.environ["EWMS_PILOT_SUBPROC_TIMEOUT"])  # -> ValueError
+    except KeyError:
+        subproc_timeout = None
 
     LOGGER.info("Getting messages from server to process then send back...")
     async with in_queue.open_sub() as sub, out_queue.open_pub() as pub:
@@ -197,6 +202,7 @@ async def consume_and_reply(
                 shlex.split(cmd),
                 check=True,
                 text=True,
+                timeout=subproc_timeout,
             )
 
             # get
