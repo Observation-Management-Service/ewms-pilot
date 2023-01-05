@@ -56,6 +56,54 @@ jobs:
       - id: versions
         uses: WIPACrepo/wipac-dev-py-versions-action@v2
 
+  examples:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        broker: ["", pulsar, rabbitmq, gcp, nats]
+    steps:
+      - uses: actions/checkout@v3
+      - name: Checkout MQClient repo
+        uses: actions/checkout@v3
+        with:
+          repository: WIPACrepo/MQClient
+          path: MQClient
+      - uses: actions/setup-python@v3
+        with:
+          python-version: 3.10
+      - name: Integrate
+        run: |
+          set -x
+
+          # Pulsar
+          if [ -z "${{ matrix.broker }}" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
+            ./MQClient/resources/docker-pulsar.sh
+          # RabbitMQ
+          elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
+            ./MQClient/resources/docker-rabbitmq.sh
+          # GCP
+          elif [ "${{ matrix.broker }}" = "gcp" ]; then
+            export PUBSUB_EMULATOR_HOST=localhost:8085
+            ./MQClient/resources/local-gcp-emulator.sh
+          # NATS
+          elif [ "${{ matrix.broker }}" = "nats" ]; then
+            ./MQClient/resources/local-nats-js.sh
+          fi
+
+          echo "--------------------------------------------------------------"
+          echo "running examples..."
+
+          pip install --upgrade pip wheel setuptools pytest
+          if [ -z "${{ matrix.broker }}" ]; then
+            export BROKER_CLIENT=pulsar
+            pip install .[test]
+          else
+            export BROKER_CLIENT=${{ matrix.broker }}
+            pip install .[test,${{ matrix.broker }}]
+          fi
+          python examples/example.py
+
   tests:
     needs: [py-versions]
     runs-on: ubuntu-latest
