@@ -47,6 +47,7 @@ print('this is a log', file=sys.stderr)
 time.sleep(5)
 output = open('in.txt').read().strip() * 2
 time.sleep(5)
+print('printed: ' + output)
 print(output, file=open('out.txt','w'))
 time.sleep(5)
 " """,  # double cat
