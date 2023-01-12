@@ -135,6 +135,39 @@ def read_from_subproc(
     return out_msg
 
 
+def process_msg(
+    in_msg: Any,
+    cmd: str,
+    subproc_timeout: Optional[int],
+    fpath_to_subproc: Path,
+    fpath_from_subproc: Path,
+    file_writer: Callable[[Any, Path], None],
+    file_reader: Callable[[Path], Any],
+    debug_dir: Optional[Path],
+) -> Any:
+    """Process the message in a subprocess using `cmd`."""
+    # debugging logic
+    debug_subdir = None
+    if debug_dir:
+        debug_subdir = debug_dir / str(time.time())
+        debug_subdir.mkdir(parents=True, exist_ok=False)
+
+    # write
+    write_to_subproc(fpath_to_subproc, in_msg, debug_subdir, file_writer)
+
+    # call & check outputs
+    LOGGER.info(f"Executing: {shlex.split(cmd)}")
+    subprocess.run(
+        shlex.split(cmd),
+        check=True,
+        timeout=subproc_timeout,
+    )
+
+    # get
+    out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
+    return out_msg
+
+
 async def consume_and_reply(
     cmd: str,
     #
@@ -168,7 +201,7 @@ async def consume_and_reply(
         name=queue_to_clients,
         auth_token=auth_token,
         except_errors=except_errors,
-        timeout=timeout_to_clients,
+        # timeout=timeout_to_clients, # manually set below
     )
     out_queue = mq.Queue(
         broker_client,
@@ -184,33 +217,44 @@ async def consume_and_reply(
         subproc_timeout = None
 
     LOGGER.info("Getting messages from server to process then send back...")
-    async with in_queue.open_sub() as sub, out_queue.open_pub() as pub:
-        async for i, in_msg in asl.enumerate(sub):
-            LOGGER.info(f"Got a message to process (#{i}): {str(in_msg)}")
+    async with out_queue.open_pub() as pub:
 
-            # debugging logic
-            debug_subdir = None
-            if debug_dir:
-                debug_subdir = debug_dir / str(time.time())
-                debug_subdir.mkdir(parents=True, exist_ok=False)
-
-            # write
-            write_to_subproc(fpath_to_subproc, in_msg, debug_subdir, file_writer)
-
-            # call & check outputs
-            LOGGER.info(f"Executing: {shlex.split(cmd)}")
-            subprocess.run(
-                shlex.split(cmd),
-                check=True,
-                timeout=subproc_timeout,
+        # FIRST MESSAGE
+        in_queue.timeout = timeout_wait_for_first_message
+        async with in_queue.open_sub_one() as in_msg:
+            LOGGER.info(f"Got a message to process (#0): {str(in_msg)}")
+            out_msg = process_msg(
+                in_msg,
+                cmd,
+                subproc_timeout,
+                fpath_to_subproc,
+                fpath_from_subproc,
+                file_writer,
+                file_reader,
+                debug_dir,
             )
-
-            # get
-            out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
-
             # send
             LOGGER.info("Sending out-payload to server...")
             await pub.send(out_msg)
+
+        # ADDITIONAL MESSAGES
+        in_queue.timeout = timeout_to_clients
+        async with in_queue.open_sub() as sub:
+            async for i, in_msg in asl.enumerate(sub, start=1):
+                LOGGER.info(f"Got a message to process (#{i}): {str(in_msg)}")
+                out_msg = process_msg(
+                    in_msg,
+                    cmd,
+                    subproc_timeout,
+                    fpath_to_subproc,
+                    fpath_from_subproc,
+                    file_writer,
+                    file_reader,
+                    debug_dir,
+                )
+                # send
+                LOGGER.info("Sending out-payload to server...")
+                await pub.send(out_msg)
 
     # check if anything was actually processed
     try:
