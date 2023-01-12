@@ -146,7 +146,7 @@ async def consume_and_reply(
     queue_to_clients: str,
     queue_from_clients: str,
     #
-    wait_for_first_message_timeout: int = TIMEOUT_MILLIS_DEFAULT // 1000,
+    timeout_wait_for_first_message: int = TIMEOUT_MILLIS_DEFAULT // 1000,
     timeout_to_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
     timeout_from_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
     #
@@ -281,7 +281,7 @@ def main() -> None:
         help="The MQ authentication token to use",
     )
     parser.add_argument(
-        "--wait-for-first-message-timeout",
+        "--timeout-wait-for-first-message",
         default=60 * 1,
         type=int,
         help="timeout (seconds) for the first message to arrive at the client(s)",
@@ -340,7 +340,7 @@ def main() -> None:
             auth_token=args.auth_token,
             queue_to_clients=f"to-clients-{args.mq_basename}",
             queue_from_clients=f"from-clients-{args.mq_basename}",
-            wait_for_first_message_timeout=args.wait_for_first_message_timeout,
+            timeout_wait_for_first_message=args.timeout_wait_for_first_message,
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,
             fpath_to_subproc=args.infile,
