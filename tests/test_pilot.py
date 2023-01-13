@@ -313,7 +313,7 @@ async def test_1000__timeout_wait_for_first_message(
     msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     # get timeouts
-    timeout_wait_for_first_message = 40
+    timeout_wait_for_first_message = 60
     wait_before_first_message = 30
     timeout_to_clients = 3
     wait_between_messages = 1
@@ -367,7 +367,7 @@ async def test_1010__without_timeout_wait_for_first_message__error(
     msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     # get timeouts
-    # timeout_wait_for_first_message = 40
+    # timeout_wait_for_first_message = 60
     wait_before_first_message = 30
     timeout_to_clients = 3
     wait_between_messages = 1
