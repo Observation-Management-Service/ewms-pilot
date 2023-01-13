@@ -50,14 +50,14 @@ async def populate_queue(
     )
     # sleep?
     if wait_before_first_message:
-        time.sleep(wait_before_first_message)
+        await asyncio.sleep(wait_before_first_message)
 
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
             await pub.send(msg)
             # sleep?
             if wait_between_messages:
-                time.sleep(wait_between_messages)
+                await asyncio.sleep(wait_between_messages)
 
     assert i + 1 == len(msgs_to_subproc)  # pylint:disable=undefined-loop-variable
 
