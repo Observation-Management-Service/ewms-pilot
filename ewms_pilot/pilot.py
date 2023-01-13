@@ -179,7 +179,7 @@ async def consume_and_reply(
     queue_to_clients: str,
     queue_from_clients: str,
     #
-    timeout_wait_for_first_message: int = TIMEOUT_MILLIS_DEFAULT // 1000,
+    timeout_wait_for_first_message: Optional[int] = None,
     timeout_to_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
     timeout_from_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
     #
@@ -192,7 +192,11 @@ async def consume_and_reply(
     #
     debug_dir: Optional[Path] = None,
 ) -> None:
-    """Communicate with server and outsource processing to subprocesses."""
+    """Communicate with server and outsource processing to subprocesses.
+
+    Arguments:
+        `timeout_wait_for_first_message`: if None, use 'timeout_to_clients'
+    """
     LOGGER.info("Making MQClient queue connections...")
     except_errors = False  # if there's an error, have the cluster try again (probably a system error)
     in_queue = mq.Queue(
@@ -220,7 +224,11 @@ async def consume_and_reply(
     async with out_queue.open_pub() as pub:
 
         # FIRST MESSAGE
-        in_queue.timeout = timeout_wait_for_first_message
+        in_queue.timeout = (
+            timeout_wait_for_first_message
+            if timeout_wait_for_first_message
+            else timeout_to_clients
+        )
         async with in_queue.open_sub_one() as in_msg:
             LOGGER.info(f"Got a message to process (#0): {str(in_msg)}")
             out_msg = process_msg(
@@ -326,9 +334,10 @@ def main() -> None:
     )
     parser.add_argument(
         "--timeout-wait-for-first-message",
-        default=60 * 1,
+        default=None,
         type=int,
-        help="timeout (seconds) for the first message to arrive at the client(s)",
+        help="timeout (seconds) for the first message to arrive at the client(s); "
+        "defaults to `--timeout-to-clients` value",
     )
     parser.add_argument(
         "--timeout-to-clients",
