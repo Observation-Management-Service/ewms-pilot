@@ -341,3 +341,55 @@ print(output, file=open('out.txt','w'))" """,  # double cat
 
     await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
+
+
+async def test_1010__without_timeout_wait_for_first_message__error(
+    queue_to_clients: str,  # pylint: disable=redefined-outer-name
+    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    debug_dir: Path,  # pylint:disable=redefined-outer-name
+) -> None:
+    """Test scenario where `timeout_wait_for_first_message` would've been
+    useful."""
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+
+    # get timeouts
+    # timeout_wait_for_first_message = 10
+    wait_before_first_message = 5
+    timeout_to_clients = 3
+    wait_between_messages = 1
+    assert (
+        wait_between_messages
+        < timeout_to_clients
+        < wait_before_first_message
+        # < timeout_wait_for_first_message
+    )
+
+    await populate_queue(
+        queue_to_clients,
+        msgs_to_subproc,
+        wait_before_first_message=wait_before_first_message,
+        wait_between_messages=wait_between_messages,
+    )
+
+    await consume_and_reply(
+        cmd="""python3 -c "
+output = open('in.txt').read().strip() * 2;
+print(output, file=open('out.txt','w'))" """,  # double cat
+        broker_client=BROKER_CLIENT,
+        broker_address=BROKER_ADDRESS,
+        auth_token="",
+        queue_to_clients=queue_to_clients,
+        queue_from_clients=queue_from_clients,
+        # timeout_wait_for_first_message=timeout_wait_for_first_message,
+        timeout_to_clients=timeout_to_clients,
+        # timeout_from_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
+        fpath_to_subproc=Path("in.txt"),
+        fpath_from_subproc=Path("out.txt"),
+        # file_writer=UniversalFileInterface.write, # see other tests
+        # file_reader=UniversalFileInterface.read, # see other tests
+        debug_dir=debug_dir,
+    )
+
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
