@@ -411,4 +411,4 @@ print(output, file=open('out.txt','w'))" """,  # double cat
     )
 
     await assert_results(queue_from_clients, 0, [])  # no messages
-    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), len(msgs_to_subproc))
+    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), 0)
