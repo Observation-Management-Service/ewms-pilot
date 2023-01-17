@@ -152,7 +152,7 @@ jobs:
             export BROKER_CLIENT=${{ matrix.broker }}
             pip install .[test,${{ matrix.broker }}]
           fi
-          python -m pytest -vvv tests --log-cli-level DEBUG
+          python -m pytest -vvv tests
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}

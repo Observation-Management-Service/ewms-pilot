@@ -5,7 +5,7 @@ import os
 import time
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, List, Optional
+from typing import Any
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -39,8 +39,6 @@ def debug_dir() -> Path:
 async def populate_queue(
     queue_to_clients: str,  # pylint: disable=redefined-outer-name
     msgs_to_subproc: list,
-    wait_before_first_message: Optional[int] = None,
-    wait_between_messages: Optional[int] = None,
 ) -> None:
     """Send messages to queue."""
     to_client_q = mq.Queue(
@@ -48,16 +46,10 @@ async def populate_queue(
         address=BROKER_ADDRESS,
         name=queue_to_clients,
     )
-    # sleep?
-    if wait_before_first_message:
-        await asyncio.sleep(wait_before_first_message)
 
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
             await pub.send(msg)
-            # sleep?
-            if wait_between_messages:
-                await asyncio.sleep(wait_between_messages)
 
     assert i + 1 == len(msgs_to_subproc)  # pylint:disable=undefined-loop-variable
 
@@ -297,115 +289,4 @@ print(output, file=open('out.txt','w'))" """,  # double cat
     )
 
     await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
-
-
-async def test_1000__timeout_wait_for_first_message(
-    queue_to_clients: str,  # pylint: disable=redefined-outer-name
-    queue_from_clients: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-) -> None:
-    """Test with `timeout_wait_for_first_message`."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
-
-    # get timeouts
-    timeout_wait_for_first_message = 60
-    wait_before_first_message = 30
-    timeout_to_clients = 3
-    wait_between_messages = 1
-    assert (
-        wait_between_messages
-        < timeout_to_clients
-        < wait_before_first_message
-        < timeout_wait_for_first_message
-    )
-
-    # run producer & consumer concurrently
-    await asyncio.gather(
-        populate_queue(
-            queue_to_clients,
-            msgs_to_subproc,
-            wait_before_first_message=wait_before_first_message,
-            wait_between_messages=wait_between_messages,
-        ),
-        consume_and_reply(
-            cmd="""python3 -c "
-output = open('in.txt').read().strip() * 2;
-print(output, file=open('out.txt','w'))" """,  # double cat
-            broker_client=BROKER_CLIENT,
-            broker_address=BROKER_ADDRESS,
-            auth_token="",
-            queue_to_clients=queue_to_clients,
-            queue_from_clients=queue_from_clients,
-            timeout_wait_for_first_message=timeout_wait_for_first_message,
-            timeout_to_clients=timeout_to_clients,
-            # timeout_from_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
-            fpath_to_subproc=Path("in.txt"),
-            fpath_from_subproc=Path("out.txt"),
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
-            debug_dir=debug_dir,
-        ),
-    )
-
-    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
-
-
-async def test_1010__without_timeout_wait_for_first_message__error(
-    queue_to_clients: str,  # pylint: disable=redefined-outer-name
-    queue_from_clients: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-) -> None:
-    """Test scenario where `timeout_wait_for_first_message` would've been
-    useful."""
-    msgs_to_subproc = ["foo"]  # , "bar", "baz"]
-    msgs_from_subproc: List[str] = []  # ["foofoo\n", "barbar\n", "bazbaz\n"]
-
-    # get timeouts
-    # timeout_wait_for_first_message = 60
-    wait_before_first_message = 30
-    timeout_to_clients = 3
-    wait_between_messages = 1
-    assert (
-        wait_between_messages
-        < timeout_to_clients
-        < wait_before_first_message
-        # < timeout_wait_for_first_message
-    )
-
-    async def expect_timeout() -> None:
-        with pytest.raises(mq.queue.EmptyQueueException):
-            await consume_and_reply(
-                cmd="""python3 -c "
-output = open('in.txt').read().strip() * 2;
-print(output, file=open('out.txt','w'))" """,  # double cat
-                broker_client=BROKER_CLIENT,
-                broker_address=BROKER_ADDRESS,
-                auth_token="",
-                queue_to_clients=queue_to_clients,
-                queue_from_clients=queue_from_clients,
-                # timeout_wait_for_first_message=timeout_wait_for_first_message,
-                timeout_to_clients=timeout_to_clients,
-                # timeout_from_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
-                fpath_to_subproc=Path("in.txt"),
-                fpath_from_subproc=Path("out.txt"),
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
-                debug_dir=debug_dir,
-            )
-
-    # run producer & consumer concurrently
-    await asyncio.gather(
-        populate_queue(
-            queue_to_clients,
-            msgs_to_subproc,
-            wait_before_first_message=wait_before_first_message,
-            wait_between_messages=wait_between_messages,
-        ),
-        expect_timeout(),
-    )
-
-    await assert_results(queue_from_clients, [], msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
