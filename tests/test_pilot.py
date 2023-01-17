@@ -5,7 +5,7 @@ import os
 import time
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, List, Optional, TypeVar
+from typing import Any, List, Optional
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -62,13 +62,10 @@ async def populate_queue(
     assert i + 1 == len(msgs_to_subproc)  # pylint:disable=undefined-loop-variable
 
 
-T = TypeVar("T")
-
-
 async def assert_results(
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
-    msgs_to_subproc: List[T],
-    msgs_from_subproc: List[T],
+    msgs_to_subproc: list,
+    msgs_from_subproc: list,
 ) -> None:
     """Get messages and assert against expected results."""
     from_client_q = mq.Queue(
@@ -76,7 +73,7 @@ async def assert_results(
         address=BROKER_ADDRESS,
         name=queue_from_clients,
     )
-    received: List[T] = []
+    received: list = []
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
@@ -93,7 +90,7 @@ def assert_debug_dir(
     debug_dir: Path,  # pylint: disable=redefined-outer-name
     fpath_to_subproc: Path,
     fpath_from_subproc: Path,
-    msgs_from_subproc: List[T],
+    msgs_from_subproc: list,
 ) -> None:
     assert len(list(debug_dir.iterdir())) == len(msgs_from_subproc)
     for path in debug_dir.iterdir():
