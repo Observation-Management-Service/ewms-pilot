@@ -80,7 +80,7 @@ async def assert_results(
             received.append(msg)
     assert len(received) == len(msgs_to_subproc)
 
-    if isinstance(msgs_from_subproc[0], dict):
+    if msgs_from_subproc and isinstance(msgs_from_subproc[0], dict):
         assert set(str(r) for r in received) == set(str(m) for m in msgs_from_subproc)
     else:
         assert set(received) == set(msgs_from_subproc)
