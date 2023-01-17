@@ -364,7 +364,7 @@ async def test_1010__without_timeout_wait_for_first_message__error(
     """Test scenario where `timeout_wait_for_first_message` would've been
     useful."""
     msgs_to_subproc = ["foo"]  # , "bar", "baz"]
-    msgs_from_subproc = []  # ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_from_subproc: List[str] = []  # ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     # get timeouts
     # timeout_wait_for_first_message = 60
