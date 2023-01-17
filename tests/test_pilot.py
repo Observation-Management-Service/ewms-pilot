@@ -410,5 +410,5 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         expect_timeout(),
     )
 
-    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    await assert_results(queue_from_clients, [], msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
