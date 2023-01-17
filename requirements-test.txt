@@ -26,7 +26,7 @@ pluggy==1.0.0
     # via pytest
 pulsar-client==3.0.0
     # via wipac-mqclient
-pytest==7.2.0
+pytest==7.2.1
     # via
     #   ewms-pilot (setup.py)
     #   pytest-asyncio
