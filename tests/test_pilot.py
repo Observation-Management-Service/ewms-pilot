@@ -93,9 +93,9 @@ def assert_debug_dir(
     debug_dir: Path,  # pylint: disable=redefined-outer-name
     fpath_to_subproc: Path,
     fpath_from_subproc: Path,
-    n_msgs: int,
+    msgs_from_subproc: List[T],
 ) -> None:
-    assert len(list(debug_dir.iterdir())) == n_msgs
+    assert len(list(debug_dir.iterdir())) == len(msgs_from_subproc)
     for path in debug_dir.iterdir():
         assert path.is_dir()
 
@@ -147,8 +147,8 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), len(msgs_to_subproc))
-    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), len(msgs_to_subproc))
+    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
 
 
 async def test_100__json(
@@ -184,8 +184,8 @@ json.dump(output, open('out.json','w'))" """,
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), len(msgs_to_subproc))
-    assert_debug_dir(debug_dir, Path("in.json"), Path("out.json"), len(msgs_to_subproc))
+    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.json"), Path("out.json"), msgs_from_subproc)
 
 
 async def test_200__pickle(
@@ -221,8 +221,8 @@ pickle.dump(output, open('out.pkl','wb'))" """,
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), len(msgs_to_subproc))
-    assert_debug_dir(debug_dir, Path("in.pkl"), Path("out.pkl"), len(msgs_to_subproc))
+    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.pkl"), Path("out.pkl"), msgs_from_subproc)
 
 
 async def test_201__pickle(
@@ -258,8 +258,8 @@ pickle.dump(output, open('out.pkl','wb'))" """,
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), len(msgs_to_subproc))
-    assert_debug_dir(debug_dir, Path("in.pkl"), Path("out.pkl"), len(msgs_to_subproc))
+    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.pkl"), Path("out.pkl"), msgs_from_subproc)
 
 
 async def test_300__writer_reader(
@@ -299,8 +299,8 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), len(msgs_to_subproc))
-    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), len(msgs_to_subproc))
+    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
 
 
 async def test_1000__timeout_wait_for_first_message(
@@ -352,8 +352,8 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), len(msgs_to_subproc))
-    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), len(msgs_to_subproc))
+    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
 
 
 async def test_1010__without_timeout_wait_for_first_message__error(
@@ -410,5 +410,5 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         expect_timeout(),
     )
 
-    await assert_results(queue_from_clients, 0, [])  # no messages
-    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), len(msgs_to_subproc))
+    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
