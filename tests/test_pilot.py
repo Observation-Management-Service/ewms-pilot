@@ -67,8 +67,8 @@ T = TypeVar("T")
 
 async def assert_results(
     queue_from_clients: str,  # pylint: disable=redefined-outer-name
-    n_msgs: int,
-    expected: List[T],
+    msgs_to_subproc: List[T],
+    msgs_from_subproc: List[T],
 ) -> None:
     """Get messages and assert against expected results."""
     from_client_q = mq.Queue(
@@ -81,12 +81,12 @@ async def assert_results(
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
             received.append(msg)
-    assert len(received) == n_msgs
+    assert len(received) == len(msgs_to_subproc)
 
-    if isinstance(expected[0], dict):
-        assert set(str(r) for r in received) == set(str(m) for m in expected)
+    if isinstance(msgs_from_subproc[0], dict):
+        assert set(str(r) for r in received) == set(str(m) for m in msgs_from_subproc)
     else:
-        assert set(received) == set(expected)
+        assert set(received) == set(msgs_from_subproc)
 
 
 def assert_debug_dir(
@@ -147,7 +147,7 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
 
 
@@ -184,7 +184,7 @@ json.dump(output, open('out.json','w'))" """,
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.json"), Path("out.json"), msgs_from_subproc)
 
 
@@ -221,7 +221,7 @@ pickle.dump(output, open('out.pkl','wb'))" """,
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.pkl"), Path("out.pkl"), msgs_from_subproc)
 
 
@@ -258,7 +258,7 @@ pickle.dump(output, open('out.pkl','wb'))" """,
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.pkl"), Path("out.pkl"), msgs_from_subproc)
 
 
@@ -299,7 +299,7 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
 
 
@@ -352,7 +352,7 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
 
 
@@ -410,5 +410,5 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         expect_timeout(),
     )
 
-    await assert_results(queue_from_clients, len(msgs_to_subproc), msgs_from_subproc)
+    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
