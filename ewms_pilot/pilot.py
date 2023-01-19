@@ -385,7 +385,7 @@ def main() -> None:
 
     # GO!
     LOGGER.info(f"Starting up an EWMS Pilot for MQ task: {args.mq_basename} (basename)")
-    asyncio.get_event_loop().run_until_complete(
+    asyncio.run(
         consume_and_reply(
             cmd=args.cmd,
             broker_client=args.broker_client,
