@@ -9,6 +9,8 @@ concurrency:
 env:
   PULSAR_CONTAINER: pulsar_local
   EWMS_PILOT_BROKER_ADDRESS: localhost
+  EWMS_PILOT_TIMEOUT_INCOMING: 1
+  EWMS_PILOT_TIMEOUT_OUTGOING: 1
 
 jobs:
 
