@@ -171,7 +171,7 @@ async def consume_and_reply(
     cmd: str,
     #
     # for mq
-    broker_client: str,
+    broker_client: str=ENV.EWMS_PILOT_BROKER_CLIENT,
     broker_address: str=ENV.EWMS_PILOT_BROKER_ADDRESS,
     auth_token: str=ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
     #
@@ -310,9 +310,8 @@ def main() -> None:
     # mq args
     parser.add_argument(
         "--broker-client",
-        default="pulsar",
-        choices=["pulsar", "rabbitmq", "nats", "gcp"],
-        help="which kind of broker",
+        default=ENV.EWMS_PILOT_BROKER_CLIENT,
+        help="which kind of broker: pulsar, rabbitmq, etc.",
     )
     parser.add_argument(
         "-b",
