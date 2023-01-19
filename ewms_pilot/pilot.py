@@ -17,10 +17,15 @@ from typing import Any, Callable, Optional
 
 import asyncstdlib as asl
 import mqclient as mq
-from mqclient.broker_client_interface import TIMEOUT_MILLIS_DEFAULT
 from wipac_dev_tools import argparse_tools, logging_tools
 
+from .config import ENV
+
 LOGGER = logging.getLogger("ewms-pilot")
+
+_DEFAULT_TIMEOUT_INCOMING = 1  # second
+_DEFAULT_TIMEOUT_OUTGOING = 1  # second
+_DEFAULT_PREFETCH = 1
 
 
 class FileType(enum.Enum):
@@ -171,17 +176,19 @@ def process_msg(
 async def consume_and_reply(
     cmd: str,
     #
-    # for mq
-    broker_client: str,
-    broker_address: str,
-    auth_token: str,
+    queue_incoming: str,
+    queue_outgoing: str,
     #
-    queue_to_clients: str,
-    queue_from_clients: str,
+    # for mq
+    broker_client: str = ENV.EWMS_PILOT_BROKER_CLIENT,
+    broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
+    auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
+    #
+    prefetch: int = _DEFAULT_PREFETCH,
     #
     timeout_wait_for_first_message: Optional[int] = None,
-    timeout_to_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
-    timeout_from_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
+    timeout_incoming: int = _DEFAULT_TIMEOUT_INCOMING,
+    timeout_outgoing: int = _DEFAULT_TIMEOUT_OUTGOING,
     #
     # for subprocess
     fpath_to_subproc: Path = Path("./in.pkl"),
@@ -195,25 +202,30 @@ async def consume_and_reply(
     """Communicate with server and outsource processing to subprocesses.
 
     Arguments:
-        `timeout_wait_for_first_message`: if None, use 'timeout_to_clients'
+        `timeout_wait_for_first_message`: if None, use 'timeout_incoming'
     """
     LOGGER.info("Making MQClient queue connections...")
     except_errors = False  # if there's an error, have the cluster try again (probably a system error)
+
+    if not queue_incoming or not queue_outgoing:
+        raise RuntimeError("Must define an incoming and an outgoing queue")
+
     in_queue = mq.Queue(
         broker_client,
         address=broker_address,
-        name=queue_to_clients,
+        name=queue_incoming,
+        prefetch=prefetch,
         auth_token=auth_token,
         except_errors=except_errors,
-        # timeout=timeout_to_clients, # manually set below
+        # timeout=timeout_incoming, # manually set below
     )
     out_queue = mq.Queue(
         broker_client,
         address=broker_address,
-        name=queue_from_clients,
+        name=queue_outgoing,
         auth_token=auth_token,
         except_errors=except_errors,
-        timeout=timeout_from_clients,
+        timeout=timeout_outgoing,
     )
     try:
         subproc_timeout = int(os.environ["EWMS_PILOT_SUBPROC_TIMEOUT"])  # -> ValueError
@@ -227,7 +239,7 @@ async def consume_and_reply(
         in_queue.timeout = (
             timeout_wait_for_first_message
             if timeout_wait_for_first_message
-            else timeout_to_clients
+            else timeout_incoming
         )
         async with in_queue.open_sub_one() as in_msg:
             LOGGER.info(f"Got a message to process (#0): {str(in_msg)}")
@@ -246,7 +258,7 @@ async def consume_and_reply(
             await pub.send(out_msg)
 
         # ADDITIONAL MESSAGES
-        in_queue.timeout = timeout_to_clients
+        in_queue.timeout = timeout_incoming
         async with in_queue.open_sub() as sub:
             async for i, in_msg in asl.enumerate(sub, start=1):
                 LOGGER.info(f"Got a message to process (#{i}): {str(in_msg)}")
@@ -310,44 +322,54 @@ def main() -> None:
 
     # mq args
     parser.add_argument(
-        "--mq-basename",
+        "--queue-incoming",
         required=True,
-        help="base identifier to correspond to a task for its MQ incoming & outgoing connections",
+        help="the name of the incoming queue",
+    )
+    parser.add_argument(
+        "--queue-outgoing",
+        required=True,
+        help="the name of the outgoing queue",
     )
     parser.add_argument(
         "--broker-client",
-        default="pulsar",
-        choices=["pulsar", "rabbitmq", "nats", "gcp"],
-        help="which kind of broker",
+        default=ENV.EWMS_PILOT_BROKER_CLIENT,
+        help="which kind of broker: pulsar, rabbitmq, etc.",
     )
     parser.add_argument(
         "-b",
         "--broker",
-        required=True,
+        default=ENV.EWMS_PILOT_BROKER_ADDRESS,
         help="The MQ broker URL to connect to",
     )
     parser.add_argument(
         "-a",
         "--auth-token",
-        default=None,
+        default=ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
         help="The MQ authentication token to use",
+    )
+    parser.add_argument(
+        "--prefetch",
+        default=_DEFAULT_PREFETCH,
+        type=int,
+        help="prefetch for incoming messages",
     )
     parser.add_argument(
         "--timeout-wait-for-first-message",
         default=None,
         type=int,
         help="timeout (seconds) for the first message to arrive at the client(s); "
-        "defaults to `--timeout-to-clients` value",
+        "defaults to `--timeout-incoming` value",
     )
     parser.add_argument(
-        "--timeout-to-clients",
-        default=60 * 1,
+        "--timeout-incoming",
+        default=_DEFAULT_TIMEOUT_INCOMING,
         type=int,
         help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
-        "--timeout-from-clients",
-        default=60 * 30,
+        "--timeout-outgoing",
+        default=_DEFAULT_TIMEOUT_OUTGOING,
         type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
@@ -356,12 +378,12 @@ def main() -> None:
     parser.add_argument(
         "-l",
         "--log",
-        default="INFO",
+        default=ENV.EWMS_PILOT_LOG,
         help="the output logging level (for first-party loggers)",
     )
     parser.add_argument(
         "--log-third-party",
-        default="WARNING",
+        default=ENV.EWMS_PILOT_LOG_THIRD_PARTY,
         help="the output logging level for third-party loggers",
     )
 
@@ -384,18 +406,21 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # GO!
-    LOGGER.info(f"Starting up an EWMS Pilot for MQ task: {args.mq_basename} (basename)")
-    asyncio.get_event_loop().run_until_complete(
+    LOGGER.info(
+        f"Starting up an EWMS Pilot for MQ task: {args.queue_incoming} -> {args.queue_outgoing}"
+    )
+    asyncio.run(
         consume_and_reply(
             cmd=args.cmd,
             broker_client=args.broker_client,
             broker_address=args.broker,
             auth_token=args.auth_token,
-            queue_to_clients=f"to-clients-{args.mq_basename}",
-            queue_from_clients=f"from-clients-{args.mq_basename}",
+            queue_incoming=args.queue_incoming,
+            queue_outgoing=args.queue_outgoing,
+            prefetch=args.prefetch,
             timeout_wait_for_first_message=args.timeout_wait_for_first_message,
-            timeout_to_clients=args.timeout_to_clients,
-            timeout_from_clients=args.timeout_from_clients,
+            timeout_incoming=args.timeout_incoming,
+            timeout_outgoing=args.timeout_outgoing,
             fpath_to_subproc=args.infile,
             fpath_from_subproc=args.outfile,
             debug_dir=args.debug_directory,
