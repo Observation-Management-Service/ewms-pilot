@@ -23,8 +23,8 @@ from .config import ENV
 
 LOGGER = logging.getLogger("ewms-pilot")
 
-_DEFAULT_TIMEOUT_INCOMING = 60 * 1
-_DEFAULT_TIMEOUT_OUTGOING = 60 * 30
+_DEFAULT_TIMEOUT_INCOMING = 1  # second
+_DEFAULT_TIMEOUT_OUTGOING = 1  # second
 _DEFAULT_PREFETCH = 1
 
 
