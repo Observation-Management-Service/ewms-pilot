@@ -2,25 +2,21 @@
 
 
 import asyncio
-import os
 from pathlib import Path
 
 import mqclient as mq
-from ewms_pilot import consume_and_reply
-
-BROKER_ADDRESS = "localhost"
-BROKER_CLIENT = os.getenv("BROKER_CLIENT", "")
+from ewms_pilot import config, consume_and_reply
 
 
 async def populate_queue(
-    queue_to_clients: str,
+    queue_incoming: str,
     msgs_to_subproc: list,
 ) -> None:
     """Send messages to queue."""
     to_client_q = mq.Queue(
-        BROKER_CLIENT,
-        address=BROKER_ADDRESS,
-        name=queue_to_clients,
+        config.ENV.EWMS_PILOT_BROKER_CLIENT,
+        address=config.ENV.EWMS_PILOT_BROKER_ADDRESS,
+        name=queue_incoming,
     )
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
@@ -29,16 +25,17 @@ async def populate_queue(
 
 
 async def main(
-    queue_to_clients: str,
-    queue_from_clients: str,
+    queue_incoming: str,
+    queue_outgoing: str,
     debug_dir: Path,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
 
-    await populate_queue(queue_to_clients, msgs_to_subproc)
+    await populate_queue(queue_incoming, msgs_to_subproc)
 
     await consume_and_reply(
+        # double cat
         cmd="""python3 -c "
 import sys
 import time
@@ -50,12 +47,12 @@ time.sleep(5)
 print('printed: ' + output)
 print(output, file=open('out.txt','w'))
 time.sleep(5)
-" """,  # double cat
-        broker_client=BROKER_CLIENT,
-        broker_address=BROKER_ADDRESS,
-        auth_token="",
-        queue_to_clients=queue_to_clients,
-        queue_from_clients=queue_from_clients,
+" """,
+        # broker_client=,  # rely on env var
+        # broker_address=,  # rely on env var
+        # auth_token="",
+        queue_incoming=queue_incoming,
+        queue_outgoing=queue_outgoing,
         fpath_to_subproc=Path("in.txt"),
         fpath_from_subproc=Path("out.txt"),
         # file_writer=UniversalFileInterface.write, # see other tests
