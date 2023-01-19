@@ -24,7 +24,7 @@ google-auth==2.16.0
     # via
     #   google-api-core
     #   wipac-mqclient
-google-cloud-pubsub==2.13.12
+google-cloud-pubsub==2.14.0
     # via wipac-mqclient
 googleapis-common-protos[grpc]==1.58.0
     # via
