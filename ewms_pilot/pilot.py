@@ -19,6 +19,8 @@ import asyncstdlib as asl
 import mqclient as mq
 from wipac_dev_tools import argparse_tools, logging_tools
 
+from .config import ENV
+
 LOGGER = logging.getLogger("ewms-pilot")
 
 
@@ -171,14 +173,18 @@ async def consume_and_reply(
     cmd: str,
     #
     # for mq
-    broker_client: str=ENV.EWMS_PILOT_BROKER_CLIENT,
-    broker_address: str=ENV.EWMS_PILOT_BROKER_ADDRESS,
-    auth_token: str=ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
+    broker_client: str = ENV.EWMS_PILOT_BROKER_CLIENT,
+    broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
+    auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
     #
-    queue_to_clients: str,
-    queue_from_clients: str,
+    queue_incoming: str = ENV.EWMS_PILOT_QUEUE_INCOMING,
+    queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
     #
-    timeout_wait_for_first_message: Optional[int] = ENV.EWMS_PILOT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
+    prefetch: int = ENV.EWMS_PILOT_PREFETCH,
+    #
+    timeout_wait_for_first_message: Optional[
+        int
+    ] = ENV.EWMS_PILOT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
     timeout_to_clients: int = ENV.EWMS_PILOT_TIMEOUT_INCOMING,
     timeout_from_clients: int = ENV.EWMS_PILOT_TIMEOUT_OUTGOING,
     #
@@ -198,10 +204,15 @@ async def consume_and_reply(
     """
     LOGGER.info("Making MQClient queue connections...")
     except_errors = False  # if there's an error, have the cluster try again (probably a system error)
+
+    if not queue_incoming or not queue_outgoing:
+        raise RuntimeError("Must define an incoming and an outgoing queue")
+
     in_queue = mq.Queue(
         broker_client,
         address=broker_address,
-        name=queue_to_clients,
+        name=queue_incoming,
+        prefetch=prefetch,
         auth_token=auth_token,
         except_errors=except_errors,
         # timeout=timeout_to_clients, # manually set below
@@ -209,7 +220,7 @@ async def consume_and_reply(
     out_queue = mq.Queue(
         broker_client,
         address=broker_address,
-        name=queue_from_clients,
+        name=queue_outgoing,
         auth_token=auth_token,
         except_errors=except_errors,
         timeout=timeout_from_clients,
@@ -309,6 +320,16 @@ def main() -> None:
 
     # mq args
     parser.add_argument(
+        "--queue-incoming",
+        default=ENV.EWMS_PILOT_QUEUE_INCOMING,
+        help="the name of the incoming queue",
+    )
+    parser.add_argument(
+        "--queue-outgoing",
+        default=ENV.EWMS_PILOT_QUEUE_OUTGOING,
+        help="the name of the outgoing queue",
+    )
+    parser.add_argument(
         "--broker-client",
         default=ENV.EWMS_PILOT_BROKER_CLIENT,
         help="which kind of broker: pulsar, rabbitmq, etc.",
@@ -324,6 +345,12 @@ def main() -> None:
         "--auth-token",
         default=ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
         help="The MQ authentication token to use",
+    )
+    parser.add_argument(
+        "--prefetch",
+        default=ENV.EWMS_PILOT_PREFETCH,
+        type=int,
+        help="prefetch for incoming messages",
     )
     parser.add_argument(
         "--timeout-wait-for-first-message",
@@ -377,15 +404,18 @@ def main() -> None:
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # GO!
-    LOGGER.info(f"Starting up an EWMS Pilot for MQ task: {args.mq_basename} (basename)")
+    LOGGER.info(
+        f"Starting up an EWMS Pilot for MQ task: {args.queue_incoming} -> {args.queue_outgoing}"
+    )
     asyncio.run(
         consume_and_reply(
             cmd=args.cmd,
             broker_client=args.broker_client,
             broker_address=args.broker,
             auth_token=args.auth_token,
-            queue_to_clients=f"to-clients-{args.mq_basename}",
-            queue_from_clients=f"from-clients-{args.mq_basename}",
+            queue_incoming=args.queue_incoming,
+            queue_outgoing=args.queue_outgoing,
+            prefetch=args.prefetch,
             timeout_wait_for_first_message=args.timeout_wait_for_first_message,
             timeout_to_clients=args.timeout_to_clients,
             timeout_from_clients=args.timeout_from_clients,

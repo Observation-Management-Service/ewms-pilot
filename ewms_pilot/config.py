@@ -21,6 +21,10 @@ class EnvConfig:
     EWMS_PILOT_BROKER_ADDRESS: str = "localhost"
     EWMS_PILOT_BROKER_AUTH_TOKEN: str = ""
 
+    # queues
+    EWMS_PILOT_QUEUE_INCOMING: str = ""
+    EWMS_PILOT_QUEUE_OUTGOING: str = ""
+
     # misc config
     EWMS_PILOT_PREFETCH: int = 1  # incoming messages
 
