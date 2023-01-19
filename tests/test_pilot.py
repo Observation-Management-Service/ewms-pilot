@@ -1,7 +1,6 @@
 """Test pilot submodule."""
 
 import asyncio
-import os
 import time
 from datetime import date, timedelta
 from pathlib import Path
@@ -10,10 +9,7 @@ from typing import Any
 import asyncstdlib as asl
 import mqclient as mq
 import pytest
-from ewms_pilot import consume_and_reply
-
-BROKER_ADDRESS = "localhost"
-BROKER_CLIENT = os.getenv("BROKER_CLIENT", "")
+from ewms_pilot import config, consume_and_reply
 
 
 @pytest.fixture
@@ -42,8 +38,8 @@ async def populate_queue(
 ) -> None:
     """Send messages to queue."""
     to_client_q = mq.Queue(
-        BROKER_CLIENT,
-        address=BROKER_ADDRESS,
+        config.ENV.EWMS_PILOT_BROKER_CLIENT,
+        address=config.ENV.EWMS_PILOT_BROKER_ADDRESS,
         name=queue_incoming,
     )
 
@@ -61,8 +57,8 @@ async def assert_results(
 ) -> None:
     """Get messages and assert against expected results."""
     from_client_q = mq.Queue(
-        BROKER_CLIENT,
-        address=BROKER_ADDRESS,
+        config.ENV.EWMS_PILOT_BROKER_CLIENT,
+        address=config.ENV.EWMS_PILOT_BROKER_ADDRESS,
         name=queue_outgoing,
     )
     received: list = []
@@ -123,9 +119,9 @@ async def test_000__txt(
             cmd="""python3 -c "
 output = open('in.txt').read().strip() * 2;
 print(output, file=open('out.txt','w'))" """,  # double cat
-            broker_client=BROKER_CLIENT,
-            broker_address=BROKER_ADDRESS,
-            auth_token="",
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             fpath_to_subproc=Path("in.txt"),
@@ -160,9 +156,9 @@ input=json.load(open('in.json'));
 v=input['attr-0'];
 output={'attr-a':v, 'attr-b':v+v};
 json.dump(output, open('out.json','w'))" """,
-            broker_client=BROKER_CLIENT,
-            broker_address=BROKER_ADDRESS,
-            auth_token="",
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             fpath_to_subproc=Path("in.json"),
@@ -197,9 +193,9 @@ from datetime import date, timedelta;
 input=pickle.load(open('in.pkl','rb'));
 output=input+timedelta(days=1);
 pickle.dump(output, open('out.pkl','wb'))" """,
-            broker_client=BROKER_CLIENT,
-            broker_address=BROKER_ADDRESS,
-            auth_token="",
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             fpath_to_subproc=Path("in.pkl"),
@@ -234,9 +230,9 @@ from datetime import date, timedelta;
 input=pickle.load(open('in.pkl','rb'));
 output=input+timedelta(days=1);
 pickle.dump(output, open('out.pkl','wb'))" """,
-            broker_client=BROKER_CLIENT,
-            broker_address=BROKER_ADDRESS,
-            auth_token="",
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             # fpath_to_subproc=Path("in.pkl"),
@@ -275,9 +271,9 @@ async def test_300__writer_reader(
             cmd="""python3 -c "
 output = open('in.txt').read().strip() * 2;
 print(output, file=open('out.txt','w'))" """,  # double cat
-            broker_client=BROKER_CLIENT,
-            broker_address=BROKER_ADDRESS,
-            auth_token="",
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             fpath_to_subproc=Path("in.txt"),
