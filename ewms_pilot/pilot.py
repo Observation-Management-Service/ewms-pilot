@@ -17,7 +17,6 @@ from typing import Any, Callable, Optional
 
 import asyncstdlib as asl
 import mqclient as mq
-from mqclient.broker_client_interface import TIMEOUT_MILLIS_DEFAULT
 from wipac_dev_tools import argparse_tools, logging_tools
 
 LOGGER = logging.getLogger("ewms-pilot")
@@ -173,15 +172,15 @@ async def consume_and_reply(
     #
     # for mq
     broker_client: str,
-    broker_address: str,
-    auth_token: str,
+    broker_address: str=ENV.EWMS_PILOT_BROKER_ADDRESS,
+    auth_token: str=ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
     #
     queue_to_clients: str,
     queue_from_clients: str,
     #
-    timeout_wait_for_first_message: Optional[int] = None,
-    timeout_to_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
-    timeout_from_clients: int = TIMEOUT_MILLIS_DEFAULT // 1000,
+    timeout_wait_for_first_message: Optional[int] = ENV.EWMS_PILOT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
+    timeout_to_clients: int = ENV.EWMS_PILOT_TIMEOUT_INCOMING,
+    timeout_from_clients: int = ENV.EWMS_PILOT_TIMEOUT_OUTGOING,
     #
     # for subprocess
     fpath_to_subproc: Path = Path("./in.pkl"),
@@ -310,11 +309,6 @@ def main() -> None:
 
     # mq args
     parser.add_argument(
-        "--mq-basename",
-        required=True,
-        help="base identifier to correspond to a task for its MQ incoming & outgoing connections",
-    )
-    parser.add_argument(
         "--broker-client",
         default="pulsar",
         choices=["pulsar", "rabbitmq", "nats", "gcp"],
@@ -323,31 +317,31 @@ def main() -> None:
     parser.add_argument(
         "-b",
         "--broker",
-        required=True,
+        default=ENV.EWMS_PILOT_BROKER_ADDRESS,
         help="The MQ broker URL to connect to",
     )
     parser.add_argument(
         "-a",
         "--auth-token",
-        default=None,
+        default=ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
         help="The MQ authentication token to use",
     )
     parser.add_argument(
         "--timeout-wait-for-first-message",
-        default=None,
+        default=ENV.EWMS_PILOT_TIMEOUT_WAIT_FOR_FIRST_MESSAGE,
         type=int,
         help="timeout (seconds) for the first message to arrive at the client(s); "
         "defaults to `--timeout-to-clients` value",
     )
     parser.add_argument(
         "--timeout-to-clients",
-        default=60 * 1,
+        default=ENV.EWMS_PILOT_TIMEOUT_INCOMING,
         type=int,
         help="timeout (seconds) for messages TO client(s)",
     )
     parser.add_argument(
         "--timeout-from-clients",
-        default=60 * 30,
+        default=ENV.EWMS_PILOT_TIMEOUT_OUTGOING,
         type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
@@ -356,12 +350,12 @@ def main() -> None:
     parser.add_argument(
         "-l",
         "--log",
-        default="INFO",
+        default=ENV.EWMS_PILOT_LOG,
         help="the output logging level (for first-party loggers)",
     )
     parser.add_argument(
         "--log-third-party",
-        default="WARNING",
+        default=ENV.EWMS_PILOT_LOG_THIRD_PARTY,
         help="the output logging level for third-party loggers",
     )
 
