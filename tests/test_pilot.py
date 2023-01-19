@@ -17,13 +17,13 @@ BROKER_CLIENT = os.getenv("BROKER_CLIENT", "")
 
 
 @pytest.fixture
-def queue_to_clients() -> str:
+def queue_incoming() -> str:
     """Get the name of a queue for talking to client(s)."""
     return mq.Queue.make_name()
 
 
 @pytest.fixture
-def queue_from_clients() -> str:
+def queue_outgoing() -> str:
     """Get the name of a queue for talking "from" client(s)."""
     return mq.Queue.make_name()
 
@@ -37,14 +37,14 @@ def debug_dir() -> Path:
 
 
 async def populate_queue(
-    queue_to_clients: str,  # pylint: disable=redefined-outer-name
+    queue_incoming: str,  # pylint: disable=redefined-outer-name
     msgs_to_subproc: list,
 ) -> None:
     """Send messages to queue."""
     to_client_q = mq.Queue(
         BROKER_CLIENT,
         address=BROKER_ADDRESS,
-        name=queue_to_clients,
+        name=queue_incoming,
     )
 
     async with to_client_q.open_pub() as pub:
@@ -55,7 +55,7 @@ async def populate_queue(
 
 
 async def assert_results(
-    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,  # pylint: disable=redefined-outer-name
     msgs_to_subproc: list,
     msgs_from_subproc: list,
 ) -> None:
@@ -63,7 +63,7 @@ async def assert_results(
     from_client_q = mq.Queue(
         BROKER_CLIENT,
         address=BROKER_ADDRESS,
-        name=queue_from_clients,
+        name=queue_outgoing,
     )
     received: list = []
     async with from_client_q.open_sub() as sub:
@@ -108,8 +108,8 @@ def assert_debug_dir(
 
 
 async def test_000__txt(
-    queue_to_clients: str,  # pylint: disable=redefined-outer-name
-    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    queue_incoming: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
@@ -118,7 +118,7 @@ async def test_000__txt(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_to_clients, msgs_to_subproc),
+        populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
             cmd="""python3 -c "
 output = open('in.txt').read().strip() * 2;
@@ -126,8 +126,8 @@ print(output, file=open('out.txt','w'))" """,  # double cat
             broker_client=BROKER_CLIENT,
             broker_address=BROKER_ADDRESS,
             auth_token="",
-            queue_to_clients=queue_to_clients,
-            queue_from_clients=queue_from_clients,
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
             fpath_to_subproc=Path("in.txt"),
             fpath_from_subproc=Path("out.txt"),
             # file_writer=UniversalFileInterface.write, # see other tests
@@ -136,13 +136,13 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
 
 
 async def test_100__json(
-    queue_to_clients: str,  # pylint: disable=redefined-outer-name
-    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    queue_incoming: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .json-based pilot."""
@@ -152,7 +152,7 @@ async def test_100__json(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_to_clients, msgs_to_subproc),
+        populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
             cmd="""python3 -c "
 import json;
@@ -163,8 +163,8 @@ json.dump(output, open('out.json','w'))" """,
             broker_client=BROKER_CLIENT,
             broker_address=BROKER_ADDRESS,
             auth_token="",
-            queue_to_clients=queue_to_clients,
-            queue_from_clients=queue_from_clients,
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
             fpath_to_subproc=Path("in.json"),
             fpath_from_subproc=Path("out.json"),
             # file_writer=UniversalFileInterface.write, # see other tests
@@ -173,13 +173,13 @@ json.dump(output, open('out.json','w'))" """,
         ),
     )
 
-    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.json"), Path("out.json"), msgs_from_subproc)
 
 
 async def test_200__pickle(
-    queue_to_clients: str,  # pylint: disable=redefined-outer-name
-    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    queue_incoming: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .pkl-based pilot."""
@@ -189,7 +189,7 @@ async def test_200__pickle(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_to_clients, msgs_to_subproc),
+        populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
             cmd="""python3 -c "
 import pickle;
@@ -200,8 +200,8 @@ pickle.dump(output, open('out.pkl','wb'))" """,
             broker_client=BROKER_CLIENT,
             broker_address=BROKER_ADDRESS,
             auth_token="",
-            queue_to_clients=queue_to_clients,
-            queue_from_clients=queue_from_clients,
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
             fpath_to_subproc=Path("in.pkl"),
             fpath_from_subproc=Path("out.pkl"),
             # file_writer=UniversalFileInterface.write, # see other tests
@@ -210,13 +210,13 @@ pickle.dump(output, open('out.pkl','wb'))" """,
         ),
     )
 
-    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.pkl"), Path("out.pkl"), msgs_from_subproc)
 
 
 async def test_201__pickle(
-    queue_to_clients: str,  # pylint: disable=redefined-outer-name
-    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    queue_incoming: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .pkl-based pilot."""
@@ -226,7 +226,7 @@ async def test_201__pickle(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_to_clients, msgs_to_subproc),
+        populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
             cmd="""python3 -c "
 import pickle;
@@ -237,8 +237,8 @@ pickle.dump(output, open('out.pkl','wb'))" """,
             broker_client=BROKER_CLIENT,
             broker_address=BROKER_ADDRESS,
             auth_token="",
-            queue_to_clients=queue_to_clients,
-            queue_from_clients=queue_from_clients,
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
             # fpath_to_subproc=Path("in.pkl"),
             # fpath_from_subproc=Path("out.pkl"),
             # file_writer=UniversalFileInterface.write, # see other tests
@@ -247,13 +247,13 @@ pickle.dump(output, open('out.pkl','wb'))" """,
         ),
     )
 
-    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.pkl"), Path("out.pkl"), msgs_from_subproc)
 
 
 async def test_300__writer_reader(
-    queue_to_clients: str,  # pylint: disable=redefined-outer-name
-    queue_from_clients: str,  # pylint: disable=redefined-outer-name
+    queue_incoming: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
@@ -270,7 +270,7 @@ async def test_300__writer_reader(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_to_clients, msgs_to_subproc),
+        populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
             cmd="""python3 -c "
 output = open('in.txt').read().strip() * 2;
@@ -278,8 +278,8 @@ print(output, file=open('out.txt','w'))" """,  # double cat
             broker_client=BROKER_CLIENT,
             broker_address=BROKER_ADDRESS,
             auth_token="",
-            queue_to_clients=queue_to_clients,
-            queue_from_clients=queue_from_clients,
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
             fpath_to_subproc=Path("in.txt"),
             fpath_from_subproc=Path("out.txt"),
             file_writer=reverse_writer,
@@ -288,5 +288,5 @@ print(output, file=open('out.txt','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_from_clients, msgs_to_subproc, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
     assert_debug_dir(debug_dir, Path("in.txt"), Path("out.txt"), msgs_from_subproc)
