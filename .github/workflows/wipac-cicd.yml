@@ -100,7 +100,7 @@ jobs:
           pip install --upgrade pip wheel setuptools pytest
           if [ -z "${{ matrix.broker }}" ]; then
             export EWMS_PILOT_BROKER_CLIENT=pulsar
-            pip install .[test]
+            pip install .[test,pulsar]
           else
             export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker }}
             pip install .[test,${{ matrix.broker }}]
@@ -150,7 +150,7 @@ jobs:
           pip install --upgrade pip wheel setuptools pytest
           if [ -z "${{ matrix.broker }}" ]; then
             export EWMS_PILOT_BROKER_CLIENT=pulsar
-            pip install .[test]
+            pip install .[test,pulsar]
           else
             export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker }}
             pip install .[test,${{ matrix.broker }}]
