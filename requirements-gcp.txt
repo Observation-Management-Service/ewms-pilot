@@ -9,9 +9,7 @@ asyncstdlib==3.10.5
 cachetools==5.2.1
     # via google-auth
 certifi==2022.12.7
-    # via
-    #   pulsar-client
-    #   requests
+    # via requests
 charset-normalizer==3.0.1
     # via requests
 google-api-core[grpc]==2.11.0
@@ -54,8 +52,6 @@ protobuf==4.21.12
     #   grpc-google-iam-v1
     #   grpcio-status
     #   proto-plus
-pulsar-client==3.0.0
-    # via wipac-mqclient
 pyasn1==0.4.8
     # via
     #   pyasn1-modules
@@ -76,5 +72,5 @@ urllib3==1.26.14
     # via requests
 wipac-dev-tools==1.6.10
     # via wipac-mqclient
-wipac-mqclient[gcp,pulsar]==0.6.8
+wipac-mqclient[gcp]==0.6.8
     # via ewms-pilot (setup.py)
