@@ -84,5 +84,5 @@ urllib3==1.26.14
     # via requests
 wipac-dev-tools==1.6.10
     # via wipac-mqclient
-wipac-mqclient[all,pulsar]==0.6.8
+wipac-mqclient[all]==0.6.8
     # via ewms-pilot (setup.py)
