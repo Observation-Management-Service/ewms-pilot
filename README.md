@@ -3,3 +3,17 @@
 <!--- End of README Badges (automated) --->
 # ewms-pilot
 EWMS Pilot: MQ-Task Interface API
+
+## Install
+
+Please select the backend to use and install that.  For example:
+
+```
+pip install ewms-pilot[pulsar]
+```
+
+Options include:
+* pulsar
+* rabbitmq
+* gcp
+* nats

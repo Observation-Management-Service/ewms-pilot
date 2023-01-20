@@ -64,7 +64,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        broker: ["", pulsar, rabbitmq, gcp, nats]
+        broker: [pulsar, rabbitmq, gcp, nats]
     steps:
       - uses: actions/checkout@v3
       - name: Checkout MQClient repo
@@ -80,7 +80,7 @@ jobs:
           set -x
 
           # Pulsar
-          if [ -z "${{ matrix.broker }}" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
+          if [ "${{ matrix.broker }}" = "pulsar" ]; then
             ./MQClient/resources/docker-pulsar.sh
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
@@ -98,13 +98,8 @@ jobs:
           echo "running examples..."
 
           pip install --upgrade pip wheel setuptools pytest
-          if [ -z "${{ matrix.broker }}" ]; then
-            export EWMS_PILOT_BROKER_CLIENT=pulsar
-            pip install .[test]
-          else
-            export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker }}
-            pip install .[test,${{ matrix.broker }}]
-          fi
+          export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker }}
+          pip install .[test,${{ matrix.broker }}]
           python examples/example.py
 
   tests:
@@ -114,7 +109,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-        broker: ["", pulsar, rabbitmq, gcp, nats]
+        broker: [pulsar, rabbitmq, gcp, nats]
     steps:
       - uses: actions/checkout@v3
       - name: Checkout MQClient repo
@@ -130,7 +125,7 @@ jobs:
           set -x
 
           # Pulsar
-          if [ -z "${{ matrix.broker }}" ] || [ "${{ matrix.broker }}" = "pulsar" ]; then
+          if [ "${{ matrix.broker }}" = "pulsar" ]; then
             ./MQClient/resources/docker-pulsar.sh
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
@@ -148,13 +143,8 @@ jobs:
           echo "running tests..."
 
           pip install --upgrade pip wheel setuptools pytest
-          if [ -z "${{ matrix.broker }}" ]; then
-            export EWMS_PILOT_BROKER_CLIENT=pulsar
-            pip install .[test]
-          else
-            export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker }}
-            pip install .[test,${{ matrix.broker }}]
-          fi
+          export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker }}
+          pip install .[test,${{ matrix.broker }}]
           python -m pytest -vvv tests
 
   release:

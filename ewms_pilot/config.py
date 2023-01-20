@@ -16,7 +16,7 @@ class EnvConfig:
     """For storing environment variables, typed."""
 
     # broker -- assumes one broker is the norm
-    EWMS_PILOT_BROKER_CLIENT: str = "pulsar"
+    EWMS_PILOT_BROKER_CLIENT: str = "rabbitmq"
     EWMS_PILOT_BROKER_ADDRESS: str = "localhost"
     EWMS_PILOT_BROKER_AUTH_TOKEN: str = ""
 
