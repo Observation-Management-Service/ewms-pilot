@@ -6,7 +6,7 @@
 #
 asyncstdlib==3.10.5
     # via ewms-pilot (setup.py)
-cachetools==5.2.1
+cachetools==5.3.0
     # via google-auth
 certifi==2022.12.7
     # via requests
@@ -15,19 +15,19 @@ charset-normalizer==3.0.1
 google-api-core[grpc]==2.11.0
     # via
     #   google-cloud-pubsub
-    #   wipac-mqclient
+    #   oms-mqclient
 google-auth==2.16.0
     # via
     #   google-api-core
-    #   wipac-mqclient
-google-cloud-pubsub==2.14.0
-    # via wipac-mqclient
+    #   oms-mqclient
+google-cloud-pubsub==2.14.1
+    # via oms-mqclient
 googleapis-common-protos[grpc]==1.58.0
     # via
     #   google-api-core
     #   grpc-google-iam-v1
     #   grpcio-status
-    #   wipac-mqclient
+    #   oms-mqclient
 grpc-google-iam-v1==0.12.6
     # via google-cloud-pubsub
 grpcio==1.51.1
@@ -42,6 +42,8 @@ grpcio-status==1.51.1
     #   google-cloud-pubsub
 idna==3.4
     # via requests
+oms-mqclient[gcp]==1.0.0
+    # via ewms-pilot (setup.py)
 proto-plus==1.22.2
     # via google-cloud-pubsub
 protobuf==4.21.12
@@ -71,6 +73,4 @@ typing-extensions==4.4.0
 urllib3==1.26.14
     # via requests
 wipac-dev-tools==1.6.10
-    # via wipac-mqclient
-wipac-mqclient[gcp]==0.6.8
-    # via ewms-pilot (setup.py)
+    # via oms-mqclient
