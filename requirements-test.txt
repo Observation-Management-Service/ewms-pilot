@@ -19,7 +19,7 @@ idna==3.4
 iniconfig==2.0.0
     # via pytest
 oms-mqclient==1.0.0
-    # via wipac-mqclient
+    # via ewms-pilot (setup.py)
 packaging==23.0
     # via pytest
 pluggy==1.0.0
@@ -40,5 +40,3 @@ urllib3==1.26.14
     # via requests
 wipac-dev-tools==1.6.10
     # via oms-mqclient
-wipac-mqclient==1.0.1
-    # via ewms-pilot (setup.py)
