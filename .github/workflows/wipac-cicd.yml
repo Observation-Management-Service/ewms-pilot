@@ -32,7 +32,7 @@ jobs:
       - run: |
           # pulsar will eventually support 3.11
           # so let's set a timer for six months from now:
-          echo "How's https://github.com/WIPACrepo/MQClient/issues/61 coming along?"
+          echo "How's https://github.com/Observation-Management-Service/MQClient/issues/61 coming along?"
           if [ $(echo "1672874697+(60*60*24*30*6) - $(date +%s)" | bc) -lt 0 ]; then
             exit 1
           fi
@@ -70,7 +70,7 @@ jobs:
       - name: Checkout MQClient repo
         uses: actions/checkout@v3
         with:
-          repository: WIPACrepo/MQClient
+          repository: Observation-Management-Service/MQClient
           path: MQClient
       - uses: actions/setup-python@v3
         with:
@@ -81,10 +81,10 @@ jobs:
 
           # Pulsar
           if [ "${{ matrix.broker }}" = "pulsar" ]; then
-            ./MQClient/resources/docker-pulsar.sh
+            ./MQClient/resources/docker-pulsar.sh "${{ matrix.broker_client }}"
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
-            ./MQClient/resources/docker-rabbitmq.sh
+            ./MQClient/resources/docker-rabbitmq.sh "${{ matrix.broker_client }}"
           # GCP
           elif [ "${{ matrix.broker }}" = "gcp" ]; then
             export PUBSUB_EMULATOR_HOST=localhost:8085
@@ -101,6 +101,19 @@ jobs:
           export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker }}
           pip install .[test,${{ matrix.broker }}]
           python examples/example.py
+      - name: broker output
+        if: always()
+        run: |
+          set -x
+          cat ./broker.out
+          if [ -n "$(ls -A ./broker_logs/ 2>/dev/null)" ]; then
+            ls ./broker_logs/
+            more ./broker_logs/* | cat  # cats with filenames (delimited by :::::::)
+          fi
+      - name: broker docker logs
+        if: always()
+        run: |
+          docker logs "${{ matrix.broker_client }}" || true
 
   tests:
     needs: [py-versions]
@@ -115,7 +128,7 @@ jobs:
       - name: Checkout MQClient repo
         uses: actions/checkout@v3
         with:
-          repository: WIPACrepo/MQClient
+          repository: Observation-Management-Service/MQClient
           path: MQClient
       - uses: actions/setup-python@v3
         with:
@@ -126,10 +139,10 @@ jobs:
 
           # Pulsar
           if [ "${{ matrix.broker }}" = "pulsar" ]; then
-            ./MQClient/resources/docker-pulsar.sh
+            ./MQClient/resources/docker-pulsar.sh "${{ matrix.broker_client }}"
           # RabbitMQ
           elif [ "${{ matrix.broker }}" = "rabbitmq" ]; then
-            ./MQClient/resources/docker-rabbitmq.sh
+            ./MQClient/resources/docker-rabbitmq.sh "${{ matrix.broker_client }}"
           # GCP
           elif [ "${{ matrix.broker }}" = "gcp" ]; then
             export PUBSUB_EMULATOR_HOST=localhost:8085
@@ -146,6 +159,19 @@ jobs:
           export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker }}
           pip install .[test,${{ matrix.broker }}]
           python -m pytest -vvv tests
+      - name: broker output
+        if: always()
+        run: |
+          set -x
+          cat ./broker.out
+          if [ -n "$(ls -A ./broker_logs/ 2>/dev/null)" ]; then
+            ls ./broker_logs/
+            more ./broker_logs/* | cat  # cats with filenames (delimited by :::::::)
+          fi
+      - name: broker docker logs
+        if: always()
+        run: |
+          docker logs "${{ matrix.broker_client }}" || true
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
