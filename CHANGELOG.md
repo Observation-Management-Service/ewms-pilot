@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.0 (2023-02-14)
+
+
 ## v0.2.0 (2023-01-20)
 ### Feature
 * Change to no-default queue installation ([`01d7a3c`](https://github.com/Observation-Management-Service/ewms-pilot/commit/01d7a3ce7520aad355ff62f4e4607ac964a18e95))
