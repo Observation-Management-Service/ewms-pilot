@@ -14,13 +14,13 @@ from ewms_pilot import config, consume_and_reply
 
 
 def _get_inout_filepaths(extension: str) -> Tuple[Path, Path]:
-    """Generate a unique but short filename, like `in-38a9c.txt`.
+    """Generate two unique but short filenames: `in-3a90.txt` & `out-3a90.txt`.
 
     This is needed so we can run tests in parallel.
     """
     if not extension.startswith("."):
         extension = "." + extension
-    rando = secrets.token_hex(5)
+    rando = secrets.token_hex(2)
     return Path(f"in-{rando}{extension}"), Path(f"out-{rando}{extension}")
 
 
@@ -130,9 +130,9 @@ async def test_000__txt(
     await asyncio.gather(
         populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
-            cmd="""python3 -c "
-output = open('in.txt').read().strip() * 2;
-print(output, file=open('out.txt','w'))" """,  # double cat
+            cmd=f"""python3 -c "
+output = open('{in_txt.name}').read().strip() * 2;
+print(output, file=open('{out_txt.name}','w'))" """,  # double cat
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
@@ -189,13 +189,15 @@ json.dump(output, open('{out_json.name}','w'))" """,
     assert_debug_dir(debug_dir, in_json, out_json, msgs_from_subproc)
 
 
-async def test_200__pickle(
+async def test_200__pickle__default_inout(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .pkl-based pilot."""
-    in_pkl, out_pkl = _get_inout_filepaths(".pkl")
+    # NOTE: consume_and_reply() uses in.pkl & out.pkl as defaults
+    # NOTE: so don't use these names for any other tests (else fpath conflicts)
+    in_pkl, out_pkl = Path("in.pkl"), Path("out.pkl")
 
     # some messages that would make sense pickling
     msgs_to_subproc = [date(1995, 12, 3), date(2022, 9, 29), date(2063, 4, 5)]
@@ -216,8 +218,8 @@ pickle.dump(output, open('{out_pkl.name}','wb'))" """,
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            fpath_to_subproc=in_pkl,
-            fpath_from_subproc=out_pkl,
+            # fpath_to_subproc=in_pkl,
+            # fpath_from_subproc=out_pkl,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir,
@@ -255,8 +257,8 @@ pickle.dump(output, open('{out_pkl.name}','wb'))" """,
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            # fpath_to_subproc=in_pkl,
-            # fpath_from_subproc=out_pkl,
+            fpath_to_subproc=in_pkl,
+            fpath_from_subproc=out_pkl,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir,
