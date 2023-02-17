@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.3.1 (2023-02-17)
+### Other
+* CI Updates ([#14](https://github.com/Observation-Management-Service/ewms-pilot/issues/14)) ([`9fd253f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/9fd253f06e9e2bc8e99d88593202ddb9a731a71f))
+
 ## v0.3.0 (2023-02-14)
 
 
