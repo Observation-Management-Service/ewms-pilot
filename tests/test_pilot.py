@@ -14,7 +14,10 @@ from ewms_pilot import config, consume_and_reply
 
 
 def _get_inout_filepaths(extension: str) -> Tuple[Path, Path]:
-    """Generate a unique but short filename, like `in-38a9c.txt`."""
+    """Generate a unique but short filename, like `in-38a9c.txt`.
+
+    This is needed so we can run tests in parallel.
+    """
     if not extension.startswith("."):
         extension = "." + extension
     rando = secrets.token_hex(5)
