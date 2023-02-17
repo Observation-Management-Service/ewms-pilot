@@ -158,7 +158,7 @@ jobs:
           pip install --upgrade pip wheel setuptools pytest
           export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker_client }}
           pip install .[test,${{ matrix.broker_client }}]
-          python -m pytest -vvv tests
+          python -m pytest -vvv tests -n 10
       - name: broker output
         if: always()
         run: |
