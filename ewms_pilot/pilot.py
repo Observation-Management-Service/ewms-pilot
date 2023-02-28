@@ -23,6 +23,9 @@ from .config import ENV
 
 LOGGER = logging.getLogger("ewms-pilot")
 
+# if there's an error, have the cluster try again (probably a system error)
+_EXCEPT_ERRORS = False
+
 _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
 _DEFAULT_PREFETCH = 1
@@ -209,7 +212,6 @@ async def consume_and_reply(
         `timeout_wait_for_first_message`: if None, use 'timeout_incoming'
     """
     LOGGER.info("Making MQClient queue connections...")
-    except_errors = False  # if there's an error, have the cluster try again (probably a system error)
 
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
@@ -220,7 +222,7 @@ async def consume_and_reply(
         name=queue_incoming,
         prefetch=prefetch,
         auth_token=auth_token,
-        except_errors=except_errors,
+        except_errors=_EXCEPT_ERRORS,
         # timeout=timeout_incoming, # manually set below
     )
     out_queue = mq.Queue(
@@ -228,7 +230,7 @@ async def consume_and_reply(
         address=broker_address,
         name=queue_outgoing,
         auth_token=auth_token,
-        except_errors=except_errors,
+        except_errors=_EXCEPT_ERRORS,
         timeout=timeout_outgoing,
     )
     try:
