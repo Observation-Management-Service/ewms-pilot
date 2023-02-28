@@ -313,7 +313,7 @@ print(output, file=open('{out_txt.name}','w'))" """,  # double cat
     assert_debug_dir(debug_dir, in_txt, out_txt, msgs_from_subproc)
 
 
-async def test_400__blackhole_quarantine(
+async def test_400__exception(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     # debug_dir: Path,  # pylint:disable=redefined-outer-name
@@ -342,11 +342,49 @@ async def test_400__blackhole_quarantine(
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 # debug_dir=debug_dir,
-                quarantine_time=5,
             ),
         )
 
-    assert time.time() - start_time >= 5  # did quarantine_time work?
+    assert time.time() - start_time <= 2  # did quarantine_time work?
+
+    # await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
+    # assert_debug_dir(debug_dir, in_txt, out_txt, msgs_from_subproc)
+
+
+async def test_410__blackhole_quarantine(
+    queue_incoming: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,  # pylint: disable=redefined-outer-name
+    # debug_dir: Path,  # pylint:disable=redefined-outer-name
+) -> None:
+    """Test a normal .txt-based pilot."""
+    in_txt, out_txt = _get_inout_filepaths(".txt")
+
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+
+    start_time = time.time()
+
+    # run producer & consumer concurrently
+    with pytest.raises(CalledProcessError):
+        await asyncio.gather(
+            populate_queue(queue_incoming, msgs_to_subproc),
+            consume_and_reply(
+                cmd="""python3 -c "raise ValueError()" """,
+                # broker_client=,  # rely on env var
+                # broker_address=,  # rely on env var
+                # auth_token="",
+                queue_incoming=queue_incoming,
+                queue_outgoing=queue_outgoing,
+                fpath_to_subproc=in_txt,
+                fpath_from_subproc=out_txt,
+                # file_writer=UniversalFileInterface.write, # see other tests
+                # file_reader=UniversalFileInterface.read, # see other tests
+                # debug_dir=debug_dir,
+                quarantine_time=20,
+            ),
+        )
+
+    assert time.time() - start_time >= 20  # did quarantine_time work?
 
     # await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
     # assert_debug_dir(debug_dir, in_txt, out_txt, msgs_from_subproc)
