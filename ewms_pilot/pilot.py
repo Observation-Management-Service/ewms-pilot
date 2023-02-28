@@ -162,11 +162,15 @@ def process_msg(
 
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
-    subprocess.run(
-        shlex.split(cmd),
-        check=True,
-        timeout=subproc_timeout,
-    )
+    try:
+        subprocess.run(
+            shlex.split(cmd),
+            check=True,
+            timeout=subproc_timeout,
+        )
+    except Exception as e:
+        LOGGER.error(f"Subprocess failed: {e}")  # log the time
+        raise
 
     # get
     out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
