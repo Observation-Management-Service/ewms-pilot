@@ -345,7 +345,7 @@ async def test_400__exception(
             ),
         )
 
-    assert time.time() - start_time <= 2  # did quarantine_time work?
+    assert time.time() - start_time <= 2  # no quarantine time
 
     # await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
     # assert_debug_dir(debug_dir, in_txt, out_txt, msgs_from_subproc)
