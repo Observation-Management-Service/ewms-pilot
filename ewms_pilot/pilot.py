@@ -6,7 +6,6 @@ import asyncio
 import enum
 import json
 import logging
-import os
 import pickle
 import shlex
 import shutil
