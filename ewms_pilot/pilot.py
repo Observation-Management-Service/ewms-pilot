@@ -206,6 +206,7 @@ async def consume_and_reply(
     #
     debug_dir: Optional[Path] = None,
     #
+    subproc_timeout: Optional[int] = ENV.EWMS_PILOT_SUBPROC_TIMEOUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses.
@@ -217,11 +218,6 @@ async def consume_and_reply(
 
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
-
-    try:
-        subproc_timeout = int(os.environ["EWMS_PILOT_SUBPROC_TIMEOUT"])  # -> ValueError
-    except KeyError:
-        subproc_timeout = None
 
     try:
         await _consume_and_reply(
@@ -436,6 +432,12 @@ def main() -> None:
         help="timeout (seconds) for messages FROM client(s)",
     )
     parser.add_argument(
+        "--subproc-timeout",
+        default=ENV.EWMS_PILOT_SUBPROC_TIMEOUT,
+        type=int,
+        help="timeout (seconds) for each subprocess",
+    )
+    parser.add_argument(
         "--quarantine-time",
         default=ENV.EWMS_PILOT_QUARANTINE_TIME,
         type=int,
@@ -494,6 +496,7 @@ def main() -> None:
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
             debug_dir=args.debug_directory,
+            subproc_timeout=args.subproc_timeout,
             quarantine_time=args.quarantine_time,
         )
     )

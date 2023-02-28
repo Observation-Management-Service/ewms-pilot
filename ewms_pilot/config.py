@@ -1,6 +1,7 @@
 """Configuration constants."""
 
 import dataclasses as dc
+from typing import Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -25,6 +26,7 @@ class EnvConfig:
     EWMS_PILOT_LOG_THIRD_PARTY: str = "WARNING"
 
     # meta
+    EWMS_PILOT_SUBPROC_TIMEOUT: Optional[int] = None
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
 
 
