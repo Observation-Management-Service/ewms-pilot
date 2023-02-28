@@ -6,7 +6,6 @@ import asyncio
 import enum
 import json
 import logging
-import os
 import pickle
 import shlex
 import shutil
@@ -22,6 +21,9 @@ from wipac_dev_tools import argparse_tools, logging_tools
 from .config import ENV
 
 LOGGER = logging.getLogger("ewms-pilot")
+
+# if there's an error, have the cluster try again (probably a system error)
+_EXCEPT_ERRORS = False
 
 _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
@@ -162,11 +164,15 @@ def process_msg(
 
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
-    subprocess.run(
-        shlex.split(cmd),
-        check=True,
-        timeout=subproc_timeout,
-    )
+    try:
+        subprocess.run(
+            shlex.split(cmd),
+            check=True,
+            timeout=subproc_timeout,
+        )
+    except Exception as e:
+        LOGGER.error(f"Subprocess failed: {e}")  # log the time
+        raise
 
     # get
     out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
@@ -198,6 +204,9 @@ async def consume_and_reply(
     file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
     #
     debug_dir: Optional[Path] = None,
+    #
+    subproc_timeout: Optional[int] = ENV.EWMS_PILOT_SUBPROC_TIMEOUT,
+    quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses.
 
@@ -205,18 +214,71 @@ async def consume_and_reply(
         `timeout_wait_for_first_message`: if None, use 'timeout_incoming'
     """
     LOGGER.info("Making MQClient queue connections...")
-    except_errors = False  # if there's an error, have the cluster try again (probably a system error)
 
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
 
+    try:
+        await _consume_and_reply(
+            cmd,
+            queue_incoming,
+            queue_outgoing,
+            broker_client,
+            broker_address,
+            auth_token,
+            prefetch,
+            timeout_wait_for_first_message,
+            timeout_incoming,
+            timeout_outgoing,
+            fpath_to_subproc,
+            fpath_from_subproc,
+            file_writer,
+            file_reader,
+            debug_dir,
+            subproc_timeout,
+        )
+    except Exception as e:
+        if quarantine_time:
+            LOGGER.error(f"{e} (Quarantining for {quarantine_time} seconds)")
+            await asyncio.sleep(quarantine_time)
+        raise
+
+
+async def _consume_and_reply(
+    cmd: str,
+    #
+    queue_incoming: str,
+    queue_outgoing: str,
+    #
+    # for mq
+    broker_client: str,
+    broker_address: str,
+    auth_token: str,
+    #
+    prefetch: int,
+    #
+    timeout_wait_for_first_message: Optional[int],
+    timeout_incoming: int,
+    timeout_outgoing: int,
+    #
+    # for subprocess
+    fpath_to_subproc: Path,
+    fpath_from_subproc: Path,
+    #
+    file_writer: Callable[[Any, Path], None],
+    file_reader: Callable[[Path], Any],
+    #
+    debug_dir: Optional[Path],
+    #
+    subproc_timeout: Optional[int],
+) -> None:
     in_queue = mq.Queue(
         broker_client,
         address=broker_address,
         name=queue_incoming,
         prefetch=prefetch,
         auth_token=auth_token,
-        except_errors=except_errors,
+        except_errors=_EXCEPT_ERRORS,
         # timeout=timeout_incoming, # manually set below
     )
     out_queue = mq.Queue(
@@ -224,13 +286,9 @@ async def consume_and_reply(
         address=broker_address,
         name=queue_outgoing,
         auth_token=auth_token,
-        except_errors=except_errors,
+        except_errors=_EXCEPT_ERRORS,
         timeout=timeout_outgoing,
     )
-    try:
-        subproc_timeout = int(os.environ["EWMS_PILOT_SUBPROC_TIMEOUT"])  # -> ValueError
-    except KeyError:
-        subproc_timeout = None
 
     LOGGER.info("Getting messages from server to process then send back...")
     async with out_queue.open_pub() as pub:
@@ -373,6 +431,18 @@ def main() -> None:
         type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
+    parser.add_argument(
+        "--subproc-timeout",
+        default=ENV.EWMS_PILOT_SUBPROC_TIMEOUT,
+        type=int,
+        help="timeout (seconds) for each subprocess",
+    )
+    parser.add_argument(
+        "--quarantine-time",
+        default=ENV.EWMS_PILOT_QUARANTINE_TIME,
+        type=int,
+        help="amount of time to sleep after error (useful for preventing blackhole scenarios on condor)",
+    )
 
     # logging args
     parser.add_argument(
@@ -423,9 +493,11 @@ def main() -> None:
             timeout_outgoing=args.timeout_outgoing,
             fpath_to_subproc=args.infile,
             fpath_from_subproc=args.outfile,
-            debug_dir=args.debug_directory,
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
+            debug_dir=args.debug_directory,
+            subproc_timeout=args.subproc_timeout,
+            quarantine_time=args.quarantine_time,
         )
     )
     LOGGER.info("Done.")
