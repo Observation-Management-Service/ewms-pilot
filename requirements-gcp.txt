@@ -20,7 +20,7 @@ google-auth==2.16.1
     # via
     #   google-api-core
     #   oms-mqclient
-google-cloud-pubsub==2.14.1
+google-cloud-pubsub==2.15.0
     # via oms-mqclient
 googleapis-common-protos[grpc]==1.58.0
     # via
@@ -30,19 +30,19 @@ googleapis-common-protos[grpc]==1.58.0
     #   oms-mqclient
 grpc-google-iam-v1==0.12.6
     # via google-cloud-pubsub
-grpcio==1.51.1
+grpcio==1.51.3
     # via
     #   google-api-core
     #   google-cloud-pubsub
     #   grpc-google-iam-v1
     #   grpcio-status
-grpcio-status==1.51.1
+grpcio-status==1.51.3
     # via
     #   google-api-core
     #   google-cloud-pubsub
 idna==3.4
     # via requests
-oms-mqclient[gcp]==1.0.4
+oms-mqclient[gcp]==1.0.6
     # via ewms-pilot (setup.py)
 proto-plus==1.22.2
     # via google-cloud-pubsub
