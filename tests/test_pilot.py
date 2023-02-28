@@ -321,7 +321,7 @@ async def test_400__blackhole_quarantine(
     in_txt, out_txt = _get_inout_filepaths(".txt")
 
     msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     # run producer & consumer concurrently
     await asyncio.gather(
