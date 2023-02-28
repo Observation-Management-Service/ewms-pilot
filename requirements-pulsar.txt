@@ -14,7 +14,7 @@ charset-normalizer==3.0.1
     # via requests
 idna==3.4
     # via requests
-oms-mqclient[pulsar]==1.0.4
+oms-mqclient[pulsar]==1.0.6
     # via ewms-pilot (setup.py)
 pulsar-client==3.0.0
     # via oms-mqclient
