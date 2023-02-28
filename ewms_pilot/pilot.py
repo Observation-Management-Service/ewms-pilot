@@ -241,7 +241,7 @@ async def consume_and_reply(
         if quarantine_time:
             LOGGER.error(f"{e} (Quarantining for {quarantine_time} seconds)")
             await asyncio.sleep(quarantine_time)
-            raise
+        raise
 
 
 async def _consume_and_reply(
