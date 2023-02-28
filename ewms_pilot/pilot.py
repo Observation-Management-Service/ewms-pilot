@@ -243,8 +243,9 @@ async def consume_and_reply(
             subproc_timeout,
         )
     except Exception as e:
-        LOGGER.error(f"{e} (Quarantining for {quarantine_time} seconds)")
-        await asyncio.sleep(quarantine_time)
+        if quarantine_time:
+            LOGGER.error(f"{e} (Quarantining for {quarantine_time} seconds)")
+            await asyncio.sleep(quarantine_time)
 
 
 async def _consume_and_reply(
