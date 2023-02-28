@@ -205,6 +205,8 @@ async def consume_and_reply(
     file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
     #
     debug_dir: Optional[Path] = None,
+    #
+    quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses.
 
@@ -216,6 +218,63 @@ async def consume_and_reply(
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
 
+    try:
+        subproc_timeout = int(os.environ["EWMS_PILOT_SUBPROC_TIMEOUT"])  # -> ValueError
+    except KeyError:
+        subproc_timeout = None
+
+    try:
+        await _consume_and_reply(
+            cmd,
+            queue_incoming,
+            queue_outgoing,
+            broker_client,
+            broker_address,
+            auth_token,
+            prefetch,
+            timeout_wait_for_first_message,
+            timeout_incoming,
+            timeout_outgoing,
+            fpath_to_subproc,
+            fpath_from_subproc,
+            file_writer,
+            file_reader,
+            debug_dir,
+            subproc_timeout,
+        )
+    except Exception as e:
+        LOGGER.error(f"Quarantining for {quarantine_time} seconds ({e})")
+        await asyncio.sleep(quarantine_time)
+
+
+async def _consume_and_reply(
+    cmd: str,
+    #
+    queue_incoming: str,
+    queue_outgoing: str,
+    #
+    # for mq
+    broker_client: str,
+    broker_address: str,
+    auth_token: str,
+    #
+    prefetch: int,
+    #
+    timeout_wait_for_first_message: Optional[int],
+    timeout_incoming: int,
+    timeout_outgoing: int,
+    #
+    # for subprocess
+    fpath_to_subproc: Path,
+    fpath_from_subproc: Path,
+    #
+    file_writer: Callable[[Any, Path], None],
+    file_reader: Callable[[Path], Any],
+    #
+    debug_dir: Optional[Path],
+    #
+    subproc_timeout: Optional[int],
+) -> None:
     in_queue = mq.Queue(
         broker_client,
         address=broker_address,
@@ -233,10 +292,6 @@ async def consume_and_reply(
         except_errors=_EXCEPT_ERRORS,
         timeout=timeout_outgoing,
     )
-    try:
-        subproc_timeout = int(os.environ["EWMS_PILOT_SUBPROC_TIMEOUT"])  # -> ValueError
-    except KeyError:
-        subproc_timeout = None
 
     LOGGER.info("Getting messages from server to process then send back...")
     async with out_queue.open_pub() as pub:
@@ -379,6 +434,12 @@ def main() -> None:
         type=int,
         help="timeout (seconds) for messages FROM client(s)",
     )
+    parser.add_argument(
+        "--quarantine-time",
+        default=ENV.EWMS_PILOT_QUARANTINE_TIME,
+        type=int,
+        help="amount of time to sleep after error (useful for preventing blackhole scenarios on condor)",
+    )
 
     # logging args
     parser.add_argument(
@@ -429,9 +490,10 @@ def main() -> None:
             timeout_outgoing=args.timeout_outgoing,
             fpath_to_subproc=args.infile,
             fpath_from_subproc=args.outfile,
-            debug_dir=args.debug_directory,
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
+            debug_dir=args.debug_directory,
+            quarantine_time=args.quarantine_time,
         )
     )
     LOGGER.info("Done.")

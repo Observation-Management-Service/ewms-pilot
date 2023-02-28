@@ -24,5 +24,8 @@ class EnvConfig:
     EWMS_PILOT_LOG: str = "INFO"
     EWMS_PILOT_LOG_THIRD_PARTY: str = "WARNING"
 
+    # meta
+    EWMS_PILOT_QUARANTINE_TIME: int = 1  # seconds
+
 
 ENV = from_environment_as_dataclass(EnvConfig)
