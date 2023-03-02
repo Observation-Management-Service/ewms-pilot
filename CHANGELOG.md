@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.4.1 (2023-03-02)
+### Other
+* Fix Corner Case w/ One Received Message ([#18](https://github.com/Observation-Management-Service/ewms-pilot/issues/18)) ([`eeaf824`](https://github.com/Observation-Management-Service/ewms-pilot/commit/eeaf824db52e38b662ed66315d14e676fe6be55b))
+
 ## v0.4.0 (2023-02-28)
 
 
