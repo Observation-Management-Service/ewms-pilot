@@ -4,8 +4,6 @@
 #
 #    pip-compile --extra=rabbitmq --output-file=requirements-rabbitmq.txt
 #
-asyncstdlib==3.10.5
-    # via ewms-pilot (setup.py)
 certifi==2022.12.7
     # via requests
 charset-normalizer==3.0.1
