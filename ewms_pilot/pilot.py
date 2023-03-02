@@ -290,6 +290,7 @@ async def _consume_and_reply(
         timeout=timeout_outgoing,
     )
 
+    total_msg_count = 0
     LOGGER.info("Getting messages from server to process then send back...")
     async with out_queue.open_pub() as pub:
 
@@ -300,6 +301,7 @@ async def _consume_and_reply(
             else timeout_incoming
         )
         async with in_queue.open_sub_one() as in_msg:
+            total_msg_count += 1
             LOGGER.info(f"Got a message to process (#0): {str(in_msg)}")
             out_msg = process_msg(
                 in_msg,
@@ -319,6 +321,7 @@ async def _consume_and_reply(
         in_queue.timeout = timeout_incoming
         async with in_queue.open_sub() as sub:
             async for i, in_msg in asl.enumerate(sub, start=1):
+                total_msg_count += 1
                 LOGGER.info(f"Got a message to process (#{i}): {str(in_msg)}")
                 out_msg = process_msg(
                     in_msg,
@@ -335,11 +338,9 @@ async def _consume_and_reply(
                 await pub.send(out_msg)
 
     # check if anything was actually processed
-    try:
-        n_msgs = i + 1  # 0-indexing :) # pylint: disable=undefined-loop-variable
-    except NameError:
+    if not total_msg_count:
         raise RuntimeError("No Messages Were Received.")
-    LOGGER.info(f"Done Processing: handled {n_msgs} messages")
+    LOGGER.info(f"Done Processing: handled {total_msg_count} messages")
 
 
 def main() -> None:
