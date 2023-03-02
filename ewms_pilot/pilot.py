@@ -14,7 +14,6 @@ import time
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-import asyncstdlib as asl
 import mqclient as mq
 from wipac_dev_tools import argparse_tools, logging_tools
 
@@ -302,7 +301,7 @@ async def _consume_and_reply(
         )
         async with in_queue.open_sub_one() as in_msg:
             total_msg_count += 1
-            LOGGER.info(f"Got a message to process (#0): {str(in_msg)}")
+            LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
             out_msg = process_msg(
                 in_msg,
                 cmd,
@@ -320,9 +319,9 @@ async def _consume_and_reply(
         # ADDITIONAL MESSAGES
         in_queue.timeout = timeout_incoming
         async with in_queue.open_sub() as sub:
-            async for i, in_msg in asl.enumerate(sub, start=1):
+            async for in_msg in sub:
                 total_msg_count += 1
-                LOGGER.info(f"Got a message to process (#{i}): {str(in_msg)}")
+                LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
                 out_msg = process_msg(
                     in_msg,
                     cmd,
