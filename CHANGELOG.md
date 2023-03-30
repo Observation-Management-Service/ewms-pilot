@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.4.2 (2023-03-30)
+### Other
+* An Empty Queue is Not a Failure ([#20](https://github.com/Observation-Management-Service/ewms-pilot/issues/20)) ([`3df1acb`](https://github.com/Observation-Management-Service/ewms-pilot/commit/3df1acbe6bcf8747f0f893e52c2a3397b83a77e6))
+
 ## v0.4.1 (2023-03-02)
 ### Other
 * Fix Corner Case w/ One Received Message ([#18](https://github.com/Observation-Management-Service/ewms-pilot/issues/18)) ([`eeaf824`](https://github.com/Observation-Management-Service/ewms-pilot/commit/eeaf824db52e38b662ed66315d14e676fe6be55b))
