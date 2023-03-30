@@ -338,7 +338,7 @@ async def _consume_and_reply(
 
     # check if anything was actually processed
     if not total_msg_count:
-        raise RuntimeError("No Messages Were Received.")
+        LOGGER.warning("No Messages Were Received.")
     LOGGER.info(f"Done Processing: handled {total_msg_count} messages")
 
 
