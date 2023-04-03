@@ -2,6 +2,9 @@
 
 <!--next-version-placeholder-->
 
+## v0.5.0 (2023-04-03)
+
+
 ## v0.4.2 (2023-03-30)
 ### Other
 * An Empty Queue is Not a Failure ([#20](https://github.com/Observation-Management-Service/ewms-pilot/issues/20)) ([`3df1acb`](https://github.com/Observation-Management-Service/ewms-pilot/commit/3df1acbe6bcf8747f0f893e52c2a3397b83a77e6))
