@@ -20,7 +20,7 @@ idna==3.4
     # via requests
 iniconfig==2.0.0
     # via pytest
-oms-mqclient==1.0.6
+oms-mqclient==1.1.0
     # via ewms-pilot (setup.py)
 packaging==23.0
     # via pytest
