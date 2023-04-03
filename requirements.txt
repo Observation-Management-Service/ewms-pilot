@@ -10,7 +10,7 @@ charset-normalizer==3.1.0
     # via requests
 idna==3.4
     # via requests
-oms-mqclient==1.0.6
+oms-mqclient==1.1.0
     # via ewms-pilot (setup.py)
 requests==2.28.2
     # via wipac-dev-tools
