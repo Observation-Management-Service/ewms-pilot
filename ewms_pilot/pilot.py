@@ -28,6 +28,9 @@ _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
 _DEFAULT_PREFETCH = 1
 
+# addl time to add to `mq.Queue.ack_timeout` for non-subproc activities
+_ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME = 10  # second  # this is more than enough
+
 
 class FileType(enum.Enum):
     """Various file types/extensions."""
@@ -271,6 +274,11 @@ async def _consume_and_reply(
     #
     subproc_timeout: Optional[int],
 ) -> None:
+    """Consume and reply loop."""
+    ack_timeout = None
+    if subproc_timeout:
+        ack_timeout = subproc_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
+
     in_queue = mq.Queue(
         broker_client,
         address=broker_address,
@@ -279,6 +287,7 @@ async def _consume_and_reply(
         auth_token=auth_token,
         except_errors=_EXCEPT_ERRORS,
         # timeout=timeout_incoming, # manually set below
+        ack_timeout=ack_timeout,
     )
     out_queue = mq.Queue(
         broker_client,
@@ -287,6 +296,7 @@ async def _consume_and_reply(
         auth_token=auth_token,
         except_errors=_EXCEPT_ERRORS,
         timeout=timeout_outgoing,
+        ack_timeout=ack_timeout,
     )
 
     total_msg_count = 0
