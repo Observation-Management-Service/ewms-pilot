@@ -40,7 +40,7 @@ grpcio-status==1.53.0
     #   google-cloud-pubsub
 idna==3.4
     # via requests
-oms-mqclient[gcp]==1.1.0
+oms-mqclient[gcp]==1.2.0
     # via ewms-pilot (setup.py)
 proto-plus==1.22.2
     # via google-cloud-pubsub
