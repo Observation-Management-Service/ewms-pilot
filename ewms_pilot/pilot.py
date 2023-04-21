@@ -284,8 +284,11 @@ async def _consume_and_reply(
     debug_dir: Optional[Path],
     #
     subproc_timeout: Optional[int],
-) -> None:
-    """Consume and reply loop."""
+) -> int:
+    """Consume and reply loop.
+
+    Return number of processed tasks.
+    """
 
     total_msg_count = 0
     LOGGER.info("Getting messages from server to process then send back...")
@@ -338,6 +341,7 @@ async def _consume_and_reply(
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
     LOGGER.info(f"Done Processing: handled {total_msg_count} messages")
+    return total_msg_count
 
 
 def main() -> None:
