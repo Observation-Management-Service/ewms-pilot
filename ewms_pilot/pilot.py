@@ -220,61 +220,6 @@ async def consume_and_reply(
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
 
-    try:
-        await _consume_and_reply(
-            cmd,
-            queue_incoming,
-            queue_outgoing,
-            broker_client,
-            broker_address,
-            auth_token,
-            prefetch,
-            timeout_wait_for_first_message,
-            timeout_incoming,
-            timeout_outgoing,
-            fpath_to_subproc,
-            fpath_from_subproc,
-            file_writer,
-            file_reader,
-            debug_dir,
-            subproc_timeout,
-        )
-    except Exception as e:
-        if quarantine_time:
-            LOGGER.error(f"{e} (Quarantining for {quarantine_time} seconds)")
-            await asyncio.sleep(quarantine_time)
-        raise
-
-
-async def _consume_and_reply(
-    cmd: str,
-    #
-    queue_incoming: str,
-    queue_outgoing: str,
-    #
-    # for mq
-    broker_client: str,
-    broker_address: str,
-    auth_token: str,
-    #
-    prefetch: int,
-    #
-    timeout_wait_for_first_message: Optional[int],
-    timeout_incoming: int,
-    timeout_outgoing: int,
-    #
-    # for subprocess
-    fpath_to_subproc: Path,
-    fpath_from_subproc: Path,
-    #
-    file_writer: Callable[[Any, Path], None],
-    file_reader: Callable[[Path], Any],
-    #
-    debug_dir: Optional[Path],
-    #
-    subproc_timeout: Optional[int],
-) -> None:
-    """Consume and reply loop."""
     ack_timeout = None
     if subproc_timeout:
         ack_timeout = subproc_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
@@ -298,6 +243,49 @@ async def _consume_and_reply(
         timeout=timeout_outgoing,
         ack_timeout=ack_timeout,
     )
+
+    try:
+        await _consume_and_reply(
+            cmd,
+            in_queue,
+            out_queue,
+            timeout_wait_for_first_message,
+            timeout_incoming,
+            fpath_to_subproc,
+            fpath_from_subproc,
+            file_writer,
+            file_reader,
+            debug_dir,
+            subproc_timeout,
+        )
+    except Exception as e:
+        if quarantine_time:
+            LOGGER.error(f"{e} (Quarantining for {quarantine_time} seconds)")
+            await asyncio.sleep(quarantine_time)
+        raise
+
+
+async def _consume_and_reply(
+    cmd: str,
+    #
+    in_queue: mq.Queue,
+    out_queue: mq.Queue,
+    #
+    timeout_wait_for_first_message: Optional[int],
+    timeout_incoming: int,
+    #
+    # for subprocess
+    fpath_to_subproc: Path,
+    fpath_from_subproc: Path,
+    #
+    file_writer: Callable[[Any, Path], None],
+    file_reader: Callable[[Path], Any],
+    #
+    debug_dir: Optional[Path],
+    #
+    subproc_timeout: Optional[int],
+) -> None:
+    """Consume and reply loop."""
 
     total_msg_count = 0
     LOGGER.info("Getting messages from server to process then send back...")
