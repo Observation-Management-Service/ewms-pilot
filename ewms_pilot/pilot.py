@@ -350,7 +350,10 @@ async def _consume_and_reply(
                     )
                     LOGGER.info(f"{len(done)} Tasks Finished")
                     for task in done:
-                        await sub.ack(tasks_msgs[task])
+                        if task.exception():
+                            await sub.nack(tasks_msgs[task])
+                        else:
+                            await sub.ack(tasks_msgs[task])
                     tasks_msgs = {t: tasks_msgs[t] for t in pending}
 
             # wait for remaining tasks
@@ -359,7 +362,10 @@ async def _consume_and_reply(
             )
             LOGGER.info(f"{len(done)} Tasks Finished")
             for task in done:
-                await sub.ack(tasks_msgs[task])
+                if task.exception():
+                    await sub.nack(tasks_msgs[task])
+                else:
+                    await sub.ack(tasks_msgs[task])
             if pending:
                 LOGGER.warning(f"{len(pending)} tasks are pending after finish")
 
