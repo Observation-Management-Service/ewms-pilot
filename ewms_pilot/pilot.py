@@ -144,7 +144,7 @@ def read_from_subproc(
     return out_msg
 
 
-def process_msg(
+async def process_msg(
     in_msg: Any,
     cmd: str,
     subproc_timeout: Optional[int],
@@ -153,8 +153,9 @@ def process_msg(
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
     debug_dir: Optional[Path],
+    pub: mq.MQClient,
 ) -> Any:
-    """Process the message in a subprocess using `cmd`."""
+    """Process the message in a subprocess using `cmd` & send response."""
     # debugging logic
     debug_subdir = None
     if debug_dir:
@@ -178,7 +179,10 @@ def process_msg(
 
     # get
     out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
-    return out_msg
+
+    # send
+    LOGGER.info("Sending out-payload to server...")
+    await pub.send(out_msg)
 
 
 async def consume_and_reply(
@@ -303,7 +307,7 @@ async def _consume_and_reply(
         async with in_queue.open_sub_one() as in_msg:
             total_msg_count += 1
             LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
-            out_msg = process_msg(
+            await process_msg(
                 in_msg,
                 cmd,
                 subproc_timeout,
@@ -312,10 +316,8 @@ async def _consume_and_reply(
                 file_writer,
                 file_reader,
                 debug_dir,
+                pub,
             )
-            # send
-            LOGGER.info("Sending out-payload to server...")
-            await pub.send(out_msg)
 
         # ADDITIONAL MESSAGES
         in_queue.timeout = timeout_incoming
@@ -323,7 +325,7 @@ async def _consume_and_reply(
             async for in_msg in sub:
                 total_msg_count += 1
                 LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
-                out_msg = process_msg(
+                await process_msg(
                     in_msg,
                     cmd,
                     subproc_timeout,
@@ -332,10 +334,8 @@ async def _consume_and_reply(
                     file_writer,
                     file_reader,
                     debug_dir,
+                    pub,
                 )
-                # send
-                LOGGER.info("Sending out-payload to server...")
-                await pub.send(out_msg)
 
     # check if anything was actually processed
     if not total_msg_count:
