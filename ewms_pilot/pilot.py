@@ -293,6 +293,16 @@ async def _consume_and_reply(
 
     Return number of processed tasks.
     """
+    tasks_msgs: Dict[asyncio.Task[None], mq.broker_client_interface.Message] = {}
+
+    async def _ack_nack_tasks(
+        done: Dict[asyncio.Task[None], mq.broker_client_interface.Message]
+    ) -> None:
+        for task in done:
+            if task.exception():
+                await sub.nack(tasks_msgs[task])
+            else:
+                await sub.ack(tasks_msgs[task])
 
     total_msg_count = 0
     LOGGER.info("Getting messages from server to process then send back...")
@@ -318,8 +328,6 @@ async def _consume_and_reply(
         #         debug_dir,
         #         pub,
         #     )
-
-        tasks_msgs: Dict[asyncio.Task[None], mq.broker_client_interface.Message] = {}
 
         in_queue.timeout = timeout_incoming
         async with in_queue.open_sub_manual_acking(
@@ -349,11 +357,7 @@ async def _consume_and_reply(
                         tasks_msgs, return_when=asyncio.FIRST_COMPLETED
                     )
                     LOGGER.info(f"{len(done)} Tasks Finished")
-                    for task in done:
-                        if task.exception():
-                            await sub.nack(tasks_msgs[task])
-                        else:
-                            await sub.ack(tasks_msgs[task])
+                    await _ack_nack_tasks({t: tasks_msgs[t] for t in done})
                     tasks_msgs = {t: tasks_msgs[t] for t in pending}
 
             # wait for remaining tasks
@@ -362,13 +366,9 @@ async def _consume_and_reply(
                     tasks_msgs, return_when=asyncio.ALL_COMPLETED
                 )
                 LOGGER.info(f"{len(done)} Tasks Finished")
-                for task in done:
-                    if task.exception():
-                        await sub.nack(tasks_msgs[task])
-                    else:
-                        await sub.ack(tasks_msgs[task])
+                await _ack_nack_tasks({t: tasks_msgs[t] for t in done})
                 if pending:
-                    LOGGER.warning(f"{len(pending)} tasks are pending after finish")
+                    LOGGER.error(f"{len(pending)} tasks are pending after finish")
 
     # check if anything actually processed
     if not total_msg_count:
