@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, List, Optional
 
 import mqclient as mq
 from wipac_dev_tools import argparse_tools, logging_tools
@@ -298,46 +298,55 @@ async def _consume_and_reply(
     LOGGER.info("Getting messages from server to process then send back...")
     async with out_queue.open_pub() as pub:
 
-        # FIRST MESSAGE
-        in_queue.timeout = (
-            timeout_wait_for_first_message
-            if timeout_wait_for_first_message
-            else timeout_incoming
-        )
-        async with in_queue.open_sub_one() as in_msg:
-            total_msg_count += 1
-            LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
-            await process_msg(
-                in_msg,
-                cmd,
-                subproc_timeout,
-                fpath_to_subproc,
-                fpath_from_subproc,
-                file_writer,
-                file_reader,
-                debug_dir,
-                pub,
-            )
+        # # FIRST MESSAGE
+        # in_queue.timeout = (
+        #     timeout_wait_for_first_message
+        #     if timeout_wait_for_first_message
+        #     else timeout_incoming
+        # )
+        # async with in_queue.open_sub_one() as in_msg:
+        #     total_msg_count += 1
+        #     LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
+        #     await process_msg(
+        #         in_msg,
+        #         cmd,
+        #         subproc_timeout,
+        #         fpath_to_subproc,
+        #         fpath_from_subproc,
+        #         file_writer,
+        #         file_reader,
+        #         debug_dir,
+        #         pub,
+        #     )
 
         # ADDITIONAL MESSAGES
+
         in_queue.timeout = timeout_incoming
-        async with in_queue.open_sub() as sub:
-            async for in_msg in sub:
+        tasks: List[asyncio.Task] = []
+        async with in_queue.open_sub_manual_acking() as sub:
+            async for in_msg in sub.iter_messages():
                 total_msg_count += 1
                 LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
-                await process_msg(
-                    in_msg,
-                    cmd,
-                    subproc_timeout,
-                    fpath_to_subproc,
-                    fpath_from_subproc,
-                    file_writer,
-                    file_reader,
-                    debug_dir,
-                    pub,
+                tasks.append(
+                    asyncio.create_task(
+                        process_msg(
+                            in_msg.data,
+                            cmd,
+                            subproc_timeout,
+                            fpath_to_subproc,
+                            fpath_from_subproc,
+                            file_writer,
+                            file_reader,
+                            debug_dir,
+                            pub,
+                        )
+                    )
                 )
 
-    # check if anything was actually processed
+                if len(tasks) >= NPROCS:
+                    await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+
+    # check if anythintasks actually processed
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
     LOGGER.info(f"Done Processing: handled {total_msg_count} messages")
