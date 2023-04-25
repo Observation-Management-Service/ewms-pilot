@@ -294,9 +294,11 @@ async def _consume_and_reply(
 
     Return number of processed tasks.
     """
-    tasks_msgs: Dict[asyncio.Task, Message] = {}
+    tasks_msgs: Dict[asyncio.Task, Message] = {}  # type: ignore[type-arg]
 
-    async def _ack_nack_finished_tasks(return_when: str) -> Dict[asyncio.Task, Message]:
+    async def _ack_nack_finished_tasks(return_when: str) -> Dict[asyncio.Task, Message]:  # type: ignore[type-arg]
+        """Get finished tasks, ack/nack their messages, then return pending
+        tasks."""
         done, pending = await asyncio.wait(tasks_msgs, return_when=return_when)
         LOGGER.info(f"{len(done)} Tasks Finished")
         for task in done:
@@ -306,32 +308,18 @@ async def _consume_and_reply(
                 await sub.ack(tasks_msgs[task])
         return {t: tasks_msgs[t] for t in pending}
 
+    # for the first (set) of messages, use 'timeout_wait_for_first_message' if given
+    in_queue.timeout = (
+        timeout_wait_for_first_message
+        if timeout_wait_for_first_message
+        else timeout_incoming
+    )
+
+    # GO!
     total_msg_count = 0
     LOGGER.info("Getting messages from server to process then send back...")
     async with out_queue.open_pub() as pub:
 
-        # # FIRST MESSAGE
-        # in_queue.timeout = (
-        #     timeout_wait_for_first_message
-        #     if timeout_wait_for_first_message
-        #     else timeout_incoming
-        # )
-        # async with in_queue.open_sub_one() as in_msg:
-        #     total_msg_count += 1
-        #     LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
-        #     await process_msg(
-        #         in_msg,
-        #         cmd,
-        #         subproc_timeout,
-        #         fpath_to_subproc,
-        #         fpath_from_subproc,
-        #         file_writer,
-        #         file_reader,
-        #         debug_dir,
-        #         pub,
-        #     )
-
-        in_queue.timeout = timeout_incoming
         async with in_queue.open_sub_manual_acking(
             ENV.EWMS_PILOT_CONCURRENT_TASKS
         ) as sub:
@@ -356,6 +344,9 @@ async def _consume_and_reply(
                 # if we've met max concurrent tasks, wait for the next one to finish
                 while len(tasks_msgs) >= ENV.EWMS_PILOT_CONCURRENT_TASKS:
                     tasks_msgs = await _ack_nack_finished_tasks(asyncio.FIRST_COMPLETED)
+                    # after the first set of messages, set the timeout to the "normal" amount
+                    if in_queue.timeout != timeout_incoming:
+                        in_queue.timeout = timeout_incoming
 
             # wait for remaining tasks
             if tasks_msgs:
