@@ -12,7 +12,7 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Callable, List, Optional
+from typing import Any, Callable, Dict, Optional
 
 import mqclient as mq
 from wipac_dev_tools import argparse_tools, logging_tools
@@ -319,43 +319,47 @@ async def _consume_and_reply(
         #         pub,
         #     )
 
-        # ADDITIONAL MESSAGES
+        tasks_msgs: Dict[asyncio.Task[None], mq.broker_client_interface.Message] = {}
 
         in_queue.timeout = timeout_incoming
-        tasks: List[asyncio.Task] = []
         async with in_queue.open_sub_manual_acking(
             ENV.EWMS_PILOT_CONCURRENT_TASKS
         ) as sub:
             async for in_msg in sub.iter_messages():
                 total_msg_count += 1
                 LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
-                tasks.append(
-                    asyncio.create_task(
-                        process_msg(
-                            in_msg.data,
-                            cmd,
-                            subproc_timeout,
-                            fpath_to_subproc,
-                            fpath_from_subproc,
-                            file_writer,
-                            file_reader,
-                            debug_dir,
-                            pub,
-                        )
+                task = asyncio.create_task(
+                    process_msg(
+                        in_msg.data,
+                        cmd,
+                        subproc_timeout,
+                        fpath_to_subproc,
+                        fpath_from_subproc,
+                        file_writer,
+                        file_reader,
+                        debug_dir,
+                        pub,
                     )
                 )
+                tasks_msgs[task] = in_msg
 
                 # if we've met max concurrent tasks, wait for the next one to finish
-                while len(tasks) >= ENV.EWMS_PILOT_CONCURRENT_TASKS:
+                while len(tasks_msgs) >= ENV.EWMS_PILOT_CONCURRENT_TASKS:
                     done, pending = await asyncio.wait(
-                        tasks, return_when=asyncio.FIRST_COMPLETED
+                        tasks_msgs, return_when=asyncio.FIRST_COMPLETED
                     )
                     LOGGER.info(f"{len(done)} Tasks Finished")
-                    tasks = list(pending)
+                    for task in done:
+                        await sub.ack(tasks_msgs[task])
+                    tasks_msgs = {t: tasks_msgs[t] for t in pending}
 
             # wait for remaining tasks
-            done, pending = await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
+            done, pending = await asyncio.wait(
+                tasks_msgs, return_when=asyncio.ALL_COMPLETED
+            )
             LOGGER.info(f"{len(done)} Tasks Finished")
+            for task in done:
+                await sub.ack(tasks_msgs[task])
             if pending:
                 LOGGER.warning(f"{len(pending)} tasks are pending after finish")
 
