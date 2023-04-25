@@ -357,17 +357,18 @@ async def _consume_and_reply(
                     tasks_msgs = {t: tasks_msgs[t] for t in pending}
 
             # wait for remaining tasks
-            done, pending = await asyncio.wait(
-                tasks_msgs, return_when=asyncio.ALL_COMPLETED
-            )
-            LOGGER.info(f"{len(done)} Tasks Finished")
-            for task in done:
-                if task.exception():
-                    await sub.nack(tasks_msgs[task])
-                else:
-                    await sub.ack(tasks_msgs[task])
-            if pending:
-                LOGGER.warning(f"{len(pending)} tasks are pending after finish")
+            if tasks_msgs:
+                done, pending = await asyncio.wait(
+                    tasks_msgs, return_when=asyncio.ALL_COMPLETED
+                )
+                LOGGER.info(f"{len(done)} Tasks Finished")
+                for task in done:
+                    if task.exception():
+                        await sub.nack(tasks_msgs[task])
+                    else:
+                        await sub.ack(tasks_msgs[task])
+                if pending:
+                    LOGGER.warning(f"{len(pending)} tasks are pending after finish")
 
     # check if anything actually processed
     if not total_msg_count:
