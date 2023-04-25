@@ -15,5 +15,4 @@ pip install ewms-pilot[pulsar]
 Options include:
 * pulsar
 * rabbitmq
-* gcp
 * nats

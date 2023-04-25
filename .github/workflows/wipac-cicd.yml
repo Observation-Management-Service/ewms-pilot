@@ -65,7 +65,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        broker_client: [pulsar, rabbitmq, gcp, nats]
+        broker_client: [pulsar, rabbitmq, nats]
     steps:
       - uses: actions/checkout@v3
       - name: Checkout MQClient repo
@@ -86,10 +86,6 @@ jobs:
           # RabbitMQ
           elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
             ./MQClient/resources/docker-rabbitmq.sh "${{ matrix.broker_client }}"
-          # GCP
-          elif [ "${{ matrix.broker_client }}" = "gcp" ]; then
-            export PUBSUB_EMULATOR_HOST=localhost:8085
-            ./MQClient/resources/local-gcp-emulator.sh
           # NATS
           elif [ "${{ matrix.broker_client }}" = "nats" ]; then
             ./MQClient/resources/local-nats-js.sh
@@ -123,7 +119,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-        broker_client: [pulsar, rabbitmq, gcp, nats]
+        broker_client: [pulsar, rabbitmq, nats]
     steps:
       - uses: actions/checkout@v3
       - name: Checkout MQClient repo
@@ -144,10 +140,6 @@ jobs:
           # RabbitMQ
           elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
             ./MQClient/resources/docker-rabbitmq.sh "${{ matrix.broker_client }}"
-          # GCP
-          elif [ "${{ matrix.broker_client }}" = "gcp" ]; then
-            export PUBSUB_EMULATOR_HOST=localhost:8085
-            ./MQClient/resources/local-gcp-emulator.sh
           # NATS
           elif [ "${{ matrix.broker_client }}" = "nats" ]; then
             ./MQClient/resources/local-nats-js.sh
