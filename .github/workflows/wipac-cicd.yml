@@ -20,23 +20,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-      - uses: WIPACrepo/wipac-dev-flake8-action@v1
+      - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
   mypy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
-      - run: |
-          # pulsar will eventually support 3.11
-          # so let's set a timer for six months from now:
-          echo "How's https://github.com/Observation-Management-Service/MQClient/issues/61 coming along?"
-          if [ $(echo "1672874697+(60*60*24*30*6) - $(date +%s)" | bc) -lt 0 ]; then
-            exit 1
-          fi
+      - uses: WIPACrepo/wipac-dev-mypy-action@v1.2
 
   py-setup:
     runs-on: ubuntu-latest
@@ -46,7 +37,7 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.11
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.15
         with:
           base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Managment Service"
 
@@ -58,7 +49,7 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.0
 
   examples:
     runs-on: ubuntu-latest
