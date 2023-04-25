@@ -323,7 +323,9 @@ async def _consume_and_reply(
 
         in_queue.timeout = timeout_incoming
         tasks: List[asyncio.Task] = []
-        async with in_queue.open_sub_manual_acking() as sub:
+        async with in_queue.open_sub_manual_acking(
+            ENV.EWMS_PILOT_CONCURRENT_TASKS
+        ) as sub:
             async for in_msg in sub.iter_messages():
                 total_msg_count += 1
                 LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
@@ -343,10 +345,21 @@ async def _consume_and_reply(
                     )
                 )
 
-                if len(tasks) >= NPROCS:
-                    await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
+                # if we've met max concurrent tasks, wait for the next one to finish
+                while len(tasks) >= ENV.EWMS_PILOT_CONCURRENT_TASKS:
+                    done, pending = await asyncio.wait(
+                        tasks, return_when=asyncio.FIRST_COMPLETED
+                    )
+                    LOGGER.info(f"{len(done)} Tasks Finished")
+                    tasks = list(pending)
 
-    # check if anythintasks actually processed
+            # wait for remaining tasks
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.ALL_COMPLETED)
+            LOGGER.info(f"{len(done)} Tasks Finished")
+            if pending:
+                LOGGER.warning(f"{len(pending)} tasks are pending after finish")
+
+    # check if anything actually processed
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
     LOGGER.info(f"Done Processing: handled {total_msg_count} messages")

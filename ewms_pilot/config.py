@@ -28,6 +28,7 @@ class EnvConfig:
     # meta
     EWMS_PILOT_SUBPROC_TIMEOUT: Optional[int] = None
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
+    EWMS_PILOT_CONCURRENT_TASKS: int = 1  # TODO
 
 
 ENV = from_environment_as_dataclass(EnvConfig)
