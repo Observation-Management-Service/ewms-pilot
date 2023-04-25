@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 import mqclient as mq
+from mqclient.broker_client_interface import Message
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .config import ENV
@@ -293,16 +294,17 @@ async def _consume_and_reply(
 
     Return number of processed tasks.
     """
-    tasks_msgs: Dict[asyncio.Task[None], mq.broker_client_interface.Message] = {}
+    tasks_msgs: Dict[asyncio.Task, Message] = {}
 
-    async def _ack_nack_tasks(
-        done: Dict[asyncio.Task[None], mq.broker_client_interface.Message]
-    ) -> None:
+    async def _ack_nack_finished_tasks(return_when: str) -> Dict[asyncio.Task, Message]:
+        done, pending = await asyncio.wait(tasks_msgs, return_when=return_when)
+        LOGGER.info(f"{len(done)} Tasks Finished")
         for task in done:
             if task.exception():
                 await sub.nack(tasks_msgs[task])
             else:
                 await sub.ack(tasks_msgs[task])
+        return {t: tasks_msgs[t] for t in pending}
 
     total_msg_count = 0
     LOGGER.info("Getting messages from server to process then send back...")
@@ -353,22 +355,13 @@ async def _consume_and_reply(
 
                 # if we've met max concurrent tasks, wait for the next one to finish
                 while len(tasks_msgs) >= ENV.EWMS_PILOT_CONCURRENT_TASKS:
-                    done, pending = await asyncio.wait(
-                        tasks_msgs, return_when=asyncio.FIRST_COMPLETED
-                    )
-                    LOGGER.info(f"{len(done)} Tasks Finished")
-                    await _ack_nack_tasks({t: tasks_msgs[t] for t in done})
-                    tasks_msgs = {t: tasks_msgs[t] for t in pending}
+                    tasks_msgs = await _ack_nack_finished_tasks(asyncio.FIRST_COMPLETED)
 
             # wait for remaining tasks
             if tasks_msgs:
-                done, pending = await asyncio.wait(
-                    tasks_msgs, return_when=asyncio.ALL_COMPLETED
-                )
-                LOGGER.info(f"{len(done)} Tasks Finished")
-                await _ack_nack_tasks({t: tasks_msgs[t] for t in done})
-                if pending:
-                    LOGGER.error(f"{len(pending)} tasks are pending after finish")
+                tasks_msgs = await _ack_nack_finished_tasks(asyncio.ALL_COMPLETED)
+                if tasks_msgs:
+                    LOGGER.error(f"{len(tasks_msgs)} tasks are pending after finish")
 
     # check if anything actually processed
     if not total_msg_count:
