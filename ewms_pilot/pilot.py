@@ -153,7 +153,7 @@ async def process_msg(
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
     debug_dir: Optional[Path],
-    pub: mq.MQClient,
+    pub: mq.queue.QueuePubResource,
 ) -> Any:
     """Process the message in a subprocess using `cmd` & send response."""
     # debugging logic
