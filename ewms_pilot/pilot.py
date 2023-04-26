@@ -396,7 +396,7 @@ async def _consume_and_reply(
     # cleanup
     if failed:
         raise RuntimeError(
-            f"{len(failed)} Tasks Failed: "
+            f"{len(failed)} Task(s) Failed: "
             f"{', '.join(type(f.exception()).__name__ for f in failed)}"
         )
     # check if anything actually processed

@@ -5,7 +5,6 @@ import secrets
 import time
 from datetime import date, timedelta
 from pathlib import Path
-from subprocess import CalledProcessError
 from typing import Any, Tuple
 
 import asyncstdlib as asl
@@ -327,7 +326,7 @@ async def test_400__exception(
     start_time = time.time()
 
     # run producer & consumer concurrently
-    with pytest.raises(CalledProcessError):
+    with pytest.raises(RuntimeError, match="1 Task(s) Failed: CalledProcessError"):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
@@ -365,7 +364,7 @@ async def test_410__blackhole_quarantine(
     start_time = time.time()
 
     # run producer & consumer concurrently
-    with pytest.raises(CalledProcessError):
+    with pytest.raises(RuntimeError, match="1 Task(s) Failed: CalledProcessError"):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
