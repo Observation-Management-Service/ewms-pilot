@@ -436,12 +436,12 @@ def main() -> None:
     parser.add_argument(
         "--infile-type",
         type=FileType,
-        help="which file to write for the client/pilot's subprocess",
+        help="the file type (extension) to use for files written for the pilot's subprocess",
     )
     parser.add_argument(
         "--outfile-type",
         type=FileType,
-        help="which file to read from the client/pilot's subprocess",
+        help="the file type (exception) of the file to read from the pilot's subprocess",
     )
 
     # mq args
@@ -482,20 +482,20 @@ def main() -> None:
         "--timeout-wait-for-first-message",
         default=None,
         type=int,
-        help="timeout (seconds) for the first message to arrive at the client(s); "
+        help="timeout (seconds) for the first message to arrive at the pilot; "
         "defaults to `--timeout-incoming` value",
     )
     parser.add_argument(
         "--timeout-incoming",
         default=_DEFAULT_TIMEOUT_INCOMING,
         type=int,
-        help="timeout (seconds) for messages TO client(s)",
+        help="timeout (seconds) for messages TO pilot",
     )
     parser.add_argument(
         "--timeout-outgoing",
         default=_DEFAULT_TIMEOUT_OUTGOING,
         type=int,
-        help="timeout (seconds) for messages FROM client(s)",
+        help="timeout (seconds) for messages FROM pilot",
     )
     parser.add_argument(
         "--subproc-timeout",
