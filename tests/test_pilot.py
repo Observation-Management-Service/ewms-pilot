@@ -1,6 +1,7 @@
 """Test pilot submodule."""
 
 import asyncio
+import re
 import secrets
 import time
 from datetime import date, timedelta
@@ -326,7 +327,9 @@ async def test_400__exception(
     start_time = time.time()
 
     # run producer & consumer concurrently
-    with pytest.raises(RuntimeError, match="1 Task(s) Failed: CalledProcessError"):
+    with pytest.raises(
+        RuntimeError, match=re.escape("1 Task(s) Failed: CalledProcessError")
+    ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
@@ -364,7 +367,9 @@ async def test_410__blackhole_quarantine(
     start_time = time.time()
 
     # run producer & consumer concurrently
-    with pytest.raises(RuntimeError, match="1 Task(s) Failed: CalledProcessError"):
+    with pytest.raises(
+        RuntimeError, match=re.escape("1 Task(s) Failed: CalledProcessError")
+    ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
