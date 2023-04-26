@@ -384,6 +384,7 @@ async def _consume_and_reply(
 
                 # if we've met max concurrent tasks, wait for the next one to finish
                 while len(pending) >= multitasking:
+                    LOGGER.info("Reached max task concurrency limit, waiting...")
                     pending, failed = await _ack_nack_finished_tasks(
                         sub,
                         pending,
