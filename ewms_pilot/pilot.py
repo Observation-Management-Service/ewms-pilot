@@ -208,6 +208,10 @@ async def consume_and_reply(
     queue_incoming: str,
     queue_outgoing: str,
     #
+    # for subprocess
+    ftype_to_subproc: FileType,
+    ftype_from_subproc: FileType,
+    #
     # for mq
     broker_client: str = ENV.EWMS_PILOT_BROKER_CLIENT,
     broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
@@ -218,10 +222,6 @@ async def consume_and_reply(
     timeout_wait_for_first_message: Optional[int] = None,
     timeout_incoming: int = _DEFAULT_TIMEOUT_INCOMING,
     timeout_outgoing: int = _DEFAULT_TIMEOUT_OUTGOING,
-    #
-    # for subprocess
-    ftype_to_subproc: FileType = FileType.PKL,
-    ftype_from_subproc: FileType = FileType.PKL,
     #
     file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
     file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
@@ -270,10 +270,11 @@ async def consume_and_reply(
             cmd,
             in_queue,
             out_queue,
-            timeout_wait_for_first_message,
-            timeout_incoming,
             ftype_to_subproc,
             ftype_from_subproc,
+            #
+            timeout_wait_for_first_message,
+            timeout_incoming,
             file_writer,
             file_reader,
             debug_dir,
@@ -323,12 +324,12 @@ async def _consume_and_reply(
     in_queue: mq.Queue,
     out_queue: mq.Queue,
     #
-    timeout_wait_for_first_message: Optional[int],
-    timeout_incoming: int,
-    #
     # for subprocess
     ftype_to_subproc: FileType,
     ftype_from_subproc: FileType,
+    #
+    timeout_wait_for_first_message: Optional[int],
+    timeout_incoming: int,
     #
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
@@ -434,13 +435,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--infile-type",
-        default=FileType.PKL,
         type=FileType,
         help="which file to write for the client/pilot's subprocess",
     )
     parser.add_argument(
         "--outfile-type",
-        default=FileType.PKL,
         type=FileType,
         help="which file to read from the client/pilot's subprocess",
     )
@@ -550,6 +549,9 @@ def main() -> None:
         consume_and_reply(
             cmd=args.cmd,
             broker_client=args.broker_client,
+            ftype_to_subproc=args.infile_type,
+            ftype_from_subproc=args.outfile_type,
+            #
             broker_address=args.broker,
             auth_token=args.auth_token,
             queue_incoming=args.queue_incoming,
@@ -558,8 +560,6 @@ def main() -> None:
             timeout_wait_for_first_message=args.timeout_wait_for_first_message,
             timeout_incoming=args.timeout_incoming,
             timeout_outgoing=args.timeout_outgoing,
-            ftype_to_subproc=args.infile_type,
-            ftype_from_subproc=args.outfile_type,
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
             debug_dir=args.debug_directory,
