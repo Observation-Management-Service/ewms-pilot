@@ -33,7 +33,7 @@ pytest-asyncio==0.21.0
     # via ewms-pilot (setup.py)
 pytest-xdist==3.2.1
     # via ewms-pilot (setup.py)
-requests==2.28.2
+requests==2.29.0
     # via wipac-dev-tools
 tomli==2.0.1
     # via pytest
