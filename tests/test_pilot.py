@@ -156,7 +156,7 @@ async def test_100__json(
 import json;
 input=json.load(open('{{INFILE}}'));
 v=input['attr-0'];
-output={{'attr-a':v, 'attr-b':v+v}};
+output={'attr-a':v, 'attr-b':v+v};
 json.dump(output, open('{{OUTFILE}}','w'))" """,
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
