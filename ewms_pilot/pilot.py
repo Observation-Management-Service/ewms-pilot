@@ -185,11 +185,24 @@ async def process_msg_task(
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
     try:
-        subprocess.run(
-            shlex.split(cmd),
-            check=True,
+        proc = await asyncio.wait_for(
+            asyncio.create_subprocess_shell(
+                *shlex.split(cmd),
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            ),
             timeout=subproc_timeout,
         )
+        if proc.returncode:
+            raise Exception(f"Subprocess completed with exit code {proc.returncode}")
+        # subprocess.run(
+        #     shlex.split(cmd),
+        #     check=True,
+        #     timeout=subproc_timeout,
+        # )
+    except TimeoutError:
+        LOGGER.error("Subprocess timed out")
+        raise
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
         raise
