@@ -12,13 +12,16 @@ import shutil
 import subprocess
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional
+from typing import Any, Callable, Dict, Optional, Tuple
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .config import ENV
+
+TaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
+
 
 LOGGER = logging.getLogger("ewms-pilot")
 
@@ -270,6 +273,35 @@ async def consume_and_reply(
         raise
 
 
+async def _ack_nack_finished_tasks(
+    sub: mq.queue.ManualQueueSubResource,
+    tasks: TaskMessages,
+    return_when: str,
+    previous_failed: TaskMessages,
+) -> Tuple[TaskMessages, TaskMessages]:
+    """Get finished tasks and ack/nack their messages.
+
+    Returns:
+        Tuple:
+            TaskMessages: pending tasks and
+            TaskMessages: failed tasks (plus those in `previous_failed`)
+    """
+    done, pending = await asyncio.wait(tasks.keys(), return_when=return_when)
+    LOGGER.info(f"{len(done)} Tasks Finished")
+
+    for task in done:
+        if task.exception():
+            await sub.nack(tasks[task])
+            previous_failed[task] = tasks[task]
+        else:
+            await sub.ack(tasks[task])
+
+    return (
+        {t: tasks[t] for t in pending},
+        previous_failed,
+    )
+
+
 async def _consume_and_reply(
     cmd: str,
     #
@@ -294,19 +326,8 @@ async def _consume_and_reply(
 
     Return number of processed tasks.
     """
-    tasks_msgs: Dict[asyncio.Task, Message] = {}  # type: ignore[type-arg]
-
-    async def _ack_nack_finished_tasks(return_when: str) -> Dict[asyncio.Task, Message]:  # type: ignore[type-arg]
-        """Get finished tasks, ack/nack their messages, then return pending
-        tasks."""
-        done, pending = await asyncio.wait(tasks_msgs, return_when=return_when)
-        LOGGER.info(f"{len(done)} Tasks Finished")
-        for task in done:
-            if task.exception():
-                await sub.nack(tasks_msgs[task])
-            else:
-                await sub.ack(tasks_msgs[task])
-        return {t: tasks_msgs[t] for t in pending}
+    pending: TaskMessages = {}
+    failed: TaskMessages = {}
 
     # for the first (set) of messages, use 'timeout_wait_for_first_message' if given
     in_queue.timeout = (
@@ -323,6 +344,7 @@ async def _consume_and_reply(
         async with in_queue.open_sub_manual_acking(
             ENV.EWMS_PILOT_CONCURRENT_TASKS
         ) as sub:
+
             async for in_msg in sub.iter_messages():
                 total_msg_count += 1
                 LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
@@ -339,21 +361,38 @@ async def _consume_and_reply(
                         pub,
                     )
                 )
-                tasks_msgs[task] = in_msg
+                pending[task] = in_msg
 
                 # if we've met max concurrent tasks, wait for the next one to finish
-                while len(tasks_msgs) >= ENV.EWMS_PILOT_CONCURRENT_TASKS:
-                    tasks_msgs = await _ack_nack_finished_tasks(asyncio.FIRST_COMPLETED)
+                while len(pending) >= ENV.EWMS_PILOT_CONCURRENT_TASKS:
+                    pending, failed = await _ack_nack_finished_tasks(
+                        sub,
+                        pending,
+                        return_when=asyncio.FIRST_COMPLETED,
+                        previous_failed=failed,
+                    )
                     # after the first set of messages, set the timeout to the "normal" amount
                     if in_queue.timeout != timeout_incoming:
                         in_queue.timeout = timeout_incoming
 
-            # wait for remaining tasks
-            if tasks_msgs:
-                tasks_msgs = await _ack_nack_finished_tasks(asyncio.ALL_COMPLETED)
-                if tasks_msgs:
-                    LOGGER.error(f"{len(tasks_msgs)} tasks are pending after finish")
+                # if 1+ fail, then don't consume anymore; wait for remaining tasks
+                if failed:
+                    break
 
+            # wait for remaining tasks
+            if pending:
+                pending, failed = await _ack_nack_finished_tasks(
+                    sub,
+                    pending,
+                    return_when=asyncio.ALL_COMPLETED,
+                    previous_failed=failed,
+                )
+                if pending:
+                    LOGGER.error(f"{len(pending)} tasks are pending after finish")
+
+    # cleanup
+    if failed:
+        raise RuntimeError(f"{len(failed)} Tasks Failed")  # TODO log other errors
     # check if anything actually processed
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
