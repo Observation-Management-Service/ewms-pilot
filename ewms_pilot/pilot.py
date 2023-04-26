@@ -433,25 +433,15 @@ def main() -> None:
         help="the command to give the subprocess script",
     )
     parser.add_argument(
-        "--in",
-        dest="infile",
-        default=Path("./in.pkl"),
-        type=lambda x: argparse_tools.validate_arg(
-            Path(x),
-            Path(x).suffix in [e.value for e in FileType],
-            argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
-        ),
+        "--infile-type",
+        default=FileType.PKL,
+        type=FileType,
         help="which file to write for the client/pilot's subprocess",
     )
     parser.add_argument(
-        "--out",
-        dest="outfile",
-        default=Path("./out.pkl"),
-        type=lambda x: argparse_tools.validate_arg(
-            Path(x),
-            Path(x).suffix in [e.value for e in FileType],
-            argparse.ArgumentTypeError(f"Unsupported file type: {x}"),
-        ),
+        "--outfile-type",
+        default=FileType.PKL,
+        type=FileType,
         help="which file to read from the client/pilot's subprocess",
     )
 
@@ -568,8 +558,8 @@ def main() -> None:
             timeout_wait_for_first_message=args.timeout_wait_for_first_message,
             timeout_incoming=args.timeout_incoming,
             timeout_outgoing=args.timeout_outgoing,
-            fpath_to_subproc=args.infile,
-            fpath_from_subproc=args.outfile,
+            ftype_to_subproc=args.infile_type,
+            ftype_from_subproc=args.outfile_type,
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
             debug_dir=args.debug_directory,
