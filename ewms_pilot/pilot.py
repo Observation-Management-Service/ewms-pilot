@@ -176,8 +176,8 @@ async def process_msg(
     fpath_from_subproc = Path(f"out-{task_id}{ftype_from_subproc.value}")
 
     # insert in/out files into cmd
-    cmd.replace("{{INFILE}}", str(fpath_to_subproc))
-    cmd.replace("{{OUTFILE}}", str(fpath_from_subproc))
+    cmd = cmd.replace("{{INFILE}}", str(fpath_to_subproc))
+    cmd = cmd.replace("{{OUTFILE}}", str(fpath_from_subproc))
 
     # write
     write_to_subproc(fpath_to_subproc, in_msg, debug_subdir, file_writer)
