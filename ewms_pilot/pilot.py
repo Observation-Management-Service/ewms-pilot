@@ -20,7 +20,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .config import ENV
 
-TaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
+AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
 
 
 LOGGER = logging.getLogger("ewms-pilot")
@@ -148,7 +148,7 @@ def read_from_subproc(
     return out_msg
 
 
-async def process_msg(
+async def process_msg_task(
     in_msg: Any,
     cmd: str,
     subproc_timeout: Optional[int],
@@ -162,7 +162,7 @@ async def process_msg(
     debug_dir: Optional[Path],
     pub: mq.queue.QueuePubResource,
 ) -> Any:
-    """Process the message in a subprocess using `cmd` & send response."""
+    """Process the message's task in a subprocess using `cmd` & respond."""
     task_id = str(time.time())
 
     # debugging logic
@@ -292,16 +292,16 @@ async def consume_and_reply(
 
 async def _ack_nack_finished_tasks(
     sub: mq.queue.ManualQueueSubResource,
-    tasks: TaskMessages,
+    tasks: AsyncioTaskMessages,
     return_when: str,
-    previous_failed: TaskMessages,
-) -> Tuple[TaskMessages, TaskMessages]:
+    previous_failed: AsyncioTaskMessages,
+) -> Tuple[AsyncioTaskMessages, AsyncioTaskMessages]:
     """Get finished tasks and ack/nack their messages.
 
     Returns:
         Tuple:
-            TaskMessages: pending tasks and
-            TaskMessages: failed tasks (plus those in `previous_failed`)
+            AsyncioTaskMessages: pending tasks and
+            AsyncioTaskMessages: failed tasks (plus those in `previous_failed`)
     """
     done, pending = await asyncio.wait(tasks.keys(), return_when=return_when)
     LOGGER.info(f"{len(done)} Tasks Finished")
@@ -346,8 +346,8 @@ async def _consume_and_reply(
 
     Return number of processed tasks.
     """
-    pending: TaskMessages = {}
-    failed: TaskMessages = {}
+    pending: AsyncioTaskMessages = {}
+    failed: AsyncioTaskMessages = {}
 
     # for the first (set) of messages, use 'timeout_wait_for_first_message' if given
     in_queue.timeout = (
@@ -358,7 +358,9 @@ async def _consume_and_reply(
 
     # GO!
     total_msg_count = 0
-    LOGGER.info("Getting messages from server to process then send back...")
+    LOGGER.info(
+        "Listening for messages from server to process tasks then send results..."
+    )
     async with out_queue.open_pub() as pub:
 
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
@@ -366,9 +368,9 @@ async def _consume_and_reply(
 
             async for in_msg in sub.iter_messages():
                 total_msg_count += 1
-                LOGGER.info(f"Got a message to process (#{total_msg_count}): {in_msg}")
+                LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
                 task = asyncio.create_task(
-                    process_msg(
+                    process_msg_task(
                         in_msg.data,
                         cmd,
                         subproc_timeout,
@@ -423,7 +425,7 @@ async def _consume_and_reply(
     # check if anything actually processed
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
-    LOGGER.info(f"Done Processing: handled {total_msg_count} messages")
+    LOGGER.info(f"Done Processing: completed {total_msg_count} tasks")
     return total_msg_count
 
 
