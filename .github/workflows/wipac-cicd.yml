@@ -42,7 +42,6 @@ jobs:
           base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Managment Service"
 
   py-versions:
-    needs: [py-setup]
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
@@ -159,7 +158,7 @@ jobs:
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-    needs: [py-setup, tests]
+    needs: [flake8, mypy, py-setup, py-versions, examples, tests]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
