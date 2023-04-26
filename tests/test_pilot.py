@@ -1,23 +1,20 @@
 """Test pilot submodule."""
 
 import asyncio
-import dataclasses as dc
 import logging
 import re
 import time
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
-from unittest.mock import patch
 
 import asyncstdlib as asl
-import ewms_pilot
 import mqclient as mq
 import pytest
 from ewms_pilot import FileType, config, consume_and_reply
 
 logging.getLogger().setLevel(logging.DEBUG)
-logging.getLogger("flake8").setLevel(logging.WARNING)
+logging.getLogger("mqclient").setLevel(logging.INFO)
 logging.getLogger("pika").setLevel(logging.WARNING)
 
 
@@ -339,10 +336,6 @@ async def test_410__blackhole_quarantine(
     # assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
 
 
-@patch(
-    "ewms_pilot.config.ENV",
-    dc.replace(ewms_pilot.config.ENV, EWMS_PILOT_CONCURRENT_TASKS=4),
-)
 async def test_500__multitasking(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
@@ -373,6 +366,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir,
+            multitasking=4,
         ),
     )
 

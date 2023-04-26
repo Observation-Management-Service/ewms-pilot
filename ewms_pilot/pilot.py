@@ -230,6 +230,8 @@ async def consume_and_reply(
     #
     subproc_timeout: Optional[int] = ENV.EWMS_PILOT_SUBPROC_TIMEOUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
+    #
+    multitasking: Optional[int] = ENV.EWMS_PILOT_CONCURRENT_TASKS,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses.
 
@@ -279,6 +281,7 @@ async def consume_and_reply(
             file_reader,
             debug_dir,
             subproc_timeout,
+            multitasking,
         )
     except Exception as e:
         if quarantine_time:
@@ -337,6 +340,7 @@ async def _consume_and_reply(
     debug_dir: Optional[Path],
     #
     subproc_timeout: Optional[int],
+    multitasking: int,
 ) -> int:
     """Consume and reply loop.
 
@@ -357,10 +361,8 @@ async def _consume_and_reply(
     LOGGER.info("Getting messages from server to process then send back...")
     async with out_queue.open_pub() as pub:
 
-        LOGGER.info(f"Processing up to {ENV.EWMS_PILOT_CONCURRENT_TASKS} tasks")
-        async with in_queue.open_sub_manual_acking(
-            ENV.EWMS_PILOT_CONCURRENT_TASKS
-        ) as sub:
+        LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
+        async with in_queue.open_sub_manual_acking(multitasking) as sub:
 
             async for in_msg in sub.iter_messages():
                 total_msg_count += 1
@@ -381,7 +383,7 @@ async def _consume_and_reply(
                 pending[task] = in_msg
 
                 # if we've met max concurrent tasks, wait for the next one to finish
-                while len(pending) >= ENV.EWMS_PILOT_CONCURRENT_TASKS:
+                while len(pending) >= multitasking:
                     pending, failed = await _ack_nack_finished_tasks(
                         sub,
                         pending,
@@ -443,6 +445,12 @@ def main() -> None:
         "--outfile-type",
         type=FileType,
         help="the file type (exception) of the file to read from the pilot's subprocess",
+    )
+    parser.add_argument(
+        "--multitasking",
+        type=int,
+        default=ENV.EWMS_PILOT_CONCURRENT_TASKS,
+        help="the max number of tasks to process in parallel",
     )
 
     # mq args
@@ -566,6 +574,7 @@ def main() -> None:
             debug_dir=args.debug_directory,
             subproc_timeout=args.subproc_timeout,
             quarantine_time=args.quarantine_time,
+            multitasking=args.multitasking,
         )
     )
     LOGGER.info("Done.")
