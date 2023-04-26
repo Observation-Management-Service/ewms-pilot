@@ -6,6 +6,7 @@ import time
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any
+from unittest.mock import patch
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -329,3 +330,45 @@ async def test_410__blackhole_quarantine(
 
     # await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
     # assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
+
+
+@patch("ewms_pilot.config.ENV.EWMS_PILOT_CONCURRENT_TASKS", 4)
+async def test_500__multitasking(
+    queue_incoming: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,  # pylint: disable=redefined-outer-name
+    debug_dir: Path,  # pylint:disable=redefined-outer-name
+) -> None:
+    """Test multitasking within the pilot."""
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+
+    start_time = time.time()
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(queue_incoming, msgs_to_subproc),
+        consume_and_reply(
+            cmd="""python3 -c "
+import time
+output = open('{{INFILE}}').read().strip() * 2;
+time.sleep(5)
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            ftype_to_subproc=FileType.TXT,
+            ftype_from_subproc=FileType.TXT,
+            # file_writer=UniversalFileInterface.write, # see other tests
+            # file_reader=UniversalFileInterface.read, # see other tests
+            debug_dir=debug_dir,
+        ),
+    )
+
+    # it should've take ~5 seconds to complete all tasks
+    print(time.time() - start_time)
+    assert time.time() - start_time < 5 * len(msgs_to_subproc)
+
+    await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
+    assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
