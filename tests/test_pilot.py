@@ -2,27 +2,15 @@
 
 import asyncio
 import re
-import secrets
 import time
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Tuple
+from typing import Any
 
 import asyncstdlib as asl
 import mqclient as mq
 import pytest
-from ewms_pilot import config, consume_and_reply
-
-
-def _get_inout_filepaths(extension: str) -> Tuple[Path, Path]:
-    """Generate two unique but short filenames: `in-3a90.txt` & `out-3a90.txt`.
-
-    This is needed so we can run tests in parallel.
-    """
-    if not extension.startswith("."):
-        extension = "." + extension
-    rando = secrets.token_hex(2)
-    return Path(f"in-{rando}{extension}"), Path(f"out-{rando}{extension}")
+from ewms_pilot import FileType, config, consume_and_reply
 
 
 @pytest.fixture
@@ -89,8 +77,8 @@ async def assert_results(
 
 def assert_debug_dir(
     debug_dir: Path,  # pylint: disable=redefined-outer-name
-    fpath_to_subproc: Path,
-    fpath_from_subproc: Path,
+    ftype_to_subproc: FileType,
+    ftype_from_subproc: FileType,
     msgs_from_subproc: list,
 ) -> None:
     assert len(list(debug_dir.iterdir())) == len(msgs_from_subproc)
@@ -107,8 +95,8 @@ def assert_debug_dir(
             assert subpath.is_file()
         assert sorted(p.name for p in path.iterdir()) == sorted(
             [
-                fpath_to_subproc.name,
-                fpath_from_subproc.name,
+                f"in-{timestamp}{ftype_to_subproc.value}",
+                f"out-{timestamp}{ftype_from_subproc.value}",
             ]
         )
 
@@ -122,8 +110,6 @@ async def test_000__txt(
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
-    in_txt, out_txt = _get_inout_filepaths(".txt")
-
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
@@ -131,16 +117,16 @@ async def test_000__txt(
     await asyncio.gather(
         populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
-            cmd=f"""python3 -c "
-output = open('{in_txt.name}').read().strip() * 2;
-print(output, file=open('{out_txt.name}','w'))" """,  # double cat
+            cmd="""python3 -c "
+output = open('{{INFILE}}').read().strip() * 2;
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            fpath_to_subproc=in_txt,
-            fpath_from_subproc=out_txt,
+            ftype_to_subproc=FileType.TXT,
+            ftype_from_subproc=FileType.TXT,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir,
@@ -148,7 +134,7 @@ print(output, file=open('{out_txt.name}','w'))" """,  # double cat
     )
 
     await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, in_txt, out_txt, msgs_from_subproc)
+    assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
 
 
 async def test_100__json(
@@ -157,7 +143,6 @@ async def test_100__json(
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .json-based pilot."""
-    in_json, out_json = _get_inout_filepaths(".json")
 
     # some messages that would make sense json'ing
     msgs_to_subproc = [{"attr-0": v} for v in ["foo", "bar", "baz"]]
@@ -167,19 +152,19 @@ async def test_100__json(
     await asyncio.gather(
         populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
-            cmd=f"""python3 -c "
+            cmd="""python3 -c "
 import json;
-input=json.load(open('{in_json.name}'));
+input=json.load(open('{{INFILE}}'));
 v=input['attr-0'];
 output={{'attr-a':v, 'attr-b':v+v}};
-json.dump(output, open('{out_json.name}','w'))" """,
+json.dump(output, open('{{OUTFILE}}','w'))" """,
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            fpath_to_subproc=in_json,
-            fpath_from_subproc=out_json,
+            ftype_to_subproc=FileType.JSON,
+            ftype_from_subproc=FileType.JSON,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir,
@@ -187,7 +172,7 @@ json.dump(output, open('{out_json.name}','w'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, in_json, out_json, msgs_from_subproc)
+    assert_debug_dir(debug_dir, FileType.JSON, FileType.JSON, msgs_from_subproc)
 
 
 async def test_200__pickle__default_inout(
@@ -196,9 +181,6 @@ async def test_200__pickle__default_inout(
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .pkl-based pilot."""
-    # NOTE: consume_and_reply() uses in.pkl & out.pkl as defaults
-    # NOTE: so don't use these names for any other tests (else fpath conflicts)
-    in_pkl, out_pkl = Path("in.pkl"), Path("out.pkl")
 
     # some messages that would make sense pickling
     msgs_to_subproc = [date(1995, 12, 3), date(2022, 9, 29), date(2063, 4, 5)]
@@ -208,19 +190,19 @@ async def test_200__pickle__default_inout(
     await asyncio.gather(
         populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
-            cmd=f"""python3 -c "
+            cmd="""python3 -c "
 import pickle;
 from datetime import date, timedelta;
-input=pickle.load(open('{in_pkl.name}','rb'));
+input=pickle.load(open('{{INFILE}}','rb'));
 output=input+timedelta(days=1);
-pickle.dump(output, open('{out_pkl.name}','wb'))" """,
+pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            # fpath_to_subproc=in_pkl,
-            # fpath_from_subproc=out_pkl,
+            # ftype_to_subproc=in_pkl,  # use default pkl
+            # ftype_from_subproc=out_pkl,  # use default pkl
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir,
@@ -228,7 +210,7 @@ pickle.dump(output, open('{out_pkl.name}','wb'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, in_pkl, out_pkl, msgs_from_subproc)
+    assert_debug_dir(debug_dir, FileType.PKL, FileType.PKL, msgs_from_subproc)
 
 
 async def test_201__pickle(
@@ -237,7 +219,6 @@ async def test_201__pickle(
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .pkl-based pilot."""
-    in_pkl, out_pkl = _get_inout_filepaths(".pkl")
 
     # some messages that would make sense pickling
     msgs_to_subproc = [date(1995, 12, 3), date(2022, 9, 29), date(2063, 4, 5)]
@@ -247,19 +228,19 @@ async def test_201__pickle(
     await asyncio.gather(
         populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
-            cmd=f"""python3 -c "
+            cmd="""python3 -c "
 import pickle;
 from datetime import date, timedelta;
-input=pickle.load(open('{in_pkl.name}','rb'));
+input=pickle.load(open('{{INFILE}}','rb'));
 output=input+timedelta(days=1);
-pickle.dump(output, open('{out_pkl.name}','wb'))" """,
+pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            fpath_to_subproc=in_pkl,
-            fpath_from_subproc=out_pkl,
+            ftype_to_subproc=FileType.PKL,
+            ftype_from_subproc=FileType.PKL,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir,
@@ -267,7 +248,7 @@ pickle.dump(output, open('{out_pkl.name}','wb'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, in_pkl, out_pkl, msgs_from_subproc)
+    assert_debug_dir(debug_dir, FileType.PKL, FileType.PKL, msgs_from_subproc)
 
 
 async def test_300__writer_reader(
@@ -276,8 +257,6 @@ async def test_300__writer_reader(
     debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
-    in_txt, out_txt = _get_inout_filepaths(".txt")
-
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_from_subproc = ["output: oofoof\n", "output: rabrab\n", "output: zabzab\n"]
 
@@ -293,16 +272,16 @@ async def test_300__writer_reader(
     await asyncio.gather(
         populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
-            cmd=f"""python3 -c "
-output = open('{in_txt.name}').read().strip() * 2;
-print(output, file=open('{out_txt.name}','w'))" """,  # double cat
+            cmd="""python3 -c "
+output = open('{{INFILE}}').read().strip() * 2;
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            fpath_to_subproc=in_txt,
-            fpath_from_subproc=out_txt,
+            ftype_to_subproc=FileType.TXT,
+            ftype_from_subproc=FileType.TXT,
             file_writer=reverse_writer,
             file_reader=reader_w_prefix,
             debug_dir=debug_dir,
@@ -310,7 +289,7 @@ print(output, file=open('{out_txt.name}','w'))" """,  # double cat
     )
 
     await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, in_txt, out_txt, msgs_from_subproc)
+    assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
 
 
 async def test_400__exception(
@@ -319,8 +298,6 @@ async def test_400__exception(
     # debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
-    in_txt, out_txt = _get_inout_filepaths(".txt")
-
     msgs_to_subproc = ["foo", "bar", "baz"]
     # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
@@ -339,8 +316,8 @@ async def test_400__exception(
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                fpath_to_subproc=in_txt,
-                fpath_from_subproc=out_txt,
+                ftype_to_subproc=FileType.TXT,
+                ftype_from_subproc=FileType.TXT,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 # debug_dir=debug_dir,
@@ -350,7 +327,7 @@ async def test_400__exception(
     assert time.time() - start_time <= 2  # no quarantine time
 
     # await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    # assert_debug_dir(debug_dir, in_txt, out_txt, msgs_from_subproc)
+    # assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
 
 
 async def test_410__blackhole_quarantine(
@@ -359,8 +336,6 @@ async def test_410__blackhole_quarantine(
     # debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
-    in_txt, out_txt = _get_inout_filepaths(".txt")
-
     msgs_to_subproc = ["foo", "bar", "baz"]
     # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
@@ -379,8 +354,8 @@ async def test_410__blackhole_quarantine(
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                fpath_to_subproc=in_txt,
-                fpath_from_subproc=out_txt,
+                ftype_to_subproc=FileType.TXT,
+                ftype_from_subproc=FileType.TXT,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 # debug_dir=debug_dir,
@@ -391,4 +366,4 @@ async def test_410__blackhole_quarantine(
     assert time.time() - start_time >= 20  # did quarantine_time work?
 
     # await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    # assert_debug_dir(debug_dir, in_txt, out_txt, msgs_from_subproc)
+    # assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)

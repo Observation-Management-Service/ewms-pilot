@@ -39,8 +39,8 @@ _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME = 10  # second  # this is more than enough
 class FileType(enum.Enum):
     """Various file types/extensions."""
 
-    PICKLE = ".pkl"
-    PLAIN_TEXT = ".txt"
+    PKL = ".pkl"
+    TXT = ".txt"
     JSON = ".json"
 
 
@@ -58,12 +58,12 @@ class UniversalFileInterface:
         LOGGER.info(f"Writing payload to file @ {fpath}")
         LOGGER.debug(in_msg)
 
-        # PICKLE
-        if fpath.suffix == FileType.PICKLE.value:
+        # PKL
+        if fpath.suffix == FileType.PKL.value:
             with open(fpath, "wb") as f:
                 pickle.dump(in_msg, f)
-        # PLAIN_TEXT
-        elif fpath.suffix == FileType.PLAIN_TEXT.value:
+        # TXT
+        elif fpath.suffix == FileType.TXT.value:
             with open(fpath, "w") as f:
                 f.write(in_msg)
         # JSON
@@ -86,12 +86,12 @@ class UniversalFileInterface:
     def _read(cls, fpath: Path) -> Any:
         LOGGER.info(f"Reading payload from file @ {fpath}")
 
-        # PICKLE
-        if fpath.suffix == FileType.PICKLE.value:
+        # PKL
+        if fpath.suffix == FileType.PKL.value:
             with open(fpath, "rb") as f:
                 return pickle.load(f)
-        # PLAIN_TEXT
-        elif fpath.suffix == FileType.PLAIN_TEXT.value:
+        # TXT
+        elif fpath.suffix == FileType.TXT.value:
             with open(fpath, "r") as f:
                 return f.read()
         # JSON
@@ -152,19 +152,32 @@ async def process_msg(
     in_msg: Any,
     cmd: str,
     subproc_timeout: Optional[int],
-    fpath_to_subproc: Path,
-    fpath_from_subproc: Path,
+    #
+    ftype_to_subproc: FileType,
+    ftype_from_subproc: FileType,
+    #
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
+    #
     debug_dir: Optional[Path],
     pub: mq.queue.QueuePubResource,
 ) -> Any:
     """Process the message in a subprocess using `cmd` & send response."""
+    task_id = str(time.time())
+
     # debugging logic
     debug_subdir = None
     if debug_dir:
-        debug_subdir = debug_dir / str(time.time())
+        debug_subdir = debug_dir / task_id
         debug_subdir.mkdir(parents=True, exist_ok=False)
+
+    # create in/out filepaths
+    fpath_to_subproc = Path(f"in-{task_id}{ftype_to_subproc.value}")
+    fpath_from_subproc = Path(f"out-{task_id}{ftype_from_subproc.value}")
+
+    # insert in/out files into cmd
+    cmd.replace("{{INFILE}}", str(fpath_to_subproc))
+    cmd.replace("{{OUTFILE}}", str(fpath_from_subproc))
 
     # write
     write_to_subproc(fpath_to_subproc, in_msg, debug_subdir, file_writer)
@@ -207,8 +220,8 @@ async def consume_and_reply(
     timeout_outgoing: int = _DEFAULT_TIMEOUT_OUTGOING,
     #
     # for subprocess
-    fpath_to_subproc: Path = Path("./in.pkl"),
-    fpath_from_subproc: Path = Path("./out.pkl"),
+    ftype_to_subproc: FileType = FileType.PKL,
+    ftype_from_subproc: FileType = FileType.PKL,
     #
     file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
     file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
@@ -259,8 +272,8 @@ async def consume_and_reply(
             out_queue,
             timeout_wait_for_first_message,
             timeout_incoming,
-            fpath_to_subproc,
-            fpath_from_subproc,
+            ftype_to_subproc,
+            ftype_from_subproc,
             file_writer,
             file_reader,
             debug_dir,
@@ -314,8 +327,8 @@ async def _consume_and_reply(
     timeout_incoming: int,
     #
     # for subprocess
-    fpath_to_subproc: Path,
-    fpath_from_subproc: Path,
+    ftype_to_subproc: FileType,
+    ftype_from_subproc: FileType,
     #
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
@@ -355,8 +368,8 @@ async def _consume_and_reply(
                         in_msg.data,
                         cmd,
                         subproc_timeout,
-                        fpath_to_subproc,
-                        fpath_from_subproc,
+                        ftype_to_subproc,
+                        ftype_from_subproc,
                         file_writer,
                         file_reader,
                         debug_dir,

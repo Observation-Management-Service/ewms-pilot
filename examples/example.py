@@ -53,8 +53,8 @@ time.sleep(5)
         # auth_token="",
         queue_incoming=queue_incoming,
         queue_outgoing=queue_outgoing,
-        fpath_to_subproc=Path("in.txt"),
-        fpath_from_subproc=Path("out.txt"),
+        ftype_to_subproc=Path("in.txt"),
+        ftype_from_subproc=Path("out.txt"),
         # file_writer=UniversalFileInterface.write, # see other tests
         # file_reader=UniversalFileInterface.read, # see other tests
         debug_dir=debug_dir,
