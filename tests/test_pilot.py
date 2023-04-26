@@ -2,6 +2,7 @@
 
 import asyncio
 import dataclasses as dc
+import logging
 import re
 import time
 from datetime import date, timedelta
@@ -14,6 +15,10 @@ import ewms_pilot
 import mqclient as mq
 import pytest
 from ewms_pilot import FileType, config, consume_and_reply
+
+logging.getLogger().setLevel(logging.DEBUG)
+logging.getLogger("flake8").setLevel(logging.WARNING)
+logging.getLogger("pika").setLevel(logging.WARNING)
 
 
 @pytest.fixture

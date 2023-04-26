@@ -357,6 +357,7 @@ async def _consume_and_reply(
     LOGGER.info("Getting messages from server to process then send back...")
     async with out_queue.open_pub() as pub:
 
+        LOGGER.info(f"Processing up to {ENV.EWMS_PILOT_CONCURRENT_TASKS} tasks")
         async with in_queue.open_sub_manual_acking(
             ENV.EWMS_PILOT_CONCURRENT_TASKS
         ) as sub:
