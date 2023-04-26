@@ -231,7 +231,7 @@ async def consume_and_reply(
     subproc_timeout: Optional[int] = ENV.EWMS_PILOT_SUBPROC_TIMEOUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
     #
-    multitasking: Optional[int] = ENV.EWMS_PILOT_CONCURRENT_TASKS,
+    multitasking: int = ENV.EWMS_PILOT_CONCURRENT_TASKS,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses.
 
