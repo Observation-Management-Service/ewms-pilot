@@ -293,6 +293,8 @@ async def _ack_nack_finished_tasks(
         if task.exception():
             await sub.nack(tasks[task])
             previous_failed[task] = tasks[task]
+            LOGGER.error("Task failed:")
+            LOGGER.error(task.exception())
         else:
             await sub.ack(tasks[task])
 
@@ -377,6 +379,7 @@ async def _consume_and_reply(
 
                 # if 1+ fail, then don't consume anymore; wait for remaining tasks
                 if failed:
+                    LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
                     break
 
             # wait for remaining tasks
@@ -392,7 +395,10 @@ async def _consume_and_reply(
 
     # cleanup
     if failed:
-        raise RuntimeError(f"{len(failed)} Tasks Failed")  # TODO log other errors
+        raise RuntimeError(
+            f"{len(failed)} Tasks Failed: "
+            f"{', '.join(str(f.exception()) for f in failed)}"
+        )
     # check if anything actually processed
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
