@@ -294,7 +294,7 @@ async def _ack_nack_finished_tasks(
             await sub.nack(tasks[task])
             previous_failed[task] = tasks[task]
             LOGGER.error("Task failed:")
-            LOGGER.error(task.exception())
+            LOGGER.error(f"{type(task.exception()).__name__}: {task.exception()}")
         else:
             await sub.ack(tasks[task])
 
@@ -397,7 +397,7 @@ async def _consume_and_reply(
     if failed:
         raise RuntimeError(
             f"{len(failed)} Tasks Failed: "
-            f"{', '.join(str(f.exception()) for f in failed)}"
+            f"{', '.join(type(f.exception()).__name__ for f in failed)}"
         )
     # check if anything actually processed
     if not total_msg_count:
