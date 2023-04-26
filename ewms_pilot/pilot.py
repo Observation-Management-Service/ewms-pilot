@@ -400,8 +400,11 @@ async def _consume_and_reply(
                     LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
                     break
 
+            LOGGER.info("No more new tasks to process")
+
             # wait for remaining tasks
             if pending:
+                LOGGER.info("Waiting for remaining tasks to finish...")
                 pending, failed = await _ack_nack_finished_tasks(
                     sub,
                     pending,
