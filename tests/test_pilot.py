@@ -277,7 +277,7 @@ async def test_400__exception(
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
-                cmd="""python3 -c "raise ValueError()" """,
+                cmd="""python3 -c "raise ValueError('no good!')" """,
                 # broker_client=,  # rely on env var
                 # broker_address=,  # rely on env var
                 # auth_token="",
@@ -315,7 +315,7 @@ async def test_410__blackhole_quarantine(
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
-                cmd="""python3 -c "raise ValueError()" """,
+                cmd="""python3 -c "raise ValueError('no good!')" """,
                 # broker_client=,  # rely on env var
                 # broker_address=,  # rely on env var
                 # auth_token="",
