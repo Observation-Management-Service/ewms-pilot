@@ -218,14 +218,25 @@ async def process_msg_task(
         # await to finish while streaming output
         await asyncio.wait(
             [
-                asyncio.create_task(proc.wait()),
-                asyncio.create_task(_stream(proc.stdout, sys.stdout)),
-                err_task := asyncio.create_task(_stream(proc.stderr, sys.stderr)),
+                main_task := asyncio.create_task(
+                    asyncio.wait_for(
+                        proc.wait(),
+                        timeout=subproc_timeout,
+                    )
+                ),
+                asyncio.create_task(
+                    _stream(proc.stdout, sys.stdout),
+                ),
+                err_task := asyncio.create_task(
+                    _stream(proc.stderr, sys.stderr),
+                ),
             ],
-            timeout=subproc_timeout,
             return_when=asyncio.ALL_COMPLETED,
         )
 
+        # exception handling (immediately re-handled by 'except' below)
+        if isinstance(main_task.exception(), TimeoutError):
+            raise TimeoutError()
         if proc.returncode is None:
             raise Exception("Subprocess handler prematurely exited")
         if proc.returncode:
