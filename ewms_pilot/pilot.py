@@ -185,13 +185,17 @@ async def process_msg_task(
     async def _stream(
         stream: Optional[asyncio.StreamReader],
         outstream: TextIO,
-    ) -> None:
+    ) -> str:
         if not stream:
-            return
+            return ""
+        line = ""
         while not stream.at_eof():
             data = await stream.readline()
+            if not data:
+                continue
             line = data.decode("ascii").rstrip()
             print(line, file=outstream)
+        return line
 
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
@@ -215,7 +219,7 @@ async def process_msg_task(
             [
                 asyncio.create_task(proc.wait()),
                 asyncio.create_task(_stream(proc.stdout, sys.stdout)),
-                asyncio.create_task(_stream(proc.stderr, sys.stderr)),
+                last_err_line := asyncio.create_task(_stream(proc.stderr, sys.stderr)),
             ],
             timeout=subproc_timeout,
             return_when=asyncio.ALL_COMPLETED,
@@ -231,7 +235,9 @@ async def process_msg_task(
         #     sys.stdout.write(buf.decode())
 
         if proc.returncode != 0:
-            raise Exception(f"Subprocess completed with exit code {proc.returncode}")
+            raise Exception(
+                f"Subprocess completed with exit code {proc.returncode}: {last_err_line}"
+            )
         # subprocess.run(
         #     shlex.split(cmd),
         #     check=True,
