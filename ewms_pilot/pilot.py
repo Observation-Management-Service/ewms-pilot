@@ -186,7 +186,7 @@ async def process_msg_task(
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
     try:
         # proc = await asyncio.wait_for(
-        proc = asyncio.create_subprocess_shell(
+        proc = await asyncio.create_subprocess_shell(
             cmd,
             stdout=asyncio.subprocess.PIPE,
             stderr=asyncio.subprocess.PIPE,
