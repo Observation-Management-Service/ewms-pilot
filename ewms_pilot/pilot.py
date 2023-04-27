@@ -44,6 +44,13 @@ class FileType(enum.Enum):
     JSON = ".json"
 
 
+class SubprocessError(Exception):
+    """Raised when the subprocess terminates in an error."""
+
+    def __init__(self, return_code: int, last_line: str):
+        super().__init__(f"Subprocess completed with exit code {return_code}")
+        self.last_line = last_line
+
 class UniversalFileInterface:
     """Support reading and writing for any `FileType` file extension."""
 
@@ -146,14 +153,6 @@ def read_from_subproc(
         fpath_from_subproc.unlink()  # rm
 
     return out_msg
-
-
-class SubprocessError(Exception):
-    """Raised when the subprocess terminates in an error."""
-
-    def __init__(self, return_code: int, last_line: str):
-        super().__init__(f"Subprocess completed with exit code {return_code}")
-        self.last_line = last_line
 
 
 async def process_msg_task(
