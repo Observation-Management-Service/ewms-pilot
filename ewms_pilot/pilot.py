@@ -235,6 +235,10 @@ async def process_msg_task(
             return_when=asyncio.ALL_COMPLETED,
         )
 
+        LOGGER.info(
+            f"Subprocess return code: {proc.returncode} ({main_task.exception()})"
+        )
+
         # exception handling (immediately re-handled by 'except' below)
         if isinstance(main_task.exception(), TimeoutError):
             raise TimeoutError()
