@@ -12,7 +12,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TextIO, Tuple
+from typing import Any, Callable, Dict, List, Optional, TextIO, Tuple
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message
@@ -221,33 +221,24 @@ async def process_msg_task(
         )
 
         # await to finish while streaming output
-        await asyncio.wait(
-            [
-                main_task := asyncio.create_task(
-                    asyncio.wait_for(
-                        proc.wait(),
-                        timeout=subproc_timeout,
-                    )
-                ),
-                asyncio.create_task(
-                    _stream(proc.stdout, sys.stdout),
-                ),
-                err_task := asyncio.create_task(
-                    _stream(proc.stderr, sys.stderr),
-                ),
-            ],
+        coros = [
+            proc.wait(),
+            _stream(proc.stdout, sys.stdout),
+            _stream(proc.stderr, sys.stderr),
+        ]
+        _, pending = await asyncio.wait(
+            [asyncio.create_task(c) for c in coros],
             return_when=asyncio.ALL_COMPLETED,
+            timeout=subproc_timeout,
         )
 
-        LOGGER.info(
-            f"Subprocess return code: {proc.returncode} ({_task_exception_str(main_task)})"
-        )
+        LOGGER.info(f"Subprocess return code: {proc.returncode}")
 
         # exception handling (immediately re-handled by 'except' below)
-        if isinstance(main_task.exception(), TimeoutError):
-            raise TimeoutError()
         if proc.returncode is None:
-            raise Exception("Subprocess handler prematurely exited")
+            for task in pending:
+                task.cancel()
+            raise TimeoutError()
         if proc.returncode:
             raise TaskSubprocessError(proc.returncode, err_task.result())
 
