@@ -148,6 +148,14 @@ def read_from_subproc(
     return out_msg
 
 
+class SubprocessError(Exception):
+    """Raised when the subprocess terminates in an error."""
+
+    def __init__(self, return_code: int, last_line: str):
+        super().__init__(f"Subprocess completed with exit code {return_code}")
+        self.last_line = last_line
+
+
 async def process_msg_task(
     in_msg: Any,
     cmd: str,
@@ -218,10 +226,10 @@ async def process_msg_task(
             return_when=asyncio.ALL_COMPLETED,
         )
 
-        if proc.returncode != 0:
-            raise Exception(
-                f"Subprocess completed with exit code {proc.returncode}: {err_task.result()}"
-            )
+        if proc.returncode is None:
+            raise Exception("Subprocess handler prematurely exited")
+        if proc.returncode:
+            raise SubprocessError(proc.returncode, err_task.result())
 
     except TimeoutError:
         LOGGER.error("Subprocess timed out")

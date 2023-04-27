@@ -272,7 +272,7 @@ async def test_400__exception(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: CalledProcessError")
+        RuntimeError, match=re.escape("1 Task(s) Failed: SubprocessError")
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -310,7 +310,7 @@ async def test_410__blackhole_quarantine(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: CalledProcessError")
+        RuntimeError, match=re.escape("1 Task(s) Failed: SubprocessError")
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
