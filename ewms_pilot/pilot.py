@@ -12,7 +12,7 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, TextIO, Tuple
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message
@@ -182,6 +182,17 @@ async def process_msg_task(
     # write
     write_to_subproc(fpath_to_subproc, in_msg, debug_subdir, file_writer)
 
+    async def _stream(
+        stream: Optional[asyncio.StreamReader],
+        outstream: TextIO,
+    ) -> None:
+        if not stream:
+            return
+        while not stream.at_eof():
+            data = await stream.readline()
+            line = data.decode("ascii").rstrip()
+            print(line, file=outstream)
+
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
     try:
@@ -193,11 +204,22 @@ async def process_msg_task(
         )
 
         # await to finish
-        stdout_data, stderr_data = await asyncio.wait_for(
-            proc.communicate(), timeout=subproc_timeout
+        # stdout_data, stderr_data = await asyncio.wait_for(
+        #     proc.communicate(), timeout=subproc_timeout
+        # )
+        # print(stdout_data)
+        # print(stderr_data, file=sys.stderr)
+
+        # await to finish while streaming output
+        await asyncio.wait(
+            [
+                proc.wait(),
+                _stream(proc.stdout, sys.stdout),
+                _stream(proc.stderr, sys.stderr),
+            ],
+            timeout=subproc_timeout,
+            return_when=asyncio.ALL_COMPLETED,
         )
-        print(stdout_data)
-        print(stderr_data, file=sys.stderr)
 
         # await proc.wait()
 
