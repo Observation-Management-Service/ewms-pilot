@@ -9,6 +9,7 @@ import logging
 import pickle
 import shlex
 import shutil
+import sys
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple
@@ -192,7 +193,12 @@ async def process_msg_task(
         )
 
         # await to finish
-        await asyncio.wait_for(proc.wait(), timeout=subproc_timeout)
+        stdout_data, stderr_data = await asyncio.wait_for(
+            proc.communicate(), timeout=subproc_timeout
+        )
+        print(stdout_data)
+        print(stderr_data, file=sys.stderr)
+
         # await proc.wait()
 
         # while proc.returncode is None:
