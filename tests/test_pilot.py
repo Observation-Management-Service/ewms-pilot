@@ -102,6 +102,8 @@ def assert_debug_dir(
             [
                 f"in-{timestamp}{ftype_to_subproc.value}",
                 f"out-{timestamp}{ftype_from_subproc.value}",
+                "stdout",
+                "stderr",
             ]
         )
 
