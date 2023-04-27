@@ -210,9 +210,11 @@ async def process_msg_task(
         # await to finish while streaming output
         await asyncio.wait(
             [
-                asyncio.create_task(proc.wait()),
-                asyncio.create_task(_stream(proc.stdout, sys.stdout)),
-                last_err_line := asyncio.create_task(_stream(proc.stderr, sys.stderr)),
+                a := asyncio.create_task(proc.wait()),
+                b := asyncio.create_task(_stream(proc.stdout, sys.stdout)),
+                c := asyncio.create_task(
+                    last_err_line := _stream(proc.stderr, sys.stderr)
+                ),
             ],
             timeout=subproc_timeout,
             return_when=asyncio.ALL_COMPLETED,
@@ -220,7 +222,7 @@ async def process_msg_task(
 
         if proc.returncode != 0:
             raise Exception(
-                f"Subprocess completed with exit code {proc.returncode}: {last_err_line}"
+                f"Subprocess completed with exit code {proc.returncode} ({a}, {b}, {c}): {last_err_line}"
             )
 
     except TimeoutError:
