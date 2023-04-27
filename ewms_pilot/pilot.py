@@ -9,7 +9,6 @@ import logging
 import pickle
 import shlex
 import shutil
-import subprocess
 import time
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple
