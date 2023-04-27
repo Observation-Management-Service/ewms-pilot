@@ -240,7 +240,7 @@ async def process_msg_task(
                 task.cancel()
             raise TimeoutError()
         if proc.returncode:
-            raise TaskSubprocessError(proc.returncode, err_task.result())
+            raise TaskSubprocessError(proc.returncode, "")
 
     except TimeoutError:
         LOGGER.error("Subprocess timed out")
