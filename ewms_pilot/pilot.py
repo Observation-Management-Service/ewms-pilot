@@ -193,6 +193,7 @@ async def process_msg_task(
         )
         #     timeout=subproc_timeout,
         # )
+        await proc.wait()
         if proc.returncode != 0:
             raise Exception(f"Subprocess completed with exit code {proc.returncode}")
         # subprocess.run(
