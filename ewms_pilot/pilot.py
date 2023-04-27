@@ -53,7 +53,7 @@ class TaskSubprocessError(Exception):
 
 
 def _task_exception_str(task: asyncio.Task) -> str:
-    return f"{type(task.exception()).__name__}: {task.exception()}"
+    return f'{type(task.exception()).__name__}: "{task.exception()}"'
 
 
 class UniversalFileInterface:

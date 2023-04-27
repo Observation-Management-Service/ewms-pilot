@@ -352,7 +352,7 @@ async def test_420__timeout(
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
-                cmd="""python3 -c "import time; time.sleep(5)" """,
+                cmd="""python3 -c "import time; time.sleep(30)" """,
                 # broker_client=,  # rely on env var
                 # broker_address=,  # rely on env var
                 # auth_token="",
@@ -363,11 +363,11 @@ async def test_420__timeout(
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 # debug_dir=debug_dir,
-                subproc_timeout=1,
+                subproc_timeout=2,
             ),
         )
 
-    assert time.time() - start_time <= 3  # no quarantine time
+    assert time.time() - start_time <= 5  # no quarantine time
 
     # await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
     # assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
