@@ -63,7 +63,7 @@ class UniversalFileInterface:
 
     @classmethod
     def _write(cls, in_msg: Any, fpath: Path) -> None:
-        LOGGER.info(f"Writing payload to file @ {fpath}")
+        LOGGER.info(f"Writing to file: {fpath}")
         LOGGER.debug(in_msg)
 
         # PKL
@@ -92,7 +92,7 @@ class UniversalFileInterface:
 
     @classmethod
     def _read(cls, fpath: Path) -> Any:
-        LOGGER.info(f"Reading payload from file @ {fpath}")
+        LOGGER.info(f"Reading from file: {fpath}")
 
         # PKL
         if fpath.suffix == FileType.PKL.value:
@@ -258,7 +258,7 @@ async def process_msg_task(
     out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
 
     # send
-    LOGGER.info("Sending out-payload to server...")
+    LOGGER.info("Sending return message...")
     await pub.send(out_msg)
 
 
