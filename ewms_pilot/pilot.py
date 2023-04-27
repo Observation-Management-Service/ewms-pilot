@@ -220,7 +220,7 @@ async def process_msg_task(
 
         if proc.returncode != 0:
             raise Exception(
-                f"Subprocess completed with exit code {proc.returncode}: {err_task.result}"
+                f"Subprocess completed with exit code {proc.returncode}: {err_task.result()}"
             )
 
     except TimeoutError:
