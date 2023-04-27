@@ -11,7 +11,7 @@ import shlex
 import shutil
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, TextIO, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message
@@ -166,7 +166,7 @@ def read_from_subproc(
     return out_msg
 
 
-async def _stream_to_file(stream: Optional[asyncio.StreamReader], out: TextIO) -> None:
+async def _stream_to_file(stream: Optional[asyncio.StreamReader], out: Any) -> None:
     if not stream:
         return
     while not stream.at_eof():
