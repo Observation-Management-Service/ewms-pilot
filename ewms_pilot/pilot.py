@@ -207,13 +207,6 @@ async def process_msg_task(
             stderr=asyncio.subprocess.PIPE,
         )
 
-        # await to finish
-        # stdout_data, stderr_data = await asyncio.wait_for(
-        #     proc.communicate(), timeout=subproc_timeout
-        # )
-        # print(stdout_data)
-        # print(stderr_data, file=sys.stderr)
-
         # await to finish while streaming output
         await asyncio.wait(
             [
@@ -225,24 +218,11 @@ async def process_msg_task(
             return_when=asyncio.ALL_COMPLETED,
         )
 
-        # await proc.wait()
-
-        # while proc.returncode is None:
-        #     buf = await proc.stdout.read(20)  # type: ignore[union-attr]
-        #     if not buf:
-        #         break
-        #     full_log += buf
-        #     sys.stdout.write(buf.decode())
-
         if proc.returncode != 0:
             raise Exception(
                 f"Subprocess completed with exit code {proc.returncode}: {last_err_line}"
             )
-        # subprocess.run(
-        #     shlex.split(cmd),
-        #     check=True,
-        #     timeout=subproc_timeout,
-        # )
+
     except TimeoutError:
         LOGGER.error("Subprocess timed out")
         raise
