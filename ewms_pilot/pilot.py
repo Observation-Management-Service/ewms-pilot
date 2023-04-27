@@ -52,6 +52,10 @@ class TaskSubprocessError(Exception):
         self.last_line = last_line
 
 
+def _task_exception_str(task: asyncio.Task) -> str:
+    return f"{type(task.exception()).__name__}: {task.exception()}"
+
+
 class UniversalFileInterface:
     """Support reading and writing for any `FileType` file extension."""
 
@@ -236,7 +240,7 @@ async def process_msg_task(
         )
 
         LOGGER.info(
-            f"Subprocess return code: {proc.returncode} ({main_task.exception()})"
+            f"Subprocess return code: {proc.returncode} ({_task_exception_str(main_task)})"
         )
 
         # exception handling (immediately re-handled by 'except' below)
@@ -371,7 +375,7 @@ async def _ack_nack_finished_tasks(
             await sub.nack(tasks[task])
             previous_failed[task] = tasks[task]
             LOGGER.error("Task failed:")
-            LOGGER.error(f"{type(task.exception()).__name__}: {task.exception()}")
+            LOGGER.error(_task_exception_str(task))
         else:
             await sub.ack(tasks[task])
 
