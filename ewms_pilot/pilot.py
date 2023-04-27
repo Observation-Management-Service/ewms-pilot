@@ -193,7 +193,7 @@ async def process_msg_task(
             ),
             timeout=subproc_timeout,
         )
-        if proc.returncode:
+        if proc.returncode != 0:
             raise Exception(f"Subprocess completed with exit code {proc.returncode}")
         # subprocess.run(
         #     shlex.split(cmd),
