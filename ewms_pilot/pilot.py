@@ -140,8 +140,9 @@ def read_from_subproc(
     Also, dump to a file for debugging (if not "").
     """
     if not fpath_from_subproc.exists():
-        LOGGER.error("Out file was not written for in-payload")
-        raise RuntimeError("Out file was not written for in-payload")
+        msg = "Out-file cannot be found"
+        LOGGER.error(msg)
+        raise FileNotFoundError(msg)
 
     out_msg = file_reader(fpath_from_subproc)
 
