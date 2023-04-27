@@ -44,12 +44,13 @@ class FileType(enum.Enum):
     JSON = ".json"
 
 
-class SubprocessError(Exception):
+class TaskSubprocessError(Exception):
     """Raised when the subprocess terminates in an error."""
 
     def __init__(self, return_code: int, last_line: str):
         super().__init__(f"Subprocess completed with exit code {return_code}")
         self.last_line = last_line
+
 
 class UniversalFileInterface:
     """Support reading and writing for any `FileType` file extension."""
@@ -228,7 +229,7 @@ async def process_msg_task(
         if proc.returncode is None:
             raise Exception("Subprocess handler prematurely exited")
         if proc.returncode:
-            raise SubprocessError(proc.returncode, err_task.result())
+            raise TaskSubprocessError(proc.returncode, err_task.result())
 
     except TimeoutError:
         LOGGER.error("Subprocess timed out")
