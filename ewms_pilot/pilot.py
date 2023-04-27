@@ -213,9 +213,9 @@ async def process_msg_task(
         # await to finish while streaming output
         await asyncio.wait(
             [
-                proc.wait(),
-                _stream(proc.stdout, sys.stdout),
-                _stream(proc.stderr, sys.stderr),
+                asyncio.create_task(proc.wait()),
+                asyncio.create_task(_stream(proc.stdout, sys.stdout)),
+                asyncio.create_task(_stream(proc.stderr, sys.stderr)),
             ],
             timeout=subproc_timeout,
             return_when=asyncio.ALL_COMPLETED,
