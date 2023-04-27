@@ -187,7 +187,7 @@ async def process_msg_task(
     try:
         proc = await asyncio.wait_for(
             asyncio.create_subprocess_shell(
-                *shlex.split(cmd),
+                cmd,
                 stdout=asyncio.subprocess.PIPE,
                 stderr=asyncio.subprocess.PIPE,
             ),
