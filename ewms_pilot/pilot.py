@@ -11,7 +11,7 @@ import shlex
 import shutil
 import time
 from pathlib import Path
-from typing import Any, Callable, Coroutine, Dict, List, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, TextIO, Tuple
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message
@@ -49,12 +49,11 @@ class TaskSubprocessError(Exception):
     def __init__(
         self,
         return_code: int,
-        stdout_file: Optional[Path],
-        stderr_file: Optional[Path],
+        debug_subdir: Optional[Path],
     ):
         super().__init__(
             f"Subprocess completed with exit code {return_code} "
-            f"(stdout: {stdout_file}, stderr: {stderr_file})"
+            f"(debug directory: {debug_subdir})"
         )
 
 
@@ -167,16 +166,15 @@ def read_from_subproc(
     return out_msg
 
 
-async def _stream_to_file(stream: Optional[asyncio.StreamReader], fpath: Path) -> None:
+async def _stream_to_file(stream: Optional[asyncio.StreamReader], out: TextIO) -> None:
     if not stream:
         return
-    with open(fpath, "w+") as f:
-        while not stream.at_eof():
-            data = await stream.readline()
-            if not data:
-                continue
-            line = data.decode("ascii").rstrip()
-            print(line, file=f)
+    while not stream.at_eof():
+        data = await stream.readline()
+        if not data:
+            continue
+        line = data.decode("ascii").rstrip()
+        print(line, file=out)
 
 
 async def process_msg_task(
@@ -198,13 +196,9 @@ async def process_msg_task(
 
     # debugging logic
     debug_subdir = None
-    debug_file_stdout = None
-    debug_file_stderr = None
     if debug_dir:
         debug_subdir = debug_dir / task_id
         debug_subdir.mkdir(parents=True, exist_ok=False)
-        debug_file_stdout = debug_subdir / "stdout"
-        debug_file_stderr = debug_subdir / "stderr"
 
     # create in/out filepaths
     fpath_to_subproc = Path(f"in-{task_id}{ftype_to_subproc.value}")
@@ -220,21 +214,24 @@ async def process_msg_task(
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
     try:
-        # await to start
-        proc = await asyncio.create_subprocess_shell(
-            cmd,
-            stdout=asyncio.subprocess.PIPE,
-            stderr=asyncio.subprocess.PIPE,
-        )
+
+        # await to start & prep coroutines
+        if debug_subdir:
+            proc = await asyncio.create_subprocess_shell(
+                cmd,
+                stdout=asyncio.subprocess.PIPE,
+                stderr=asyncio.subprocess.PIPE,
+            )
+            coros = [
+                proc.wait(),
+                _stream_to_file(proc.stdout, open(debug_subdir / "stdout", "wb")),
+                _stream_to_file(proc.stdout, open(debug_subdir / "stderr", "wb")),
+            ]
+        else:
+            proc = await asyncio.create_subprocess_shell(cmd)
+            coros = [proc.wait()]
 
         # await to finish while streaming output
-        # > prep
-        coros: List[Coroutine[Any, Any, Any]] = [proc.wait()]
-        if debug_file_stdout:
-            coros.append(_stream_to_file(proc.stdout, debug_file_stdout))
-        if debug_file_stderr:
-            coros.append(_stream_to_file(proc.stdout, debug_file_stderr))
-        # > wait
         _, pending = await asyncio.wait(
             [asyncio.create_task(c) for c in coros],
             return_when=asyncio.ALL_COMPLETED,
@@ -249,9 +246,7 @@ async def process_msg_task(
                 task.cancel()
             raise TimeoutError()
         if proc.returncode:
-            raise TaskSubprocessError(
-                proc.returncode, debug_file_stdout, debug_file_stderr
-            )
+            raise TaskSubprocessError(proc.returncode, debug_subdir)
 
     except TimeoutError:
         LOGGER.error("Subprocess timed out")
