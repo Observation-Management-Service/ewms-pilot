@@ -33,7 +33,7 @@ class EnvConfig:
     # meta
     EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
-    EWMS_PILOT_CONCURRENT_TASKS: int = 1  # TODO
+    EWMS_PILOT_CONCURRENT_TASKS: int = 1
 
     def __post_init__(self) -> None:
         if timeout := os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT"):
