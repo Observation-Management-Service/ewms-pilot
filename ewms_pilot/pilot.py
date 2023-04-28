@@ -5,7 +5,6 @@ import argparse
 import asyncio
 import enum
 import json
-import logging
 import pickle
 import shlex
 import shutil
@@ -278,7 +277,7 @@ async def consume_and_reply(
     #
     debug_dir: Optional[Path] = None,
     #
-    subproc_timeout: Optional[int] = ENV.EWMS_PILOT_SUBPROC_TIMEOUT,
+    task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
     #
     multitasking: int = ENV.EWMS_PILOT_CONCURRENT_TASKS,
@@ -335,7 +334,7 @@ async def consume_and_reply(
             file_writer,
             file_reader,
             debug_dir,
-            subproc_timeout,
+            task_timeout,
             multitasking,
         )
     except Exception as e:
@@ -394,13 +393,17 @@ async def _consume_and_reply(
     #
     debug_dir: Optional[Path],
     #
-    subproc_timeout: Optional[int],
+    task_timeout: Optional[int],
     multitasking: int,
 ) -> int:
     """Consume and reply loop.
 
     Return number of processed tasks.
     """
+    ack_timeout = None
+    if task_timeout:
+        ack_timeout = task_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
+
     pending: AsyncioTaskMessages = {}
     failed: AsyncioTaskMessages = {}
 
@@ -568,10 +571,10 @@ def main() -> None:
         help="timeout (seconds) for messages FROM pilot",
     )
     parser.add_argument(
-        "--subproc-timeout",
-        default=ENV.EWMS_PILOT_SUBPROC_TIMEOUT,
+        "--task-timeout",
+        default=ENV.EWMS_PILOT_TASK_TIMEOUT,
         type=int,
-        help="timeout (seconds) for each subprocess",
+        help="timeout (seconds) for each task",
     )
     parser.add_argument(
         "--quarantine-time",
@@ -633,7 +636,7 @@ def main() -> None:
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
             debug_dir=args.debug_directory,
-            subproc_timeout=args.subproc_timeout,
+            task_timeout=args.task_timeout,
             quarantine_time=args.quarantine_time,
             multitasking=args.multitasking,
         )
