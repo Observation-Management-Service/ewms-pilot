@@ -9,7 +9,7 @@ import logging
 import pickle
 import shlex
 import shutil
-import time
+import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, Optional, Tuple, Union
 
@@ -190,7 +190,7 @@ async def process_msg_task(
     pub: mq.queue.QueuePubResource,
 ) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
-    task_id = str(time.time())
+    task_id = uuid.uuid4().hex
 
     # debugging logic
     debug_subdir = None
