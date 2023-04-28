@@ -232,22 +232,16 @@ async def process_msg_task(
             )
         else:
             proc = await asyncio.create_subprocess_shell(cmd)
-        coros = [proc.wait()]
 
-        # await to finish while streaming output
-        _, pending = await asyncio.wait(
-            [asyncio.create_task(c) for c in coros],
-            return_when=asyncio.ALL_COMPLETED,
+        # await to finish
+        await asyncio.wait_for(  # raises TimeoutError
+            proc.wait(),
             timeout=subproc_timeout,
         )
 
         LOGGER.info(f"Subprocess return code: {proc.returncode}")
 
         # exception handling (immediately re-handled by 'except' below)
-        if proc.returncode is None:
-            for task in pending:
-                task.cancel()
-            raise TimeoutError()
         if proc.returncode:
             raise TaskSubprocessError(proc.returncode, debug_subdir)
 
