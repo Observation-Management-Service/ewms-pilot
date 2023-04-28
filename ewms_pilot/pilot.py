@@ -225,7 +225,7 @@ async def process_msg_task(
             coros = [
                 proc.wait(),
                 _stream_to_file(proc.stdout, open(debug_subdir / "stdout", "wb")),
-                _stream_to_file(proc.stdout, open(debug_subdir / "stderr", "wb")),
+                _stream_to_file(proc.stderr, open(debug_subdir / "stderr", "wb")),
             ]
         else:
             proc = await asyncio.create_subprocess_shell(cmd)
