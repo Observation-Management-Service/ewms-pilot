@@ -139,6 +139,21 @@ def write_to_subproc(
     return fpath_to_subproc
 
 
+def mv_or_rm_file(src: Path, dest: Optional[Path]) -> None:
+    """Move the file to `dest` if not None, else rm it.
+
+    No error if file doesn't exist.
+    """
+    if not src.exists():
+        return
+    if dest:
+        # src.rename(dest / src.name)  # mv
+        # NOTE: https://github.com/python/cpython/pull/30650
+        shutil.move(src, dest / src.name)
+    else:
+        src.unlink()  # rm
+
+
 def read_from_subproc(
     fpath_from_subproc: Path,
     debug_subdir: Optional[Path],
@@ -155,13 +170,7 @@ def read_from_subproc(
 
     out_msg = file_reader(fpath_from_subproc)
 
-    # persist the file?
-    if debug_subdir:
-        # fpath_from_subproc.rename(debug_subdir / fpath_from_subproc.name)  # mv
-        # NOTE: https://github.com/python/cpython/pull/30650
-        shutil.move(fpath_from_subproc, debug_subdir / fpath_from_subproc.name)
-    else:
-        fpath_from_subproc.unlink()  # rm
+    mv_or_rm_file(fpath_from_subproc, debug_subdir)
 
     return out_msg
 
@@ -245,14 +254,13 @@ async def process_msg_task(
         if proc.returncode:
             raise TaskSubprocessError(proc.returncode, debug_subdir)
 
-    except TimeoutError:
-        LOGGER.error("Subprocess timed out")
-        raise
+    # Error Case: first, if there's a file move it to debug dir (if enabled)
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
+        mv_or_rm_file(fpath_from_subproc, debug_subdir)
         raise
 
-    # get
+    # Successful Case: get message and move to debug dir
     out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
 
     # send
