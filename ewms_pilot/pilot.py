@@ -16,12 +16,10 @@ import mqclient as mq
 from mqclient.broker_client_interface import Message
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from .config import ENV
+from .config import ENV, LOGGER
 
 AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
 
-
-LOGGER = logging.getLogger("ewms-pilot")
 
 # if there's an error, have the cluster try again (probably a system error)
 _EXCEPT_ERRORS = False
@@ -177,7 +175,7 @@ def read_from_subproc(
 async def process_msg_task(
     in_msg: Any,
     cmd: str,
-    subproc_timeout: Optional[int],
+    task_timeout: Optional[int],
     #
     ftype_to_subproc: FileType,
     ftype_from_subproc: FileType,
@@ -228,7 +226,7 @@ async def process_msg_task(
         # await to finish
         await asyncio.wait_for(  # raises TimeoutError
             proc.wait(),
-            timeout=subproc_timeout,
+            timeout=task_timeout,
         )
 
         LOGGER.info(f"Subprocess return code: {proc.returncode}")
@@ -293,8 +291,8 @@ async def consume_and_reply(
         raise RuntimeError("Must define an incoming and an outgoing queue")
 
     ack_timeout = None
-    if subproc_timeout:
-        ack_timeout = subproc_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
+    if task_timeout:
+        ack_timeout = task_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
 
     if not isinstance(ftype_to_subproc, FileType):
         ftype_to_subproc = FileType(ftype_to_subproc)
@@ -395,15 +393,11 @@ async def _consume_and_reply(
     #
     task_timeout: Optional[int],
     multitasking: int,
-) -> int:
+) -> None:
     """Consume and reply loop.
 
     Return number of processed tasks.
     """
-    ack_timeout = None
-    if task_timeout:
-        ack_timeout = task_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
-
     pending: AsyncioTaskMessages = {}
     failed: AsyncioTaskMessages = {}
 
@@ -431,7 +425,7 @@ async def _consume_and_reply(
                     process_msg_task(
                         in_msg.data,
                         cmd,
-                        subproc_timeout,
+                        task_timeout,
                         ftype_to_subproc,
                         ftype_from_subproc,
                         file_writer,

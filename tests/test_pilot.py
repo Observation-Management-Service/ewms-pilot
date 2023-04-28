@@ -477,7 +477,7 @@ async def test_420__timeout(
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 # debug_dir=debug_dir,
-                subproc_timeout=2,
+                task_timeout=2,
             ),
         )
 
