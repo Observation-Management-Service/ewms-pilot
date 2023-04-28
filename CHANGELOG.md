@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.9.1 (2023-04-28)
+### Other
+* Fix `EWMS_PILOT_SUBPROC_TIMEOUT` Backward Compatibility ([`28ef634`](https://github.com/Observation-Management-Service/ewms-pilot/commit/28ef63478e3aca3ac6f243fd73408bf6954e34c4))
+
 ## v0.9.0 (2023-04-28)
 
 
