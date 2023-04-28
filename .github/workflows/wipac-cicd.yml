@@ -20,23 +20,14 @@ jobs:
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-      - uses: WIPACrepo/wipac-dev-flake8-action@v1
+      - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
   mypy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
-        with:
-          python-version: '3.10'
-      - uses: WIPACrepo/wipac-dev-mypy-action@v1.1
-      - run: |
-          # pulsar will eventually support 3.11
-          # so let's set a timer for six months from now:
-          echo "How's https://github.com/Observation-Management-Service/MQClient/issues/61 coming along?"
-          if [ $(echo "1672874697+(60*60*24*30*6) - $(date +%s)" | bc) -lt 0 ]; then
-            exit 1
-          fi
+      - uses: WIPACrepo/wipac-dev-mypy-action@v1.2
 
   py-setup:
     runs-on: ubuntu-latest
@@ -46,26 +37,25 @@ jobs:
         uses: actions/checkout@v3
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.11
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v1.15
         with:
           base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Managment Service"
 
   py-versions:
-    needs: [py-setup]
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
     steps:
       - uses: actions/checkout@v3
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.0
 
   examples:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
-        broker_client: [pulsar, rabbitmq, gcp, nats]
+        broker_client: [pulsar, rabbitmq, nats]
     steps:
       - uses: actions/checkout@v3
       - name: Checkout MQClient repo
@@ -86,10 +76,6 @@ jobs:
           # RabbitMQ
           elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
             ./MQClient/resources/docker-rabbitmq.sh "${{ matrix.broker_client }}"
-          # GCP
-          elif [ "${{ matrix.broker_client }}" = "gcp" ]; then
-            export PUBSUB_EMULATOR_HOST=localhost:8085
-            ./MQClient/resources/local-gcp-emulator.sh
           # NATS
           elif [ "${{ matrix.broker_client }}" = "nats" ]; then
             ./MQClient/resources/local-nats-js.sh
@@ -123,7 +109,7 @@ jobs:
       fail-fast: false
       matrix:
         version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-        broker_client: [pulsar, rabbitmq, gcp, nats]
+        broker_client: [pulsar, rabbitmq, nats]
     steps:
       - uses: actions/checkout@v3
       - name: Checkout MQClient repo
@@ -144,10 +130,6 @@ jobs:
           # RabbitMQ
           elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
             ./MQClient/resources/docker-rabbitmq.sh "${{ matrix.broker_client }}"
-          # GCP
-          elif [ "${{ matrix.broker_client }}" = "gcp" ]; then
-            export PUBSUB_EMULATOR_HOST=localhost:8085
-            ./MQClient/resources/local-gcp-emulator.sh
           # NATS
           elif [ "${{ matrix.broker_client }}" = "nats" ]; then
             ./MQClient/resources/local-nats-js.sh
@@ -176,7 +158,7 @@ jobs:
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-    needs: [py-setup, tests]
+    needs: [flake8, mypy, py-setup, py-versions, examples, tests]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
