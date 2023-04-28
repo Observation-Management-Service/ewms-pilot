@@ -223,19 +223,16 @@ async def process_msg_task(
 
         # await to start & prep coroutines
         if debug_subdir:
+            stdoutf = open("outfile", "wb")
+            stderrf = open("errfile", "wb")
             proc = await asyncio.create_subprocess_shell(
                 cmd,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.PIPE,
+                stdout=stdoutf,
+                stderr=stderrf,
             )
-            coros = [
-                proc.wait(),
-                _stream_to_file(proc.stdout, open(debug_subdir / "stdout", "wb")),
-                _stream_to_file(proc.stderr, open(debug_subdir / "stderr", "wb")),
-            ]
         else:
             proc = await asyncio.create_subprocess_shell(cmd)
-            coros = [proc.wait()]
+        coros = [proc.wait()]
 
         # await to finish while streaming output
         _, pending = await asyncio.wait(
