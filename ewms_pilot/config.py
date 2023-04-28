@@ -35,14 +35,17 @@ class EnvConfig:
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
 
     def __post_init__(self) -> None:
-        if (
-            timeout := os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT")
-            and self.EWMS_PILOT_TASK_TIMEOUT is None
-        ):
+        if timeout := os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT"):
             LOGGER.warning(
-                "Using 'EWMS_PILOT_SUBPROC_TIMEOUT', 'EWMS_PILOT_TASK_TIMEOUT  is preferred."
+                "Using 'EWMS_PILOT_SUBPROC_TIMEOUT'; 'EWMS_PILOT_TASK_TIMEOUT' is preferred."
             )
-            object.__setattr__(self, "EWMS_PILOT_TASK_TIMEOUT", timeout)  # b/c frozen
+            if self.EWMS_PILOT_TASK_TIMEOUT is not None:
+                LOGGER.warning(
+                    "Ignoring 'EWMS_PILOT_SUBPROC_TIMEOUT' since 'EWMS_PILOT_TASK_TIMEOUT' was provided."
+                )
+            else:
+                # b/c frozen
+                object.__setattr__(self, "EWMS_PILOT_TASK_TIMEOUT", timeout)
 
 
 ENV = from_environment_as_dataclass(EnvConfig)
