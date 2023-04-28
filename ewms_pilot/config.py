@@ -46,7 +46,7 @@ class EnvConfig:
                 )
             else:
                 # b/c frozen
-                object.__setattr__(self, "EWMS_PILOT_TASK_TIMEOUT", timeout)
+                object.__setattr__(self, "EWMS_PILOT_TASK_TIMEOUT", int(timeout))
 
 
 ENV = from_environment_as_dataclass(EnvConfig)
