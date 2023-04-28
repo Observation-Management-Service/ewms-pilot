@@ -1,9 +1,12 @@
 """Init."""
 
 
-from .pilot import consume_and_reply, main
+from .pilot import FileType, consume_and_reply, main
 
-__all__ = ["consume_and_reply"]
+__all__ = [
+    "consume_and_reply",
+    "FileType",
+]
 
 # version is a human-readable version number.
 __version__ = "0.8.0"
