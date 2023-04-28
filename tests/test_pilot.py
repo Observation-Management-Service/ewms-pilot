@@ -84,10 +84,10 @@ async def assert_results(
 def assert_debug_dir(
     debug_dir: Path,  # pylint: disable=redefined-outer-name
     ftype_to_subproc: FileType,
-    msgs_from_subproc: list,
+    n_tasks: int,
     files: List[str],
 ) -> None:
-    assert len(list(debug_dir.iterdir())) == len(msgs_from_subproc)
+    assert len(list(debug_dir.iterdir())) == n_tasks
     for path in debug_dir.iterdir():
         assert path.is_dir()
 
@@ -145,7 +145,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     assert_debug_dir(
         debug_dir,
         FileType.TXT,
-        msgs_from_subproc,
+        len(msgs_from_subproc),
         ["in", "out", "stderr", "stdout"],
     )
 
@@ -188,7 +188,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     assert_debug_dir(
         debug_dir,
         FileType.JSON,
-        msgs_from_subproc,
+        len(msgs_from_subproc),
         ["in", "out", "stderr", "stdout"],
     )
 
@@ -231,7 +231,7 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
     assert_debug_dir(
         debug_dir,
         FileType.PKL,
-        msgs_from_subproc,
+        len(msgs_from_subproc),
         ["in", "out", "stderr", "stdout"],
     )
 
@@ -277,7 +277,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     assert_debug_dir(
         debug_dir,
         FileType.TXT,
-        msgs_from_subproc,
+        len(msgs_from_subproc),
         ["in", "out", "stderr", "stdout"],
     )
 
@@ -323,6 +323,52 @@ async def test_400__exception(
     #     [],
     #     ["in", "out", "stderr", "stdout"],
     # )
+
+
+async def test_401__exception_with_outwriting(
+    queue_incoming: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,  # pylint: disable=redefined-outer-name
+    debug_dir: Path,  # pylint:disable=redefined-outer-name
+) -> None:
+    """Test a normal .txt-based pilot."""
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+
+    start_time = time.time()
+
+    # run producer & consumer concurrently
+    with pytest.raises(
+        RuntimeError, match=re.escape("1 Task(s) Failed: TaskSubprocessError")
+    ):
+        await asyncio.gather(
+            populate_queue(queue_incoming, msgs_to_subproc),
+            consume_and_reply(
+                cmd="""python3 -c "
+output = open('{{INFILE}}').read().strip() * 2;
+print(output, file=open('{{OUTFILE}}','w'))
+raise ValueError('no good!')" """,  # double cat
+                # broker_client=,  # rely on env var
+                # broker_address=,  # rely on env var
+                # auth_token="",
+                queue_incoming=queue_incoming,
+                queue_outgoing=queue_outgoing,
+                ftype_to_subproc=FileType.TXT,
+                ftype_from_subproc=FileType.TXT,
+                # file_writer=UniversalFileInterface.write, # see other tests
+                # file_reader=UniversalFileInterface.read, # see other tests
+                debug_dir=debug_dir,
+            ),
+        )
+
+    assert time.time() - start_time <= 2  # no quarantine time
+
+    await assert_results(queue_outgoing, msgs_from_subproc)
+    assert_debug_dir(
+        debug_dir,
+        FileType.TXT,
+        len(msgs_from_subproc),
+        ["in", "out", "stderr", "stdout"],
+    )
 
 
 async def test_410__blackhole_quarantine(
@@ -454,7 +500,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     assert_debug_dir(
         debug_dir,
         FileType.TXT,
-        msgs_from_subproc,
+        len(msgs_from_subproc),
         ["in", "out", "stderr", "stdout"],
     )
 
@@ -466,7 +512,7 @@ async def test_510__multitasking_exceptions(
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     multitasking = 4
     start_time = time.time()
@@ -502,10 +548,10 @@ raise ValueError('gotta fail')" """,  # double cat
     print(time.time() - start_time)
     assert time.time() - start_time < multitasking * len(msgs_to_subproc)
 
-    await assert_results(queue_outgoing, [])
+    await assert_results(queue_outgoing, msgs_from_subproc)
     assert_debug_dir(
         debug_dir,
         FileType.TXT,
-        [],
+        len(msgs_from_subproc),
         ["in", "out", "stderr", "stdout"],
     )
