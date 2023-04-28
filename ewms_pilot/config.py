@@ -1,11 +1,16 @@
 """Configuration constants."""
 
+# pylint:disable=invalid-name
+
 import dataclasses as dc
+import logging
+import os
 from typing import Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
 
-# pylint:disable=invalid-name
+LOGGER = logging.getLogger("ewms-pilot")
+
 
 #
 # Env var constants: set as constants & typecast
@@ -26,8 +31,18 @@ class EnvConfig:
     EWMS_PILOT_LOG_THIRD_PARTY: str = "WARNING"
 
     # meta
-    EWMS_PILOT_SUBPROC_TIMEOUT: Optional[int] = None
+    EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
+
+    def __post_init__(self) -> None:
+        if (
+            timeout := os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT")
+            and self.EWMS_PILOT_TASK_TIMEOUT is None
+        ):
+            LOGGER.warning(
+                "Using 'EWMS_PILOT_SUBPROC_TIMEOUT', 'EWMS_PILOT_TASK_TIMEOUT  is preferred."
+            )
+            object.__setattr__(self, "EWMS_PILOT_TASK_TIMEOUT", timeout)  # b/c frozen
 
 
 ENV = from_environment_as_dataclass(EnvConfig)
