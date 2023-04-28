@@ -6,7 +6,7 @@ from .pilot import consume_and_reply, main
 __all__ = ["consume_and_reply"]
 
 # version is a human-readable version number.
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 # version_info is a four-tuple for programmatic comparison. The first
 # three numbers are the components of the version number. The fourth
