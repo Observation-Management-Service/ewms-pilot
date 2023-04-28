@@ -166,15 +166,12 @@ def read_from_subproc(
     return out_msg
 
 
-async def _stream_to_file(stream: Optional[asyncio.StreamReader], out: Any) -> None:
+async def _stream_to_file(stream: Optional[asyncio.StreamReader], bin_out: Any) -> None:
     if not stream:
         return
     while not stream.at_eof():
-        data = await stream.readline()
-        if not data:
-            continue
-        line = data.decode("ascii").rstrip()
-        print(line, file=out)
+        if data := await stream.readline():
+            print(data, file=bin_out)
 
 
 async def process_msg_task(
