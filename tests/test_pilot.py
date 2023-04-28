@@ -146,7 +146,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         debug_dir,
         FileType.TXT,
         len(msgs_from_subproc),
-        ["in", "out", "stderr", "stdout"],
+        ["in", "out", "stderrfile", "stdoutfile"],
     )
 
 
@@ -189,7 +189,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
         debug_dir,
         FileType.JSON,
         len(msgs_from_subproc),
-        ["in", "out", "stderr", "stdout"],
+        ["in", "out", "stderrfile", "stdoutfile"],
     )
 
 
@@ -232,7 +232,7 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
         debug_dir,
         FileType.PKL,
         len(msgs_from_subproc),
-        ["in", "out", "stderr", "stdout"],
+        ["in", "out", "stderrfile", "stdoutfile"],
     )
 
 
@@ -278,7 +278,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         debug_dir,
         FileType.TXT,
         len(msgs_from_subproc),
-        ["in", "out", "stderr", "stdout"],
+        ["in", "out", "stderrfile", "stdoutfile"],
     )
 
 
@@ -321,7 +321,7 @@ async def test_400__exception(
     #     debug_dir,
     #     FileType.TXT,
     #     [],
-    #     ["in", "out", "stderr", "stdout"],
+    #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
 
 
@@ -367,7 +367,7 @@ raise ValueError('no good!')" """,  # double cat
         debug_dir,
         FileType.TXT,
         1,  # only 1 message was processed before error
-        ["in", "out", "stderr", "stdout"],
+        ["in", "out", "stderrfile", "stdoutfile"],
     )
 
 
@@ -411,7 +411,7 @@ async def test_410__blackhole_quarantine(
     #     debug_dir,
     #     FileType.TXT,
     #     [],
-    #     ["in", "out", "stderr", "stdout"],
+    #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
 
 
@@ -453,7 +453,7 @@ async def test_420__timeout(
     #     debug_dir,
     #     FileType.TXT,
     #     [],
-    #     ["in", "out", "stderr", "stdout"],
+    #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
 
 
@@ -501,7 +501,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         debug_dir,
         FileType.TXT,
         len(msgs_from_subproc),
-        ["in", "out", "stderr", "stdout"],
+        ["in", "out", "stderrfile", "stdoutfile"],
     )
 
 
@@ -553,5 +553,5 @@ raise ValueError('gotta fail')" """,  # double cat
         debug_dir,
         FileType.TXT,
         len(msgs_from_subproc),
-        ["in", "out", "stderr", "stdout"],
+        ["in", "out", "stderrfile", "stdoutfile"],
     )
