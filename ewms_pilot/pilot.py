@@ -5,7 +5,6 @@ import argparse
 import asyncio
 import enum
 import json
-import logging
 import pickle
 import shlex
 import shutil
@@ -17,9 +16,7 @@ from typing import Any, Callable, Optional
 import mqclient as mq
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from .config import ENV
-
-LOGGER = logging.getLogger("ewms-pilot")
+from .config import ENV, LOGGER
 
 # if there's an error, have the cluster try again (probably a system error)
 _EXCEPT_ERRORS = False
@@ -147,7 +144,7 @@ def read_from_subproc(
 def process_msg(
     in_msg: Any,
     cmd: str,
-    subproc_timeout: Optional[int],
+    task_timeout: Optional[int],
     fpath_to_subproc: Path,
     fpath_from_subproc: Path,
     file_writer: Callable[[Any, Path], None],
@@ -170,7 +167,7 @@ def process_msg(
         subprocess.run(
             shlex.split(cmd),
             check=True,
-            timeout=subproc_timeout,
+            timeout=task_timeout,
         )
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
@@ -207,7 +204,7 @@ async def consume_and_reply(
     #
     debug_dir: Optional[Path] = None,
     #
-    subproc_timeout: Optional[int] = ENV.EWMS_PILOT_SUBPROC_TIMEOUT,
+    task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses.
@@ -237,7 +234,7 @@ async def consume_and_reply(
             file_writer,
             file_reader,
             debug_dir,
-            subproc_timeout,
+            task_timeout,
         )
     except Exception as e:
         if quarantine_time:
@@ -272,12 +269,12 @@ async def _consume_and_reply(
     #
     debug_dir: Optional[Path],
     #
-    subproc_timeout: Optional[int],
+    task_timeout: Optional[int],
 ) -> None:
     """Consume and reply loop."""
     ack_timeout = None
-    if subproc_timeout:
-        ack_timeout = subproc_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
+    if task_timeout:
+        ack_timeout = task_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
 
     in_queue = mq.Queue(
         broker_client,
@@ -315,7 +312,7 @@ async def _consume_and_reply(
             out_msg = process_msg(
                 in_msg,
                 cmd,
-                subproc_timeout,
+                task_timeout,
                 fpath_to_subproc,
                 fpath_from_subproc,
                 file_writer,
@@ -335,7 +332,7 @@ async def _consume_and_reply(
                 out_msg = process_msg(
                     in_msg,
                     cmd,
-                    subproc_timeout,
+                    task_timeout,
                     fpath_to_subproc,
                     fpath_from_subproc,
                     file_writer,
@@ -426,26 +423,26 @@ def main() -> None:
         "--timeout-wait-for-first-message",
         default=None,
         type=int,
-        help="timeout (seconds) for the first message to arrive at the client(s); "
+        help="timeout (seconds) for the first message to arrive at the pilot; "
         "defaults to `--timeout-incoming` value",
     )
     parser.add_argument(
         "--timeout-incoming",
         default=_DEFAULT_TIMEOUT_INCOMING,
         type=int,
-        help="timeout (seconds) for messages TO client(s)",
+        help="timeout (seconds) for messages TO pilot",
     )
     parser.add_argument(
         "--timeout-outgoing",
         default=_DEFAULT_TIMEOUT_OUTGOING,
         type=int,
-        help="timeout (seconds) for messages FROM client(s)",
+        help="timeout (seconds) for messages FROM pilot",
     )
     parser.add_argument(
-        "--subproc-timeout",
-        default=ENV.EWMS_PILOT_SUBPROC_TIMEOUT,
+        "--task-timeout",
+        default=ENV.EWMS_PILOT_TASK_TIMEOUT,
         type=int,
-        help="timeout (seconds) for each subprocess",
+        help="timeout (seconds) for each task",
     )
     parser.add_argument(
         "--quarantine-time",
@@ -506,7 +503,7 @@ def main() -> None:
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
             debug_dir=args.debug_directory,
-            subproc_timeout=args.subproc_timeout,
+            task_timeout=args.task_timeout,
             quarantine_time=args.quarantine_time,
         )
     )
