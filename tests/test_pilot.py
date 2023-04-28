@@ -366,7 +366,7 @@ raise ValueError('no good!')" """,  # double cat
     assert_debug_dir(
         debug_dir,
         FileType.TXT,
-        len(msgs_from_subproc),
+        1,  # only 1 message was processed before error
         ["in", "out", "stderr", "stdout"],
     )
 
