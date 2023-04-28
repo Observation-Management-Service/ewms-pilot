@@ -362,7 +362,7 @@ raise ValueError('no good!')" """,  # double cat
 
     assert time.time() - start_time <= 2  # no quarantine time
 
-    await assert_results(queue_outgoing, msgs_from_subproc)
+    await assert_results(queue_outgoing, [])
     assert_debug_dir(
         debug_dir,
         FileType.TXT,
@@ -548,7 +548,7 @@ raise ValueError('gotta fail')" """,  # double cat
     print(time.time() - start_time)
     assert time.time() - start_time < multitasking * len(msgs_to_subproc)
 
-    await assert_results(queue_outgoing, msgs_from_subproc)
+    await assert_results(queue_outgoing, [])
     assert_debug_dir(
         debug_dir,
         FileType.TXT,
