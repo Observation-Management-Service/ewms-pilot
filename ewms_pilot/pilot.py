@@ -178,7 +178,6 @@ def read_from_subproc(
 async def process_msg_task(
     in_msg: Any,
     cmd: str,
-    msg_id: str,
     subproc_timeout: Optional[int],
     #
     ftype_to_subproc: FileType,
@@ -191,7 +190,7 @@ async def process_msg_task(
     pub: mq.queue.QueuePubResource,
 ) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
-    task_id = f"{msg_id}-{time.time()}"  # in case this message has been here before and/or ids cycled
+    task_id = str(time.time())
 
     # debugging logic
     debug_subdir = None
@@ -377,13 +376,6 @@ async def _ack_nack_finished_tasks(
     )
 
 
-def _message_id_str(msg: Message) -> str:
-    if isinstance(msg.msg_id, bytes):
-        return msg.msg_id.decode()
-    else:
-        return str(msg.msg_id)
-
-
 async def _consume_and_reply(
     cmd: str,
     #
@@ -436,7 +428,6 @@ async def _consume_and_reply(
                     process_msg_task(
                         in_msg.data,
                         cmd,
-                        _message_id_str(in_msg),
                         subproc_timeout,
                         ftype_to_subproc,
                         ftype_from_subproc,

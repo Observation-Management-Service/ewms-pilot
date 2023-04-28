@@ -91,7 +91,10 @@ def assert_debug_dir(
     for path in debug_dir.iterdir():
         assert path.is_dir()
 
-        task_id = path.name
+        # this is an epoch timestamp
+        timestamp = float(path.name)
+        assert (time.time() - 120) < timestamp  # a generous diff
+        assert timestamp < time.time()
 
         # look for in/out files
         for subpath in path.iterdir():
@@ -99,10 +102,10 @@ def assert_debug_dir(
         these_files = list(files)  # copies
         if "in" in these_files:
             these_files.remove("in")
-            these_files.append(f"in-{task_id}{ftype_to_subproc.value}")
+            these_files.append(f"in-{timestamp}{ftype_to_subproc.value}")
         if "out" in these_files:
             these_files.remove("out")
-            these_files.append(f"out-{task_id}{ftype_to_subproc.value}")
+            these_files.append(f"out-{timestamp}{ftype_to_subproc.value}")
         assert sorted(p.name for p in path.iterdir()) == sorted(these_files)
 
 
