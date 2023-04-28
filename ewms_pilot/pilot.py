@@ -18,7 +18,6 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .config import ENV, LOGGER
 
-
 # if there's an error, have the cluster try again (probably a system error)
 _EXCEPT_ERRORS = False
 
@@ -145,7 +144,7 @@ def read_from_subproc(
 def process_msg(
     in_msg: Any,
     cmd: str,
-    subproc_timeout: Optional[int],
+    task_timeout: Optional[int],
     fpath_to_subproc: Path,
     fpath_from_subproc: Path,
     file_writer: Callable[[Any, Path], None],
@@ -168,7 +167,7 @@ def process_msg(
         subprocess.run(
             shlex.split(cmd),
             check=True,
-            timeout=subproc_timeout,
+            timeout=task_timeout,
         )
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
@@ -235,7 +234,7 @@ async def consume_and_reply(
             file_writer,
             file_reader,
             debug_dir,
-            subproc_timeout,
+            task_timeout,
         )
     except Exception as e:
         if quarantine_time:
@@ -270,12 +269,12 @@ async def _consume_and_reply(
     #
     debug_dir: Optional[Path],
     #
-    subproc_timeout: Optional[int],
+    task_timeout: Optional[int],
 ) -> None:
     """Consume and reply loop."""
     ack_timeout = None
-    if subproc_timeout:
-        ack_timeout = subproc_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
+    if task_timeout:
+        ack_timeout = task_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
 
     in_queue = mq.Queue(
         broker_client,
@@ -313,7 +312,7 @@ async def _consume_and_reply(
             out_msg = process_msg(
                 in_msg,
                 cmd,
-                subproc_timeout,
+                task_timeout,
                 fpath_to_subproc,
                 fpath_from_subproc,
                 file_writer,
@@ -333,7 +332,7 @@ async def _consume_and_reply(
                 out_msg = process_msg(
                     in_msg,
                     cmd,
-                    subproc_timeout,
+                    task_timeout,
                     fpath_to_subproc,
                     fpath_from_subproc,
                     file_writer,
