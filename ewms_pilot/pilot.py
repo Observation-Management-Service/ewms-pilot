@@ -223,8 +223,8 @@ async def process_msg_task(
 
         # await to start & prep coroutines
         if debug_subdir:
-            stdoutf = open("stdoutfile", "wb")
-            stderrf = open("stderrfile", "wb")
+            stdoutf = open(debug_subdir / "stdoutfile", "wb")
+            stderrf = open(debug_subdir / "stderrfile", "wb")
             proc = await asyncio.create_subprocess_shell(
                 cmd,
                 stdout=stdoutf,
