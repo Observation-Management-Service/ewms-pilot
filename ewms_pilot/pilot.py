@@ -11,7 +11,7 @@ import shlex
 import shutil
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple
+from typing import Any, Callable, Dict, Optional, Tuple, Union
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message
@@ -267,8 +267,8 @@ async def consume_and_reply(
     queue_outgoing: str,
     #
     # for subprocess
-    ftype_to_subproc: FileType,
-    ftype_from_subproc: FileType,
+    ftype_to_subproc: Union[str, FileType],
+    ftype_from_subproc: Union[str, FileType],
     #
     # for mq
     broker_client: str = ENV.EWMS_PILOT_BROKER_CLIENT,
@@ -304,6 +304,11 @@ async def consume_and_reply(
     ack_timeout = None
     if subproc_timeout:
         ack_timeout = subproc_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
+
+    if not isinstance(ftype_to_subproc, FileType):
+        ftype_to_subproc = FileType(ftype_to_subproc)
+    if not isinstance(ftype_from_subproc, FileType):
+        ftype_from_subproc = FileType(ftype_from_subproc)
 
     in_queue = mq.Queue(
         broker_client,

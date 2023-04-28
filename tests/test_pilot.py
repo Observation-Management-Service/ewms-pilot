@@ -150,6 +150,44 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
+async def test_001__txt__str_filetype(
+    queue_incoming: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,  # pylint: disable=redefined-outer-name
+    debug_dir: Path,  # pylint:disable=redefined-outer-name
+) -> None:
+    """Test a normal .txt-based pilot."""
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(queue_incoming, msgs_to_subproc),
+        consume_and_reply(
+            cmd="""python3 -c "
+output = open('{{INFILE}}').read().strip() * 2;
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            ftype_to_subproc=".txt",
+            ftype_from_subproc=".txt",
+            # file_writer=UniversalFileInterface.write, # see other tests
+            # file_reader=UniversalFileInterface.read, # see other tests
+            debug_dir=debug_dir,
+        ),
+    )
+
+    await assert_results(queue_outgoing, msgs_from_subproc)
+    assert_debug_dir(
+        debug_dir,
+        FileType.TXT,
+        len(msgs_from_subproc),
+        ["in", "out", "stderrfile", "stdoutfile"],
+    )
+
+
 async def test_100__json(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
