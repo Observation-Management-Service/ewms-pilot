@@ -6,7 +6,7 @@ import re
 import time
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any
+from typing import Any, List
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -83,8 +83,8 @@ async def assert_results(
 def assert_debug_dir(
     debug_dir: Path,  # pylint: disable=redefined-outer-name
     ftype_to_subproc: FileType,
-    ftype_from_subproc: FileType,
     msgs_from_subproc: list,
+    files: List[str],
 ) -> None:
     assert len(list(debug_dir.iterdir())) == len(msgs_from_subproc)
     for path in debug_dir.iterdir():
@@ -98,14 +98,14 @@ def assert_debug_dir(
         # look for in/out files
         for subpath in path.iterdir():
             assert subpath.is_file()
-        assert sorted(p.name for p in path.iterdir()) == sorted(
-            [
-                f"in-{timestamp}{ftype_to_subproc.value}",
-                f"out-{timestamp}{ftype_from_subproc.value}",
-                "stdout",
-                "stderr",
-            ]
-        )
+        these_files = list(files)  # copies
+        if "in" in these_files:
+            these_files.remove("in")
+            these_files.append(f"in-{timestamp}{ftype_to_subproc.value}")
+        if "out" in these_files:
+            these_files.remove("out")
+            these_files.append(f"out-{timestamp}{ftype_to_subproc.value}")
+        assert sorted(p.name for p in path.iterdir()) == sorted(these_files)
 
 
 ########################################################################################
@@ -141,7 +141,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
     await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
+    assert_debug_dir(
+        debug_dir,
+        FileType.TXT,
+        msgs_from_subproc,
+        ["in", "out", "stderr", "stdout"],
+    )
 
 
 async def test_100__json(
@@ -179,7 +184,12 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, FileType.JSON, FileType.JSON, msgs_from_subproc)
+    assert_debug_dir(
+        debug_dir,
+        FileType.JSON,
+        msgs_from_subproc,
+        ["in", "out", "stderr", "stdout"],
+    )
 
 
 async def test_200__pickle(
@@ -217,7 +227,12 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, FileType.PKL, FileType.PKL, msgs_from_subproc)
+    assert_debug_dir(
+        debug_dir,
+        FileType.PKL,
+        msgs_from_subproc,
+        ["in", "out", "stderr", "stdout"],
+    )
 
 
 async def test_300__writer_reader(
@@ -258,7 +273,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
     await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
+    assert_debug_dir(
+        debug_dir,
+        FileType.TXT,
+        msgs_from_subproc,
+        ["in", "out", "stderr", "stdout"],
+    )
 
 
 async def test_400__exception(
@@ -295,8 +315,13 @@ async def test_400__exception(
 
     assert time.time() - start_time <= 2  # no quarantine time
 
-    # await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    # assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_to_subproc, [])
+    # assert_debug_dir(
+    #     debug_dir,
+    #     FileType.TXT,
+    #     [],
+    #     ["in", "out", "stderr", "stdout"],
+    # )
 
 
 async def test_410__blackhole_quarantine(
@@ -334,8 +359,13 @@ async def test_410__blackhole_quarantine(
 
     assert time.time() - start_time >= 20  # did quarantine_time work?
 
-    # await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    # assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_to_subproc, [])
+    # assert_debug_dir(
+    #     debug_dir,
+    #     FileType.TXT,
+    #     [],
+    #     ["in", "out", "stderr", "stdout"],
+    # )
 
 
 async def test_420__timeout(
@@ -371,8 +401,13 @@ async def test_420__timeout(
 
     assert time.time() - start_time <= 5  # no quarantine time
 
-    # await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    # assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_to_subproc, [])
+    # assert_debug_dir(
+    #     debug_dir,
+    #     FileType.TXT,
+    #     [],
+    #     ["in", "out", "stderr", "stdout"],
+    # )
 
 
 async def test_500__multitasking(
@@ -415,7 +450,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     assert time.time() - start_time < multitasking * len(msgs_to_subproc)
 
     await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
+    assert_debug_dir(
+        debug_dir,
+        FileType.TXT,
+        msgs_from_subproc,
+        ["in", "out", "stderr", "stdout"],
+    )
 
 
 async def test_510__multitasking_exceptions(
@@ -425,7 +465,7 @@ async def test_510__multitasking_exceptions(
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     multitasking = 4
     start_time = time.time()
@@ -461,5 +501,10 @@ raise ValueError('gotta fail')" """,  # double cat
     print(time.time() - start_time)
     assert time.time() - start_time < multitasking * len(msgs_to_subproc)
 
-    await assert_results(queue_outgoing, msgs_to_subproc, msgs_from_subproc)
-    assert_debug_dir(debug_dir, FileType.TXT, FileType.TXT, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_to_subproc, [])
+    assert_debug_dir(
+        debug_dir,
+        FileType.TXT,
+        [],
+        ["in", "out", "stderr", "stdout"],
+    )
