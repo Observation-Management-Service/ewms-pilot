@@ -393,7 +393,7 @@ async def _consume_and_reply(
     #
     task_timeout: Optional[int],
     multitasking: int,
-) -> None:
+) -> int:
     """Consume and reply loop.
 
     Return number of processed tasks.
