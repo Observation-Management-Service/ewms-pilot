@@ -332,7 +332,7 @@ async def test_401__exception_with_outwriting(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     start_time = time.time()
 
