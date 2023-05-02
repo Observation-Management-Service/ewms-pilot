@@ -45,7 +45,7 @@ def get_last_line(fpath: Path) -> str:
     """Get the last line of the file."""
     with fpath.open() as f:
         line = ""
-        for line in f.readlines():
+        for line in f:
             pass
         return line.rstrip()  # remove trailing '\n'
 
