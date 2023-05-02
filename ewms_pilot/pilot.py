@@ -55,8 +55,8 @@ class TaskSubprocessError(Exception):
         )
 
 
-def _task_exception_str(task: asyncio.Task) -> str:
-    return f'{type(task.exception()).__name__}: "{task.exception()}"'
+def _task_exception_str(task: asyncio.Task) -> str:  # type: ignore[type-arg]
+    return f"[{type(task.exception()).__name__}: {task.exception()}]"
 
 
 class UniversalFileInterface:
@@ -474,7 +474,7 @@ async def _consume_and_reply(
     if failed:
         raise RuntimeError(
             f"{len(failed)} Task(s) Failed: "
-            f"{', '.join(type(f.exception()).__name__ for f in failed)}"
+            f"{', '.join(_task_exception_str(f) for f in failed)}"
         )
     # check if anything actually processed
     if not total_msg_count:
