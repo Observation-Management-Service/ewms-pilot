@@ -332,7 +332,7 @@ async def test_400__exception(
     with pytest.raises(
         RuntimeError,
         match=r"1 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1\]",
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: no good!\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -377,7 +377,7 @@ async def test_401__exception_with_outwriting(
     with pytest.raises(
         RuntimeError,
         match=r"1 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1\]",
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: no good!\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -425,7 +425,7 @@ async def test_410__blackhole_quarantine(
     with pytest.raises(
         RuntimeError,
         match=r"1 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1\]",
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: no good!\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -564,9 +564,9 @@ async def test_510__multitasking_exceptions(
     with pytest.raises(
         RuntimeError,
         match=r"3 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1\]",
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -576,7 +576,7 @@ import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))
-raise ValueError('gotta fail')" """,  # double cat
+raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 # broker_client=,  # rely on env var
                 # broker_address=,  # rely on env var
                 # auth_token="",

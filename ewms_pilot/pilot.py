@@ -250,7 +250,7 @@ async def process_msg_task(
     LOGGER.info("Sending return message...")
     await pub.send(out_msg)
 
-    # cleanup
+    # cleanup -- on success only
     if not keep_debug_dir:
         debug_subdir.unlink()  # rm
 
