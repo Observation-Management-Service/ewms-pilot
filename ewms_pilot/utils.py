@@ -1,0 +1,60 @@
+"""Common utilities."""
+
+
+from typing import Any, Callable, Coroutine, TypeVar
+
+import htchirp  # type: ignore[import]
+from typing_extensions import ParamSpec
+
+from .config import LOGGER
+
+T = TypeVar("T")
+P = ParamSpec("P")
+
+
+def chirp(message: str) -> None:
+    """Invoke HTChirp, AKA send a status message to Condor."""
+    with htchirp.HTChirp() as c:
+        LOGGER.info(f"chirping as '{c.whoami()}'")
+        c.set_job_attr("EWMSPilotProcessing", "True")
+        if message:
+            c.ulog(message)
+
+
+def _initial_chirp() -> None:
+    """Send a Condor Chirp signalling that processing has started."""
+    chirp("")
+
+
+def _final_chirp(error: bool = False) -> None:
+    """Send a Condor Chirp signalling that processing has started."""
+    with htchirp.HTChirp() as c:
+        LOGGER.info(f"chirping as '{c.whoami()}'")
+        c.set_job_attr("EWMSPilotSucess", str(not error))
+
+
+def error_chirp(exception: Exception) -> None:
+    """Send a Condor Chirp signalling that processing ran into an error."""
+    with htchirp.HTChirp() as c:
+        LOGGER.info(f"chirping as '{c.whoami()}'")
+        c.set_job_attr("EWMSPilotError", "True")
+        c.ulog(f"{type(exception).__name__}: {exception}")
+
+
+def async_htchirping(
+    func: Callable[P, Coroutine[Any, Any, T]]
+) -> Callable[P, Coroutine[Any, Any, T]]:
+    """Send Condor Chirps at start, end, and if needed, final error."""
+
+    async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
+        try:
+            _initial_chirp()
+            ret = await func(*args, **kwargs)
+            _final_chirp()
+            return ret
+        except Exception as e:
+            error_chirp(e)
+            _final_chirp(error=True)
+            raise
+
+    return wrapper

@@ -16,6 +16,7 @@ import mqclient as mq
 from mqclient.broker_client_interface import Message
 from wipac_dev_tools import argparse_tools, logging_tools
 
+from . import utils
 from .config import ENV, LOGGER
 
 AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
@@ -249,6 +250,7 @@ async def process_msg_task(
     await pub.send(out_msg)
 
 
+@utils.async_htchirping
 async def consume_and_reply(
     cmd: str,
     #
