@@ -217,19 +217,18 @@ async def process_msg_task(
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
     try:
-        # await to start & prep coroutines
         with open(stdoutfile, "wb") as stdoutf, open(stderrfile, "wb") as stderrf:
+            # await to start & prep coroutines
             proc = await asyncio.create_subprocess_shell(
                 cmd,
                 stdout=stdoutf,
                 stderr=stderrf,
             )
-
-        # await to finish
-        await asyncio.wait_for(  # raises TimeoutError
-            proc.wait(),
-            timeout=task_timeout,
-        )
+            # await to finish
+            await asyncio.wait_for(  # raises TimeoutError
+                proc.wait(),
+                timeout=task_timeout,
+            )
 
         LOGGER.info(f"Subprocess return code: {proc.returncode}")
 
