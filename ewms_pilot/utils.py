@@ -13,7 +13,7 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-def chirp(message: str) -> None:
+def chirp(status_message: str) -> None:
     """Invoke HTChirp, AKA send a status message to Condor."""
     try:
         chirper = htchirp.HTChirp()
@@ -23,8 +23,9 @@ def chirp(message: str) -> None:
     with chirper as c:
         LOGGER.info(f"chirping as '{c.whoami()}'")
         c.set_job_attr("EWMSPilotProcessing", "True")
-        if message:
-            c.ulog(message)
+        if status_message:
+            c.set_job_attr("EWMSPilotStatus", status_message)
+            c.ulog(status_message)
 
 
 def _initial_chirp() -> None:
@@ -53,8 +54,9 @@ def error_chirp(exception: Exception) -> None:
 
     with chirper as c:
         LOGGER.info(f"chirping as '{c.whoami()}'")
-        c.set_job_attr("EWMSPilotError", "True")
-        c.ulog(f"{type(exception).__name__}: {exception}")
+        exception_str = f"{type(exception).__name__}: {exception}"
+        c.set_job_attr("EWMSPilotError", exception_str)
+        c.ulog(exception_str)
 
 
 def async_htchirping(
