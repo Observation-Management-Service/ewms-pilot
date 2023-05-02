@@ -474,7 +474,7 @@ async def _consume_and_reply(
                     LOGGER.error(f"{len(pending)} tasks are pending after finish")
 
     # log/chirp
-    chirp_msg = f"Done Processing: completed {total_msg_count} task(s)"
+    chirp_msg = f"Done Tasking: completed {total_msg_count} task(s)"
     utils.chirp_status(chirp_msg)
     LOGGER.info(chirp_msg)
     # check if anything actually processed
