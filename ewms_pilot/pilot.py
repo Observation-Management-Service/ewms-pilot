@@ -251,7 +251,7 @@ async def process_msg_task(
 
     # cleanup -- on success only
     if not keep_debug_dir:
-        debug_subdir.unlink()  # rm
+        shutil.rmtree(debug_subdir)  # rm -r
 
 
 @utils.async_htchirping
