@@ -567,7 +567,7 @@ async def test_510__multitasking_exceptions(
         r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
         r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
         r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\]",
-    ):
+    ) as e:
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
@@ -590,6 +590,10 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 multitasking=multitasking,
             ),
         )
+    # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
+    assert str(e.value).count("ValueError: gotta fail: foofoo") == 1
+    assert str(e.value).count("ValueError: gotta fail: barbar") == 1
+    assert str(e.value).count("ValueError: gotta fail: bazbaz") == 1
 
     # it should've take ~5 seconds to complete all tasks
     print(time.time() - start_time)
