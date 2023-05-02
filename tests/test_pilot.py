@@ -563,7 +563,7 @@ async def test_510__multitasking_exceptions(
     # run producer & consumer concurrently
     with pytest.raises(
         RuntimeError,
-        match=r"3 Task(s) Failed: "
+        match=r"3 Task\(s\) Failed: "
         r"\[TaskSubprocessError: Subprocess completed with exit code 1\], "
         r"\[TaskSubprocessError: Subprocess completed with exit code 1\], "
         r"\[TaskSubprocessError: Subprocess completed with exit code 1\]",
