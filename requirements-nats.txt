@@ -10,6 +10,8 @@ charset-normalizer==3.1.0
     # via requests
 ed25519==1.5
     # via nkeys
+htchirp==2.0
+    # via ewms-pilot (setup.py)
 idna==3.4
     # via requests
 nats-py[nkeys]==2.2.0
