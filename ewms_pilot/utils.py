@@ -1,7 +1,7 @@
 """Common utilities."""
 
 
-from typing import Awaitable, Callable, TypeVar
+from typing import Any, Callable, Coroutine, TypeVar
 
 import htchirp  # type: ignore[import]
 from typing_extensions import ParamSpec
@@ -56,7 +56,9 @@ def error_chirp(exception: Exception) -> None:
         c.ulog(f"{type(exception).__name__}: {exception}")
 
 
-def async_htchirping(func: Callable[P, Awaitable[T]]) -> Callable[P, Awaitable[T]]:
+def async_htchirping(
+    func: Callable[P, Coroutine[Any, Any, T]]
+) -> Callable[P, Coroutine[Any, Any, T]]:
     """Send Condor Chirps at start, end, and if needed, final error."""
 
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
