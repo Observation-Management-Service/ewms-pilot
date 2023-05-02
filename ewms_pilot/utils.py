@@ -13,7 +13,7 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
-def chirp(status_message: str) -> None:
+def chirp_status(status_message: str) -> None:
     """Invoke HTChirp, AKA send a status message to Condor."""
     try:
         chirper = htchirp.HTChirp()
@@ -30,7 +30,7 @@ def chirp(status_message: str) -> None:
 
 def _initial_chirp() -> None:
     """Send a Condor Chirp signalling that processing has started."""
-    chirp("")
+    chirp_status("")
 
 
 def _final_chirp(error: bool = False) -> None:

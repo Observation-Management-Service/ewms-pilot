@@ -336,7 +336,9 @@ async def consume_and_reply(
         )
     except Exception as e:
         if quarantine_time:
-            LOGGER.error(f"{e} (Quarantining for {quarantine_time} seconds)")
+            msg = f"{e} (Quarantining for {quarantine_time} seconds)"
+            utils.chirp_status(msg)
+            LOGGER.error(msg)
             await asyncio.sleep(quarantine_time)
         raise
 
@@ -420,6 +422,10 @@ async def _consume_and_reply(
             async for in_msg in sub.iter_messages():
                 total_msg_count += 1
                 LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
+
+                if total_msg_count == 1:
+                    utils.chirp_status("Tasking")
+
                 task = asyncio.create_task(
                     process_msg_task(
                         in_msg.data,
@@ -467,16 +473,20 @@ async def _consume_and_reply(
                 if pending:
                     LOGGER.error(f"{len(pending)} tasks are pending after finish")
 
+    # log/chirp
+    chirp_msg = f"Done Processing: completed {total_msg_count} task(s)"
+    utils.chirp_status(chirp_msg)
+    LOGGER.info(chirp_msg)
+    # check if anything actually processed
+    if not total_msg_count:
+        LOGGER.warning("No Messages Were Received.")
+
     # cleanup
     if failed:
         raise RuntimeError(
             f"{len(failed)} Task(s) Failed: "
             f"{', '.join(_task_exception_str(f) for f in failed)}"
         )
-    # check if anything actually processed
-    if not total_msg_count:
-        LOGGER.warning("No Messages Were Received.")
-    LOGGER.info(f"Done Processing: completed {total_msg_count} tasks")
     return total_msg_count
 
 
