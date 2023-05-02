@@ -49,10 +49,7 @@ class TaskSubprocessError(Exception):
         return_code: int,
         debug_subdir: Optional[Path],
     ):
-        super().__init__(
-            f"Subprocess completed with exit code {return_code}"
-            f"{f' (debug directory: {debug_subdir})' if debug_subdir else ''}"
-        )
+        super().__init__(f"Subprocess completed with exit code {return_code}")
 
 
 def _task_exception_str(task: asyncio.Task) -> str:  # type: ignore[type-arg]
