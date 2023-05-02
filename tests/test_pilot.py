@@ -330,7 +330,9 @@ async def test_400__exception(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: TaskSubprocessError")
+        RuntimeError,
+        match=r"1 Task\(s\) Failed: "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -373,7 +375,9 @@ async def test_401__exception_with_outwriting(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: TaskSubprocessError")
+        RuntimeError,
+        match=r"1 Task\(s\) Failed: "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -419,7 +423,9 @@ async def test_410__blackhole_quarantine(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: TaskSubprocessError")
+        RuntimeError,
+        match=r"1 Task\(s\) Failed: "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -462,7 +468,9 @@ async def test_420__timeout(
     start_time = time.time()
 
     # run producer & consumer concurrently
-    with pytest.raises(RuntimeError, match=re.escape("1 Task(s) Failed: TimeoutError")):
+    with pytest.raises(
+        RuntimeError, match=re.escape("1 Task(s) Failed: [TimeoutError: ]")
+    ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
@@ -554,7 +562,11 @@ async def test_510__multitasking_exceptions(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("3 Task(s) Failed: TaskSubprocessError")
+        RuntimeError,
+        match=r"3 Task(s) Failed: "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\], "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\], "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
