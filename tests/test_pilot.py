@@ -332,7 +332,7 @@ async def test_400__exception(
     with pytest.raises(
         RuntimeError,
         match=r"1 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\]",
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -425,7 +425,7 @@ async def test_410__blackhole_quarantine(
     with pytest.raises(
         RuntimeError,
         match=r"1 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\]",
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
