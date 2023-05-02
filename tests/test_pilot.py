@@ -377,7 +377,7 @@ async def test_401__exception_with_outwriting(
     with pytest.raises(
         RuntimeError,
         match=r"1 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\]",
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -564,9 +564,9 @@ async def test_510__multitasking_exceptions(
     with pytest.raises(
         RuntimeError,
         match=r"3 Task(s) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1 \(debug directory: debug-dir/.*\)\]",
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1\], "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1\], "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
