@@ -181,17 +181,19 @@ async def process_msg_task(
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
     #
-    debug_dir: Optional[Path],
+    debug_dir: Path,
+    keep_debug_dir: bool,
+    #
     pub: mq.queue.QueuePubResource,
 ) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
     task_id = uuid.uuid4().hex
 
     # debugging logic
-    debug_subdir = None
-    if debug_dir:
-        debug_subdir = debug_dir / task_id
-        debug_subdir.mkdir(parents=True, exist_ok=False)
+    debug_subdir = debug_dir / task_id
+    debug_subdir.mkdir(parents=True, exist_ok=False)
+    stderrfile = debug_subdir / "stderrfile"
+    stdoutfile = debug_subdir / "stdoutfile"
 
     # create in/out filepaths
     fpath_to_subproc = Path(f"in-{task_id}{ftype_to_subproc.value}")
@@ -207,19 +209,13 @@ async def process_msg_task(
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
     try:
-
         # await to start & prep coroutines
-        if debug_subdir:
-            with open(debug_subdir / "stdoutfile", "wb") as stdoutf, open(
-                debug_subdir / "stderrfile", "wb"
-            ) as stderrf:
-                proc = await asyncio.create_subprocess_shell(
-                    cmd,
-                    stdout=stdoutf,
-                    stderr=stderrf,
-                )
-        else:
-            proc = await asyncio.create_subprocess_shell(cmd)
+        with open(stdoutfile, "wb") as stdoutf, open(stderrfile, "wb") as stderrf:
+            proc = await asyncio.create_subprocess_shell(
+                cmd,
+                stdout=stdoutf,
+                stderr=stderrf,
+            )
 
         # await to finish
         await asyncio.wait_for(  # raises TimeoutError
@@ -231,7 +227,7 @@ async def process_msg_task(
 
         # exception handling (immediately re-handled by 'except' below)
         if proc.returncode:
-            raise TaskSubprocessError(proc.returncode, debug_subdir)
+            raise TaskSubprocessError(proc.returncode, stderrfile)
 
     # Error Case: first, if there's a file move it to debug dir (if enabled)
     except Exception as e:
@@ -245,6 +241,10 @@ async def process_msg_task(
     # send
     LOGGER.info("Sending return message...")
     await pub.send(out_msg)
+
+    # cleanup
+    if not keep_debug_dir:
+        debug_subdir.unlink()  # rm
 
 
 @utils.async_htchirping
@@ -330,7 +330,10 @@ async def consume_and_reply(
             timeout_incoming,
             file_writer,
             file_reader,
-            debug_dir,
+            #
+            debug_dir if debug_dir else Path("./tmp"),
+            bool(debug_dir),
+            #
             task_timeout,
             multitasking,
         )
@@ -390,7 +393,8 @@ async def _consume_and_reply(
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
     #
-    debug_dir: Optional[Path],
+    debug_dir: Path,
+    keep_debug_dir: bool,
     #
     task_timeout: Optional[int],
     multitasking: int,
@@ -436,6 +440,7 @@ async def _consume_and_reply(
                         file_writer,
                         file_reader,
                         debug_dir,
+                        keep_debug_dir,
                         pub,
                     )
                 )
