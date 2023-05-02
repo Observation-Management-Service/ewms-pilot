@@ -41,15 +41,23 @@ class FileType(enum.Enum):
     JSON = ".json"
 
 
+def get_last_line(fpath: Path) -> str:
+    """Get the last line of the file."""
+    with fpath.open() as f:
+        try:
+            return f.readlines()[-1].rstrip()
+        except IndexError:
+            return ""
+
+
 class TaskSubprocessError(Exception):
     """Raised when the subprocess terminates in an error."""
 
-    def __init__(
-        self,
-        return_code: int,
-        debug_subdir: Optional[Path],
-    ):
-        super().__init__(f"Subprocess completed with exit code {return_code}")
+    def __init__(self, return_code: int, stderrfile: Path):
+        super().__init__(
+            f"Subprocess completed with exit code {return_code}: "
+            f"{get_last_line(stderrfile)}"
+        )
 
 
 def _task_exception_str(task: asyncio.Task) -> str:  # type: ignore[type-arg]
