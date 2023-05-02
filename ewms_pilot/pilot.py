@@ -50,8 +50,8 @@ class TaskSubprocessError(Exception):
         debug_subdir: Optional[Path],
     ):
         super().__init__(
-            f"Subprocess completed with exit code {return_code} "
-            f"(debug directory: {debug_subdir})"
+            f"Subprocess completed with exit code {return_code}"
+            f"{f' (debug directory: {debug_subdir})' if debug_subdir else ''}"
         )
 
 
