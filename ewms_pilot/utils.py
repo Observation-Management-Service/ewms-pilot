@@ -1,6 +1,7 @@
 """Common utilities."""
 
 
+from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
 
 import htchirp  # type: ignore[import]
@@ -61,6 +62,7 @@ def async_htchirping(
 ) -> Callable[P, Coroutine[Any, Any, T]]:
     """Send Condor Chirps at start, end, and if needed, final error."""
 
+    @wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         try:
             _initial_chirp()
