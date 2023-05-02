@@ -16,6 +16,7 @@ import mqclient as mq
 from mqclient.broker_client_interface import Message
 from wipac_dev_tools import argparse_tools, logging_tools
 
+from . import utils
 from .config import ENV, LOGGER
 
 AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
@@ -40,22 +41,27 @@ class FileType(enum.Enum):
     JSON = ".json"
 
 
+def get_last_line(fpath: Path) -> str:
+    """Get the last line of the file."""
+    with fpath.open() as f:
+        line = ""
+        for line in f:
+            pass
+        return line.rstrip()  # remove trailing '\n'
+
+
 class TaskSubprocessError(Exception):
     """Raised when the subprocess terminates in an error."""
 
-    def __init__(
-        self,
-        return_code: int,
-        debug_subdir: Optional[Path],
-    ):
+    def __init__(self, return_code: int, stderrfile: Path):
         super().__init__(
-            f"Subprocess completed with exit code {return_code} "
-            f"(debug directory: {debug_subdir})"
+            f"Subprocess completed with exit code {return_code}: "
+            f"{get_last_line(stderrfile)}"
         )
 
 
-def _task_exception_str(task: asyncio.Task) -> str:
-    return f'{type(task.exception()).__name__}: "{task.exception()}"'
+def _task_exception_str(task: asyncio.Task) -> str:  # type: ignore[type-arg]
+    return f"[{type(task.exception()).__name__}: {task.exception()}]"
 
 
 class UniversalFileInterface:
@@ -183,17 +189,19 @@ async def process_msg_task(
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
     #
-    debug_dir: Optional[Path],
+    debug_dir: Path,
+    keep_debug_dir: bool,
+    #
     pub: mq.queue.QueuePubResource,
 ) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
     task_id = uuid.uuid4().hex
 
     # debugging logic
-    debug_subdir = None
-    if debug_dir:
-        debug_subdir = debug_dir / task_id
-        debug_subdir.mkdir(parents=True, exist_ok=False)
+    debug_subdir = debug_dir / task_id
+    debug_subdir.mkdir(parents=True, exist_ok=False)
+    stderrfile = debug_subdir / "stderrfile"
+    stdoutfile = debug_subdir / "stdoutfile"
 
     # create in/out filepaths
     fpath_to_subproc = Path(f"in-{task_id}{ftype_to_subproc.value}")
@@ -209,31 +217,24 @@ async def process_msg_task(
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
     try:
-
-        # await to start & prep coroutines
-        if debug_subdir:
-            with open(debug_subdir / "stdoutfile", "wb") as stdoutf, open(
-                debug_subdir / "stderrfile", "wb"
-            ) as stderrf:
-                proc = await asyncio.create_subprocess_shell(
-                    cmd,
-                    stdout=stdoutf,
-                    stderr=stderrf,
-                )
-        else:
-            proc = await asyncio.create_subprocess_shell(cmd)
-
-        # await to finish
-        await asyncio.wait_for(  # raises TimeoutError
-            proc.wait(),
-            timeout=task_timeout,
-        )
+        with open(stdoutfile, "wb") as stdoutf, open(stderrfile, "wb") as stderrf:
+            # await to start & prep coroutines
+            proc = await asyncio.create_subprocess_shell(
+                cmd,
+                stdout=stdoutf,
+                stderr=stderrf,
+            )
+            # await to finish
+            await asyncio.wait_for(  # raises TimeoutError
+                proc.wait(),
+                timeout=task_timeout,
+            )
 
         LOGGER.info(f"Subprocess return code: {proc.returncode}")
 
         # exception handling (immediately re-handled by 'except' below)
         if proc.returncode:
-            raise TaskSubprocessError(proc.returncode, debug_subdir)
+            raise TaskSubprocessError(proc.returncode, stderrfile)
 
     # Error Case: first, if there's a file move it to debug dir (if enabled)
     except Exception as e:
@@ -248,7 +249,12 @@ async def process_msg_task(
     LOGGER.info("Sending return message...")
     await pub.send(out_msg)
 
+    # cleanup -- on success only
+    if not keep_debug_dir:
+        shutil.rmtree(debug_subdir)  # rm -r
 
+
+@utils.async_htchirping
 async def consume_and_reply(
     cmd: str,
     #
@@ -331,13 +337,18 @@ async def consume_and_reply(
             timeout_incoming,
             file_writer,
             file_reader,
-            debug_dir,
+            #
+            debug_dir if debug_dir else Path("./tmp"),
+            bool(debug_dir),
+            #
             task_timeout,
             multitasking,
         )
     except Exception as e:
         if quarantine_time:
-            LOGGER.error(f"{e} (Quarantining for {quarantine_time} seconds)")
+            msg = f"{e} (Quarantining for {quarantine_time} seconds)"
+            utils.chirp_status(msg)
+            LOGGER.error(msg)
             await asyncio.sleep(quarantine_time)
         raise
 
@@ -389,7 +400,8 @@ async def _consume_and_reply(
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
     #
-    debug_dir: Optional[Path],
+    debug_dir: Path,
+    keep_debug_dir: bool,
     #
     task_timeout: Optional[int],
     multitasking: int,
@@ -421,6 +433,10 @@ async def _consume_and_reply(
             async for in_msg in sub.iter_messages():
                 total_msg_count += 1
                 LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
+
+                if total_msg_count == 1:
+                    utils.chirp_status("Tasking")
+
                 task = asyncio.create_task(
                     process_msg_task(
                         in_msg.data,
@@ -431,6 +447,7 @@ async def _consume_and_reply(
                         file_writer,
                         file_reader,
                         debug_dir,
+                        keep_debug_dir,
                         pub,
                     )
                 )
@@ -468,16 +485,20 @@ async def _consume_and_reply(
                 if pending:
                     LOGGER.error(f"{len(pending)} tasks are pending after finish")
 
+    # log/chirp
+    chirp_msg = f"Done Tasking: completed {total_msg_count} task(s)"
+    utils.chirp_status(chirp_msg)
+    LOGGER.info(chirp_msg)
+    # check if anything actually processed
+    if not total_msg_count:
+        LOGGER.warning("No Messages Were Received.")
+
     # cleanup
     if failed:
         raise RuntimeError(
             f"{len(failed)} Task(s) Failed: "
-            f"{', '.join(type(f.exception()).__name__ for f in failed)}"
+            f"{', '.join(_task_exception_str(f) for f in failed)}"
         )
-    # check if anything actually processed
-    if not total_msg_count:
-        LOGGER.warning("No Messages Were Received.")
-    LOGGER.info(f"Done Processing: completed {total_msg_count} tasks")
     return total_msg_count
 
 

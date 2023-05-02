@@ -330,7 +330,9 @@ async def test_400__exception(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: TaskSubprocessError")
+        RuntimeError,
+        match=r"1 Task\(s\) Failed: "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: no good!\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -373,7 +375,9 @@ async def test_401__exception_with_outwriting(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: TaskSubprocessError")
+        RuntimeError,
+        match=r"1 Task\(s\) Failed: "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: no good!\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -419,7 +423,9 @@ async def test_410__blackhole_quarantine(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: TaskSubprocessError")
+        RuntimeError,
+        match=r"1 Task\(s\) Failed: "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: no good!\]",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -462,7 +468,9 @@ async def test_420__timeout(
     start_time = time.time()
 
     # run producer & consumer concurrently
-    with pytest.raises(RuntimeError, match=re.escape("1 Task(s) Failed: TimeoutError")):
+    with pytest.raises(
+        RuntimeError, match=re.escape("1 Task(s) Failed: [TimeoutError: ]")
+    ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
@@ -554,8 +562,12 @@ async def test_510__multitasking_exceptions(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("3 Task(s) Failed: TaskSubprocessError")
-    ):
+        RuntimeError,
+        match=r"3 Task\(s\) Failed: "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\]",
+    ) as e:
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
             consume_and_reply(
@@ -564,7 +576,7 @@ import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))
-raise ValueError('gotta fail')" """,  # double cat
+raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 # broker_client=,  # rely on env var
                 # broker_address=,  # rely on env var
                 # auth_token="",
@@ -578,6 +590,10 @@ raise ValueError('gotta fail')" """,  # double cat
                 multitasking=multitasking,
             ),
         )
+    # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
+    assert str(e.value).count("ValueError: gotta fail: foofoo") == 1
+    assert str(e.value).count("ValueError: gotta fail: barbar") == 1
+    assert str(e.value).count("ValueError: gotta fail: bazbaz") == 1
 
     # it should've take ~5 seconds to complete all tasks
     print(time.time() - start_time)
