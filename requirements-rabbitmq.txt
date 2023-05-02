@@ -8,6 +8,8 @@ certifi==2022.12.7
     # via requests
 charset-normalizer==3.1.0
     # via requests
+htchirp==2.0
+    # via ewms-pilot (setup.py)
 idna==3.4
     # via requests
 oms-mqclient[rabbitmq]==2.1.0
