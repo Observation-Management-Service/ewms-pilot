@@ -20,7 +20,7 @@ nkeys==0.1.0
     # via nats-py
 oms-mqclient[nats]==2.1.0
     # via ewms-pilot (setup.py)
-requests==2.29.0
+requests==2.30.0
     # via wipac-dev-tools
 typing-extensions==4.5.0
     # via wipac-dev-tools
