@@ -2,6 +2,10 @@
 
 <!--next-version-placeholder-->
 
+## v0.10.1 (2023-05-05)
+### Other
+* Add `EWMS_PILOT_HTCHIRP` ([#34](https://github.com/Observation-Management-Service/ewms-pilot/issues/34)) ([`f748449`](https://github.com/Observation-Management-Service/ewms-pilot/commit/f748449f33607f903c5ef61ae4f30ea9b961ed3d))
+
 ## v0.10.0 (2023-05-02)
 
 
