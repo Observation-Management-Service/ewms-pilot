@@ -30,6 +30,9 @@ class EnvConfig:
     EWMS_PILOT_LOG: str = "INFO"
     EWMS_PILOT_LOG_THIRD_PARTY: str = "WARNING"
 
+    # chirp
+    EWMS_PILOT_HTCHIRP: bool = False
+
     # meta
     EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
