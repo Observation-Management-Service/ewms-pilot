@@ -136,12 +136,18 @@ def assert_debug_dir(
     return all_files
 
 
-def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> list:
-    return [
+def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> List[str]:
+    filepaths = [
         os.path.abspath(os.path.join(root, fname))
         for root, _, filenames in os_walk
         for fname in filenames
     ]
+    dirpaths = [
+        os.path.abspath(os.path.join(root, dname))
+        for root, dirnames, _ in os_walk
+        for dname in dirnames
+    ]
+    return filepaths + dirpaths
 
 
 def assert_versus_os_walk(
