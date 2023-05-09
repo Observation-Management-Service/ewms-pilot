@@ -2,6 +2,7 @@
 
 import asyncio
 import logging
+import os
 import re
 import time
 from datetime import date, timedelta
@@ -323,6 +324,8 @@ async def test_400__exception(
     # debug_dir: Path,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
+    first_walk = os.walk(".")
+
     msgs_to_subproc = ["foo", "bar", "baz"]
     # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
@@ -360,6 +363,9 @@ async def test_400__exception(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
+
+    # assert no files persisted
+    assert sorted(first_walk) == sorted(os.walk("."))
 
 
 async def test_401__exception_with_outwriting(
