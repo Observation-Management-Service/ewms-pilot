@@ -123,25 +123,6 @@ class UniversalFileInterface:
             raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
 
 
-def write_to_subproc(
-    fpath_to_subproc: Path,
-    in_msg: Any,
-    debug_subdir: Optional[Path],
-    file_writer: Callable[[Any, Path], None],
-) -> Path:
-    """Write the msg to the `IN` file.
-
-    Also, dump to a file for debugging (if not "").
-    """
-    file_writer(in_msg, fpath_to_subproc)
-
-    # persist the file?
-    if debug_subdir:
-        file_writer(in_msg, debug_subdir / fpath_to_subproc.name)
-
-    return fpath_to_subproc
-
-
 def mv_or_rm_file(src: Path, dest: Optional[Path]) -> None:
     """Move the file to `dest` if not None, else rm it.
 
@@ -157,27 +138,6 @@ def mv_or_rm_file(src: Path, dest: Optional[Path]) -> None:
         src.unlink()  # rm
 
 
-def read_from_subproc(
-    fpath_from_subproc: Path,
-    debug_subdir: Optional[Path],
-    file_reader: Callable[[Path], Any],
-) -> Any:
-    """Read the msg from the `OUT` file.
-
-    Also, dump to a file for debugging (if not "").
-    """
-    if not fpath_from_subproc.exists():
-        msg = "Out-file cannot be found"
-        LOGGER.error(msg)
-        raise FileNotFoundError(msg)
-
-    out_msg = file_reader(fpath_from_subproc)
-
-    mv_or_rm_file(fpath_from_subproc, debug_subdir)
-
-    return out_msg
-
-
 async def process_msg_task(
     in_msg: Any,
     cmd: str,
@@ -189,7 +149,7 @@ async def process_msg_task(
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
     #
-    debug_dir: Path,
+    staging_dir: Path,
     keep_debug_dir: bool,
     #
     pub: mq.queue.QueuePubResource,
@@ -197,22 +157,22 @@ async def process_msg_task(
     """Process the message's task in a subprocess using `cmd` & respond."""
     task_id = uuid.uuid4().hex
 
-    # debugging logic
-    debug_subdir = debug_dir / task_id
-    debug_subdir.mkdir(parents=True, exist_ok=False)
-    stderrfile = debug_subdir / "stderrfile"
-    stdoutfile = debug_subdir / "stdoutfile"
+    # staging-dir logic
+    staging_subdir = staging_dir / task_id
+    staging_subdir.mkdir(parents=True, exist_ok=False)
+    stderrfile = staging_subdir / "stderrfile"
+    stdoutfile = staging_subdir / "stdoutfile"
 
     # create in/out filepaths
-    fpath_to_subproc = Path(f"in-{task_id}{ftype_to_subproc.value}")
-    fpath_from_subproc = Path(f"out-{task_id}{ftype_from_subproc.value}")
+    infilepath = staging_subdir / f"in-{task_id}{ftype_to_subproc.value}"
+    outfilepath = staging_subdir / f"out-{task_id}{ftype_from_subproc.value}"
 
     # insert in/out files into cmd
-    cmd = cmd.replace("{{INFILE}}", str(fpath_to_subproc))
-    cmd = cmd.replace("{{OUTFILE}}", str(fpath_from_subproc))
+    cmd = cmd.replace("{{INFILE}}", str(infilepath))
+    cmd = cmd.replace("{{OUTFILE}}", str(outfilepath))
 
-    # write
-    write_to_subproc(fpath_to_subproc, in_msg, debug_subdir, file_writer)
+    # write message for subproc
+    file_writer(in_msg, infilepath)
 
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
@@ -239,11 +199,10 @@ async def process_msg_task(
     # Error Case: first, if there's a file move it to debug dir (if enabled)
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
-        mv_or_rm_file(fpath_from_subproc, debug_subdir)
         raise
 
     # Successful Case: get message and move to debug dir
-    out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
+    out_msg = file_reader(outfilepath)
 
     # send
     LOGGER.info("Sending return message...")
@@ -251,7 +210,7 @@ async def process_msg_task(
 
     # cleanup -- on success only
     if not keep_debug_dir:
-        shutil.rmtree(debug_subdir)  # rm -r
+        shutil.rmtree(staging_subdir)  # rm -r
 
 
 @utils.async_htchirping
@@ -400,7 +359,7 @@ async def _consume_and_reply(
     file_writer: Callable[[Any, Path], None],
     file_reader: Callable[[Path], Any],
     #
-    debug_dir: Path,
+    staging_dir: Path,
     keep_debug_dir: bool,
     #
     task_timeout: Optional[int],
@@ -446,7 +405,7 @@ async def _consume_and_reply(
                         ftype_from_subproc,
                         file_writer,
                         file_reader,
-                        debug_dir,
+                        staging_dir,
                         keep_debug_dir,
                         pub,
                     )
@@ -494,6 +453,8 @@ async def _consume_and_reply(
         LOGGER.warning("No Messages Were Received.")
 
     # cleanup
+    if not list(staging_dir.iterdir()):  # if empty
+        shutil.rmtree(staging_dir)  # rm -r
     if failed:
         raise RuntimeError(
             f"{len(failed)} Task(s) Failed: "
