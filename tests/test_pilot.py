@@ -143,7 +143,7 @@ def assert_versus_os_walk(first_walk: list, persisted_files: List[Path]) -> None
     expected_files.extend(str(f.resolve()) for f in persisted_files)
 
     current_fpaths = [
-        os.path.join(root, fname)
+        os.path.abspath(os.path.join(root, fname))
         for root, _, filenames in os.walk(".")
         for fname in filenames
     ]
