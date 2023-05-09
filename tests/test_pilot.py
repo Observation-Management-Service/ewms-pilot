@@ -138,7 +138,7 @@ def assert_debug_dir(
 
 def os_walk_to_fpaths(os_walk: OSWalkList) -> list:
     return [
-        os.path.join(root, fname)
+        os.path.abspath(os.path.join(root, fname))
         for root, _, filenames in os_walk
         for fname in filenames
     ]
