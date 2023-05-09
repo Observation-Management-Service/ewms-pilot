@@ -113,6 +113,13 @@ def assert_debug_dir(
         assert sorted(p.name for p in path.iterdir()) == sorted(these_files)
 
 
+def assert_versus_first_walk(first_walk: list) -> None:
+    """Check for persisted files."""
+    # user sets for better diffs in pytest logs
+    assert set(os.walk(".")) - set(first_walk) == set()
+    assert set(first_walk) - set(os.walk(".")) == set()
+
+
 ########################################################################################
 
 
@@ -153,7 +160,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
 
 
 async def test_001__txt__str_filetype(
@@ -193,7 +200,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
 
 
 async def test_100__json(
@@ -238,7 +245,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
 
 
 async def test_200__pickle(
@@ -283,7 +290,7 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
 
 
 async def test_300__writer_reader(
@@ -331,7 +338,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
 
 
 async def test_400__exception(
@@ -378,7 +385,7 @@ async def test_400__exception(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
 
 
 async def test_401__exception_with_outwriting(
@@ -428,7 +435,7 @@ raise ValueError('no good!')" """,  # double cat
         1,  # only 1 message was processed before error
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
 
 
 async def test_410__blackhole_quarantine(
@@ -476,7 +483,7 @@ async def test_410__blackhole_quarantine(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
 
 
 async def test_420__timeout(
@@ -522,7 +529,7 @@ async def test_420__timeout(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
 
 
 async def test_500__multitasking(
@@ -572,7 +579,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
 
 
 async def test_510__multitasking_exceptions(
@@ -634,4 +641,4 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
+    assert_versus_first_walk(first_walk)  # check for persisted files
