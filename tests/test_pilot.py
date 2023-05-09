@@ -136,7 +136,7 @@ def assert_debug_dir(
     return all_files
 
 
-def os_walk_to_fpaths(os_walk: OSWalkList) -> list:
+def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> list:
     return [
         os.path.abspath(os.path.join(root, fname))
         for root, _, filenames in os_walk
@@ -148,12 +148,12 @@ def assert_versus_os_walk(
     first_walk: OSWalkList, persisted_files: List[Path], persisted_dirs: List[Path]
 ) -> None:
     """Check for persisted files."""
-    expected_files = os_walk_to_fpaths(first_walk)
+    expected_files = os_walk_to_flat_abspaths(first_walk)
     expected_files.extend(str(f.resolve()) for f in persisted_files)
     for dpath in persisted_dirs:  # add all files nested under each dir
-        expected_files.extend(os_walk_to_fpaths(list(os.walk(dpath))))
+        expected_files.extend(os_walk_to_flat_abspaths(list(os.walk(dpath))))
 
-    current_fpaths = os_walk_to_fpaths(list(os.walk(".")))
+    current_fpaths = os_walk_to_flat_abspaths(list(os.walk(".")))
 
     # use sets for better diffs in pytest logs
     assert set(current_fpaths) - set(expected_files) == set()  # any extra?
