@@ -518,7 +518,7 @@ async def test_410__blackhole_quarantine(
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            0,
+            1,
             ["in", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -572,7 +572,7 @@ async def test_420__timeout(
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            0,
+            1,
             ["in", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
