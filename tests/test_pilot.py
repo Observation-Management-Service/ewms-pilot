@@ -47,10 +47,11 @@ def queue_outgoing() -> str:
 
 @pytest.fixture
 def debug_dir() -> Path:
-    """Make a unique debug directory and return its Path."""
-    dirpath = Path(f"./debug-dir/{time.time()}")
-    # dirpath.mkdir(parents=True) # WILL BE CREATED
-    return dirpath
+    """Return a unique debug directory Path.
+
+    Don't create since it'll be created by the pilot.
+    """
+    return Path(f"./debug-dir-{time.time()}")
 
 
 OSWalkList = List[Tuple[str, List[str], List[str]]]
