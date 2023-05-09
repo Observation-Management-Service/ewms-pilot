@@ -1,5 +1,7 @@
 """Test pilot submodule."""
 
+# pylint:disable=redefined-outer-name
+
 import asyncio
 import logging
 import os
@@ -46,7 +48,7 @@ def first_walk() -> list:
 
 
 async def populate_queue(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
+    queue_incoming: str,
     msgs_to_subproc: list,
 ) -> None:
     """Send messages to queue."""
@@ -64,7 +66,7 @@ async def populate_queue(
 
 
 async def assert_results(
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
+    queue_outgoing: str,
     msgs_from_subproc: list,
 ) -> None:
     """Get messages and assert against expected results."""
@@ -89,7 +91,7 @@ async def assert_results(
 
 
 def assert_debug_dir(
-    debug_dir: Path,  # pylint: disable=redefined-outer-name
+    debug_dir: Path,
     ftype_to_subproc: FileType,
     n_tasks: int,
     files: List[str],
@@ -124,10 +126,10 @@ def assert_versus_first_walk(first_walk: list) -> None:
 
 
 async def test_000__txt(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -164,10 +166,10 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 
 async def test_001__txt__str_filetype(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -204,10 +206,10 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 
 async def test_100__json(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test a normal .json-based pilot."""
 
@@ -249,10 +251,10 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
 
 
 async def test_200__pickle(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test a normal .pkl-based pilot."""
 
@@ -294,10 +296,10 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
 
 
 async def test_300__writer_reader(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -342,10 +344,10 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 
 async def test_400__exception(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    # debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    # debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -389,10 +391,10 @@ async def test_400__exception(
 
 
 async def test_401__exception_with_outwriting(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -439,10 +441,10 @@ raise ValueError('no good!')" """,  # double cat
 
 
 async def test_410__blackhole_quarantine(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    # debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    # debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -487,10 +489,10 @@ async def test_410__blackhole_quarantine(
 
 
 async def test_420__timeout(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    # debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    # debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -533,10 +535,10 @@ async def test_420__timeout(
 
 
 async def test_500__multitasking(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -583,10 +585,10 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 
 async def test_510__multitasking_exceptions(
-    queue_incoming: str,  # pylint: disable=redefined-outer-name
-    queue_outgoing: str,  # pylint: disable=redefined-outer-name
-    debug_dir: Path,  # pylint:disable=redefined-outer-name
-    first_walk: list,  # pylint:disable=redefined-outer-name
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: list,
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
