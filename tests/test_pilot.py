@@ -117,9 +117,20 @@ def assert_debug_dir(
 
 def assert_versus_first_walk(first_walk: list) -> None:
     """Check for persisted files."""
-    # user sets for better diffs in pytest logs
-    assert set(os.walk(".")) - set(first_walk) == set()
-    assert set(first_walk) - set(os.walk(".")) == set()
+    first_fpaths = [
+        os.path.join(root, fname)
+        for root, _, filenames in first_walk
+        for fname in filenames
+    ]
+    current_fpaths = [
+        os.path.join(root, fname)
+        for root, _, filenames in os.walk(".")
+        for fname in filenames
+    ]
+
+    # use sets for better diffs in pytest logs
+    assert set(current_fpaths) - set(first_fpaths) == set()  # any extra?
+    assert set(first_fpaths) - set(current_fpaths) == set()  # any missing?
 
 
 ########################################################################################
