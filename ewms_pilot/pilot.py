@@ -124,7 +124,7 @@ class UniversalFileInterface:
 
 
 def write_to_subproc(
-    fpath_to_subproc: Path,
+    infilepath: Path,
     in_msg: Any,
     debug_subdir: Optional[Path],
     file_writer: Callable[[Any, Path], None],
@@ -133,13 +133,13 @@ def write_to_subproc(
 
     Also, dump to a file for debugging (if not "").
     """
-    file_writer(in_msg, fpath_to_subproc)
+    file_writer(in_msg, infilepath)
 
     # persist the file?
     if debug_subdir:
-        file_writer(in_msg, debug_subdir / fpath_to_subproc.name)
+        file_writer(in_msg, debug_subdir / infilepath.name)
 
-    return fpath_to_subproc
+    return infilepath
 
 
 def mv_or_rm_file(src: Path, dest: Optional[Path]) -> None:
@@ -158,7 +158,7 @@ def mv_or_rm_file(src: Path, dest: Optional[Path]) -> None:
 
 
 def read_from_subproc(
-    fpath_from_subproc: Path,
+    outfilepath: Path,
     debug_subdir: Optional[Path],
     file_reader: Callable[[Path], Any],
 ) -> Any:
@@ -166,14 +166,14 @@ def read_from_subproc(
 
     Also, dump to a file for debugging (if not "").
     """
-    if not fpath_from_subproc.exists():
+    if not outfilepath.exists():
         msg = "Out-file cannot be found"
         LOGGER.error(msg)
         raise FileNotFoundError(msg)
 
-    out_msg = file_reader(fpath_from_subproc)
+    out_msg = file_reader(outfilepath)
 
-    mv_or_rm_file(fpath_from_subproc, debug_subdir)
+    mv_or_rm_file(outfilepath, debug_subdir)
 
     return out_msg
 
@@ -204,15 +204,15 @@ async def process_msg_task(
     stdoutfile = debug_subdir / "stdoutfile"
 
     # create in/out filepaths
-    fpath_to_subproc = Path(f"in-{task_id}{ftype_to_subproc.value}")
-    fpath_from_subproc = Path(f"out-{task_id}{ftype_from_subproc.value}")
+    infilepath = Path(f"in-{task_id}{ftype_to_subproc.value}")
+    outfilepath = Path(f"out-{task_id}{ftype_from_subproc.value}")
 
     # insert in/out files into cmd
-    cmd = cmd.replace("{{INFILE}}", str(fpath_to_subproc))
-    cmd = cmd.replace("{{OUTFILE}}", str(fpath_from_subproc))
+    cmd = cmd.replace("{{INFILE}}", str(infilepath))
+    cmd = cmd.replace("{{OUTFILE}}", str(outfilepath))
 
     # write
-    write_to_subproc(fpath_to_subproc, in_msg, debug_subdir, file_writer)
+    write_to_subproc(infilepath, in_msg, debug_subdir, file_writer)
 
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
@@ -239,11 +239,11 @@ async def process_msg_task(
     # Error Case: first, if there's a file move it to debug dir (if enabled)
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
-        mv_or_rm_file(fpath_from_subproc, debug_subdir)
+        mv_or_rm_file(outfilepath, debug_subdir)
         raise
 
     # Successful Case: get message and move to debug dir
-    out_msg = read_from_subproc(fpath_from_subproc, debug_subdir, file_reader)
+    out_msg = read_from_subproc(outfilepath, debug_subdir, file_reader)
 
     # send
     LOGGER.info("Sending return message...")
