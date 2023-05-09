@@ -297,12 +297,13 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_from_subproc)
-    assert_debug_dir(
-        debug_dir,
-        FileType.JSON,
-        len(msgs_from_subproc),
-        ["in", "out", "stderrfile", "stdoutfile"],
-    )
+    if use_debug_dir:
+        assert_debug_dir(
+            debug_dir,
+            FileType.JSON,
+            len(msgs_from_subproc),
+            ["in", "out", "stderrfile", "stdoutfile"],
+        )
     # check for persisted files
     assert_versus_os_walk(
         first_walk,
@@ -349,12 +350,13 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_from_subproc)
-    assert_debug_dir(
-        debug_dir,
-        FileType.PKL,
-        len(msgs_from_subproc),
-        ["in", "out", "stderrfile", "stdoutfile"],
-    )
+    if use_debug_dir:
+        assert_debug_dir(
+            debug_dir,
+            FileType.PKL,
+            len(msgs_from_subproc),
+            ["in", "out", "stderrfile", "stdoutfile"],
+        )
     # check for persisted files
     assert_versus_os_walk(
         first_walk,
