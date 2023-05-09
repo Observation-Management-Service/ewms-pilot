@@ -48,9 +48,8 @@ def queue_outgoing() -> str:
 @pytest.fixture
 def debug_dir() -> Path:
     """Make a unique debug directory and return its Path."""
-
     dirpath = Path(f"./debug-dir/{time.time()}")
-    dirpath.mkdir(parents=True)
+    # dirpath.mkdir(parents=True) # WILL BE CREATED
     return dirpath
 
 
