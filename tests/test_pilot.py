@@ -10,7 +10,7 @@ import time
 import uuid
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, List
+from typing import Any, Iterator, List, Tuple
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -54,8 +54,11 @@ def debug_dir() -> Path:
     return dirpath
 
 
+OSWalkList = List[Tuple[str, List[str], List[str]]]
+
+
 @pytest.fixture
-def first_walk() -> list:
+def first_walk() -> OSWalkList:
     """Get os.walk list for initial state."""
     return list(os.walk("."))
 
@@ -133,20 +136,24 @@ def assert_debug_dir(
     return all_files
 
 
-def assert_versus_os_walk(first_walk: list, persisted_files: List[Path]) -> None:
-    """Check for persisted files."""
-    expected_files = [
+def os_walk_to_fpaths(os_walk: OSWalkList) -> list:
+    return [
         os.path.join(root, fname)
-        for root, _, filenames in first_walk
+        for root, _, filenames in os_walk
         for fname in filenames
     ]
-    expected_files.extend(str(f.resolve()) for f in persisted_files)
 
-    current_fpaths = [
-        os.path.abspath(os.path.join(root, fname))
-        for root, _, filenames in os.walk(".")
-        for fname in filenames
-    ]
+
+def assert_versus_os_walk(
+    first_walk: OSWalkList, persisted_files: List[Path], persisted_dirs: List[Path]
+) -> None:
+    """Check for persisted files."""
+    expected_files = os_walk_to_fpaths(first_walk)
+    expected_files.extend(str(f.resolve()) for f in persisted_files)
+    for dpath in persisted_dirs:  # add all files nested under each dir
+        expected_files.extend(os_walk_to_fpaths(list(os.walk(dpath))))
+
+    current_fpaths = os_walk_to_fpaths(list(os.walk(".")))
 
     # use sets for better diffs in pytest logs
     assert set(current_fpaths) - set(expected_files) == set()  # any extra?
@@ -161,7 +168,7 @@ async def test_000__txt(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -194,7 +201,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files, [])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -202,7 +209,7 @@ async def test_001__txt__str_filetype(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -235,7 +242,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files, [])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -243,7 +250,7 @@ async def test_100__json(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test a normal .json-based pilot."""
 
@@ -281,7 +288,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files, [])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -289,7 +296,7 @@ async def test_200__pickle(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test a normal .pkl-based pilot."""
 
@@ -327,7 +334,7 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files, [])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -335,7 +342,7 @@ async def test_300__writer_reader(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -376,7 +383,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files, [])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -384,7 +391,7 @@ async def test_400__exception(
     queue_incoming: str,
     queue_outgoing: str,
     # debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -424,7 +431,7 @@ async def test_400__exception(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_os_walk(first_walk, [])  # check for persisted files
+    assert_versus_os_walk(first_walk, [], ["./tmp"])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -432,7 +439,7 @@ async def test_401__exception_with_outwriting(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -475,7 +482,7 @@ raise ValueError('no good!')" """,  # double cat
         1,  # only 1 message was processed before error
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files, [])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -483,7 +490,7 @@ async def test_410__blackhole_quarantine(
     queue_incoming: str,
     queue_outgoing: str,
     # debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -524,7 +531,7 @@ async def test_410__blackhole_quarantine(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_os_walk(first_walk, [])  # check for persisted files
+    assert_versus_os_walk(first_walk, [], ["./tmp"])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -532,7 +539,7 @@ async def test_420__timeout(
     queue_incoming: str,
     queue_outgoing: str,
     # debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -571,7 +578,7 @@ async def test_420__timeout(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_os_walk(first_walk, [])  # check for persisted files
+    assert_versus_os_walk(first_walk, [], ["./tmp"])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -579,7 +586,7 @@ async def test_500__multitasking(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -622,7 +629,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files, [])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -630,7 +637,7 @@ async def test_510__multitasking_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: list,
+    first_walk: OSWalkList,
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -685,4 +692,4 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files, [])  # check for persisted files
