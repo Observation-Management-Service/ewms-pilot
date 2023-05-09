@@ -453,6 +453,8 @@ async def _consume_and_reply(
         LOGGER.warning("No Messages Were Received.")
 
     # cleanup
+    if not list(staging_dir.iterdir()):  # if empty
+        shutil.rmtree(staging_dir)  # rm -r
     if failed:
         raise RuntimeError(
             f"{len(failed)} Task(s) Failed: "
