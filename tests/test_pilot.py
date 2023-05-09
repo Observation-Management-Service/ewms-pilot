@@ -120,7 +120,7 @@ def assert_debug_dir(
     return all_files
 
 
-def assert_versus_first_walk(first_walk: list, persisted_files: List[Path]) -> None:
+def assert_versus_os_walk(first_walk: list, persisted_files: List[Path]) -> None:
     """Check for persisted files."""
     expected_files = [
         os.path.join(root, fname)
@@ -180,7 +180,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_001__txt__str_filetype(
@@ -220,7 +220,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_100__json(
@@ -265,7 +265,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_200__pickle(
@@ -310,7 +310,7 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_300__writer_reader(
@@ -358,7 +358,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_400__exception(
@@ -405,7 +405,7 @@ async def test_400__exception(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_first_walk(first_walk, [])  # check for persisted files
+    assert_versus_os_walk(first_walk, [])  # check for persisted files
 
 
 async def test_401__exception_with_outwriting(
@@ -455,7 +455,7 @@ raise ValueError('no good!')" """,  # double cat
         1,  # only 1 message was processed before error
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_410__blackhole_quarantine(
@@ -503,7 +503,7 @@ async def test_410__blackhole_quarantine(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_first_walk(first_walk, [])  # check for persisted files
+    assert_versus_os_walk(first_walk, [])  # check for persisted files
 
 
 async def test_420__timeout(
@@ -549,7 +549,7 @@ async def test_420__timeout(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_first_walk(first_walk, [])  # check for persisted files
+    assert_versus_os_walk(first_walk, [])  # check for persisted files
 
 
 async def test_500__multitasking(
@@ -599,7 +599,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_510__multitasking_exceptions(
@@ -661,4 +661,4 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
+    assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
