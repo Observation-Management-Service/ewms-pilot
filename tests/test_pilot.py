@@ -10,7 +10,7 @@ import time
 import uuid
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, Iterator, List, Tuple
+from typing import Any, List, Tuple
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -431,7 +431,7 @@ async def test_400__exception(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_os_walk(first_walk, [], ["./tmp"])  # check for persisted files
+    assert_versus_os_walk(first_walk, [], [Path("./tmp")])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -531,7 +531,7 @@ async def test_410__blackhole_quarantine(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_os_walk(first_walk, [], ["./tmp"])  # check for persisted files
+    assert_versus_os_walk(first_walk, [], [Path("./tmp")])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -578,7 +578,7 @@ async def test_420__timeout(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_os_walk(first_walk, [], ["./tmp"])  # check for persisted files
+    assert_versus_os_walk(first_walk, [], [Path("./tmp")])  # check for persisted files
 
 
 @pytest.mark.usefixtures("unique_pwd")
