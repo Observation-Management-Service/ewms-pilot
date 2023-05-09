@@ -95,7 +95,9 @@ def assert_debug_dir(
     ftype_to_subproc: FileType,
     n_tasks: int,
     files: List[str],
-) -> None:
+) -> List[Path]:
+    all_files = []
+
     assert len(list(debug_dir.iterdir())) == n_tasks
     for path in debug_dir.iterdir():
         assert path.is_dir()
@@ -114,14 +116,19 @@ def assert_debug_dir(
             these_files.append(f"out-{task_id}{ftype_to_subproc.value}")
         assert sorted(p.name for p in path.iterdir()) == sorted(these_files)
 
+        all_files.extend(list(path.iterdir()))
+    return all_files
 
-def assert_versus_first_walk(first_walk: list) -> None:
+
+def assert_versus_first_walk(first_walk: list, persisted_files: List[Path]) -> None:
     """Check for persisted files."""
-    first_fpaths = [
+    expected_files = [
         os.path.join(root, fname)
         for root, _, filenames in first_walk
         for fname in filenames
     ]
+    expected_files.extend(str(f.resolve()) for f in persisted_files)
+
     current_fpaths = [
         os.path.join(root, fname)
         for root, _, filenames in os.walk(".")
@@ -129,8 +136,8 @@ def assert_versus_first_walk(first_walk: list) -> None:
     ]
 
     # use sets for better diffs in pytest logs
-    assert set(current_fpaths) - set(first_fpaths) == set()  # any extra?
-    assert set(first_fpaths) - set(current_fpaths) == set()  # any missing?
+    assert set(current_fpaths) - set(expected_files) == set()  # any extra?
+    assert set(expected_files) - set(current_fpaths) == set()  # any missing?
 
 
 ########################################################################################
@@ -167,13 +174,13 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
     await assert_results(queue_outgoing, msgs_from_subproc)
-    assert_debug_dir(
+    debug_files = assert_debug_dir(
         debug_dir,
         FileType.TXT,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_001__txt__str_filetype(
@@ -207,13 +214,13 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
     await assert_results(queue_outgoing, msgs_from_subproc)
-    assert_debug_dir(
+    debug_files = assert_debug_dir(
         debug_dir,
         FileType.TXT,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_100__json(
@@ -252,13 +259,13 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_from_subproc)
-    assert_debug_dir(
+    debug_files = assert_debug_dir(
         debug_dir,
         FileType.JSON,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_200__pickle(
@@ -297,13 +304,13 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_from_subproc)
-    assert_debug_dir(
+    debug_files = assert_debug_dir(
         debug_dir,
         FileType.PKL,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_300__writer_reader(
@@ -345,13 +352,13 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
     await assert_results(queue_outgoing, msgs_from_subproc)
-    assert_debug_dir(
+    debug_files = assert_debug_dir(
         debug_dir,
         FileType.TXT,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_400__exception(
@@ -392,13 +399,13 @@ async def test_400__exception(
     assert time.time() - start_time <= 2  # no quarantine time
 
     await assert_results(queue_outgoing, [])
-    # assert_debug_dir(
+    # debug_files = assert_debug_dir(
     #     debug_dir,
     #     FileType.TXT,
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, [])  # check for persisted files
 
 
 async def test_401__exception_with_outwriting(
@@ -442,13 +449,13 @@ raise ValueError('no good!')" """,  # double cat
     assert time.time() - start_time <= 2  # no quarantine time
 
     await assert_results(queue_outgoing, [])
-    assert_debug_dir(
+    debug_files = assert_debug_dir(
         debug_dir,
         FileType.TXT,
         1,  # only 1 message was processed before error
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_410__blackhole_quarantine(
@@ -490,13 +497,13 @@ async def test_410__blackhole_quarantine(
     assert time.time() - start_time >= 20  # did quarantine_time work?
 
     await assert_results(queue_outgoing, [])
-    # assert_debug_dir(
+    # debug_files = assert_debug_dir(
     #     debug_dir,
     #     FileType.TXT,
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, [])  # check for persisted files
 
 
 async def test_420__timeout(
@@ -536,13 +543,13 @@ async def test_420__timeout(
     assert time.time() - start_time <= 5  # no quarantine time
 
     await assert_results(queue_outgoing, [])
-    # assert_debug_dir(
+    # debug_files = assert_debug_dir(
     #     debug_dir,
     #     FileType.TXT,
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, [])  # check for persisted files
 
 
 async def test_500__multitasking(
@@ -586,13 +593,13 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     assert time.time() - start_time < multitasking * len(msgs_to_subproc)
 
     await assert_results(queue_outgoing, msgs_from_subproc)
-    assert_debug_dir(
+    debug_files = assert_debug_dir(
         debug_dir,
         FileType.TXT,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
 
 
 async def test_510__multitasking_exceptions(
@@ -648,10 +655,10 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     assert time.time() - start_time < multitasking * len(msgs_to_subproc)
 
     await assert_results(queue_outgoing, [])
-    assert_debug_dir(
+    debug_files = assert_debug_dir(
         debug_dir,
         FileType.TXT,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
-    assert_versus_first_walk(first_walk)  # check for persisted files
+    assert_versus_first_walk(first_walk, debug_files)  # check for persisted files
