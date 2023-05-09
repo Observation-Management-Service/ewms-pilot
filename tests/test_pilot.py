@@ -129,7 +129,6 @@ def assert_debug_dir(
             these_files.remove("out")
             these_files.append(f"out-{task_id}{ftype_to_subproc.value}")
         assert sorted(p.name for p in path.iterdir()) == sorted(these_files)
-    return all_paths
 
 
 def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> List[str]:
