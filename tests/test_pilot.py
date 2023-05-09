@@ -7,6 +7,7 @@ import logging
 import os
 import re
 import time
+import uuid
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, List
@@ -28,6 +29,17 @@ def queue_incoming() -> str:
 
 
 @pytest.fixture
+def unique_pwd() -> None:
+    """Create unique directory and cd to it.
+
+    Enables tests to be ran in parallel without file conflicts.
+    """
+    root = Path(uuid.uuid4().hex)
+    root.mkdir()
+    os.chdir(root)
+
+
+@pytest.fixture
 def queue_outgoing() -> str:
     """Get the name of a queue for talking "from" client(s)."""
     return mq.Queue.make_name()
@@ -36,6 +48,7 @@ def queue_outgoing() -> str:
 @pytest.fixture
 def debug_dir() -> Path:
     """Make a unique debug directory and return its Path."""
+
     dirpath = Path(f"./debug-dir/{time.time()}")
     dirpath.mkdir(parents=True)
     return dirpath
@@ -143,6 +156,7 @@ def assert_versus_os_walk(first_walk: list, persisted_files: List[Path]) -> None
 ########################################################################################
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_000__txt(
     queue_incoming: str,
     queue_outgoing: str,
@@ -183,6 +197,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_001__txt__str_filetype(
     queue_incoming: str,
     queue_outgoing: str,
@@ -223,6 +238,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_100__json(
     queue_incoming: str,
     queue_outgoing: str,
@@ -268,6 +284,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_200__pickle(
     queue_incoming: str,
     queue_outgoing: str,
@@ -313,6 +330,7 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
     assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_300__writer_reader(
     queue_incoming: str,
     queue_outgoing: str,
@@ -361,6 +379,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_400__exception(
     queue_incoming: str,
     queue_outgoing: str,
@@ -408,6 +427,7 @@ async def test_400__exception(
     assert_versus_os_walk(first_walk, [])  # check for persisted files
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_401__exception_with_outwriting(
     queue_incoming: str,
     queue_outgoing: str,
@@ -458,6 +478,7 @@ raise ValueError('no good!')" """,  # double cat
     assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_410__blackhole_quarantine(
     queue_incoming: str,
     queue_outgoing: str,
@@ -506,6 +527,7 @@ async def test_410__blackhole_quarantine(
     assert_versus_os_walk(first_walk, [])  # check for persisted files
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_420__timeout(
     queue_incoming: str,
     queue_outgoing: str,
@@ -552,6 +574,7 @@ async def test_420__timeout(
     assert_versus_os_walk(first_walk, [])  # check for persisted files
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_500__multitasking(
     queue_incoming: str,
     queue_outgoing: str,
@@ -602,6 +625,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     assert_versus_os_walk(first_walk, debug_files)  # check for persisted files
 
 
+@pytest.mark.usefixtures("unique_pwd")
 async def test_510__multitasking_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
