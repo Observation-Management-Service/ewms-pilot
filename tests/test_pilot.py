@@ -154,8 +154,7 @@ def assert_versus_os_walk(first_walk: OSWalkList, persisted_dirs: List[Path]) ->
     current_fpaths = os_walk_to_flat_abspaths(list(os.walk(".")))
 
     # use sets for better diffs in pytest logs
-    assert set(current_fpaths) - set(expected_files) == set()  # any extra?
-    assert set(expected_files) - set(current_fpaths) == set()  # any missing?
+    assert set(current_fpaths) == set(expected_files)
 
 
 ########################################################################################
