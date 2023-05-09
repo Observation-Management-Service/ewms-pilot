@@ -142,7 +142,8 @@ def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> List[str]:
         for root, dirnames, _ in os_walk
         for dname in dirnames
     ]
-    return filepaths + dirpaths
+    rootpaths = [os.path.abspath(root) for root, _, _ in os_walk]
+    return sorted(set(filepaths + dirpaths + rootpaths))
 
 
 def assert_versus_os_walk(first_walk: OSWalkList, persisted_dirs: List[Path]) -> None:
@@ -463,7 +464,7 @@ async def test_400__exception(
             debug_dir,
             FileType.TXT,
             1,  # only 1 message was processed before error
-            ["in", "out", "stderrfile", "stdoutfile"],
+            ["in", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
