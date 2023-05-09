@@ -39,6 +39,12 @@ def debug_dir() -> Path:
     return dirpath
 
 
+@pytest.fixture
+def first_walk() -> list:
+    """Get os.walk list for initial state."""
+    return list(os.walk("."))
+
+
 async def populate_queue(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     msgs_to_subproc: list,
@@ -114,6 +120,7 @@ async def test_000__txt(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -146,12 +153,14 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
 
 
 async def test_001__txt__str_filetype(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -184,12 +193,14 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
 
 
 async def test_100__json(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .json-based pilot."""
 
@@ -227,12 +238,14 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
 
 
 async def test_200__pickle(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .pkl-based pilot."""
 
@@ -270,12 +283,14 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
 
 
 async def test_300__writer_reader(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -316,16 +331,16 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
 
 
 async def test_400__exception(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     # debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
-    first_walk = os.walk(".")
-
     msgs_to_subproc = ["foo", "bar", "baz"]
     # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
@@ -363,15 +378,14 @@ async def test_400__exception(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
-
-    # assert no files persisted
-    assert sorted(first_walk) == sorted(os.walk("."))
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
 
 
 async def test_401__exception_with_outwriting(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -414,12 +428,14 @@ raise ValueError('no good!')" """,  # double cat
         1,  # only 1 message was processed before error
         ["in", "out", "stderrfile", "stdoutfile"],
     )
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
 
 
 async def test_410__blackhole_quarantine(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     # debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -460,12 +476,14 @@ async def test_410__blackhole_quarantine(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
 
 
 async def test_420__timeout(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     # debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -504,12 +522,14 @@ async def test_420__timeout(
     #     [],
     #     ["in", "out", "stderrfile", "stdoutfile"],
     # )
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
 
 
 async def test_500__multitasking(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -552,12 +572,14 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
 
 
 async def test_510__multitasking_exceptions(
     queue_incoming: str,  # pylint: disable=redefined-outer-name
     queue_outgoing: str,  # pylint: disable=redefined-outer-name
     debug_dir: Path,  # pylint:disable=redefined-outer-name
+    first_walk: list,  # pylint:disable=redefined-outer-name
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -612,3 +634,4 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         len(msgs_from_subproc),
         ["in", "out", "stderrfile", "stdoutfile"],
     )
+    assert sorted(first_walk) == sorted(os.walk("."))  # assert no files persisted
