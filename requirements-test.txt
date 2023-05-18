@@ -33,7 +33,7 @@ pytest==7.3.1
     #   pytest-xdist
 pytest-asyncio==0.21.0
     # via ewms-pilot (setup.py)
-pytest-xdist==3.2.1
+pytest-xdist==3.3.0
     # via ewms-pilot (setup.py)
 requests==2.30.0
     # via wipac-dev-tools
