@@ -51,5 +51,12 @@ class EnvConfig:
                 # b/c frozen
                 object.__setattr__(self, "EWMS_PILOT_TASK_TIMEOUT", int(timeout))
 
+        if self.EWMS_PILOT_CONCURRENT_TASKS < 1:
+            LOGGER.warning(
+                f"Invalid value for 'EWMS_PILOT_CONCURRENT_TASKS' ({self.EWMS_PILOT_CONCURRENT_TASKS}),"
+                " defaulting to '1'."
+            )
+            object.__setattr__(self, "EWMS_PILOT_CONCURRENT_TASKS", 1)  # b/c frozen
+
 
 ENV = from_environment_as_dataclass(EnvConfig)
