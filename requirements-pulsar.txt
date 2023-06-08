@@ -16,13 +16,13 @@ idna==3.4
     # via requests
 oms-mqclient[pulsar]==2.1.0
     # via ewms-pilot (setup.py)
-pulsar-client==3.1.0
+pulsar-client==3.2.0
     # via oms-mqclient
-requests==2.30.0
+requests==2.31.0
     # via wipac-dev-tools
-typing-extensions==4.5.0
+typing-extensions==4.6.3
     # via wipac-dev-tools
-urllib3==2.0.2
+urllib3==2.0.3
     # via requests
-wipac-dev-tools==1.6.15
+wipac-dev-tools==1.6.16
     # via oms-mqclient
