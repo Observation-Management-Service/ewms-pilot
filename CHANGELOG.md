@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.10.3 (2023-06-08)
+
+### Other
+
+* Use `1` if `EWMS_PILOT_CONCURRENT_TASKS < 1` ([#40](https://github.com/Observation-Management-Service/ewms-pilot/issues/40)) ([`c046bf2`](https://github.com/Observation-Management-Service/ewms-pilot/commit/c046bf25d0910c7c422942725bcc2655b5a0a9b7))
+
 ## v0.10.2 (2023-05-09)
 ### Other
 * Cleanup Temp Files ([#35](https://github.com/Observation-Management-Service/ewms-pilot/issues/35)) ([`57e212d`](https://github.com/Observation-Management-Service/ewms-pilot/commit/57e212d6fd25bc5723c1fc80cee503374f858374))
