@@ -133,7 +133,7 @@ def mv_or_rm_file(src: Path, dest: Optional[Path]) -> None:
     if dest:
         # src.rename(dest / src.name)  # mv
         # NOTE: https://github.com/python/cpython/pull/30650
-        shutil.move(src, dest / src.name)
+        shutil.move(str(src), str(dest / src.name))  # py 3.6 requires strs
     else:
         src.unlink()  # rm
 
