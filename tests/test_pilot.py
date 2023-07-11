@@ -172,7 +172,7 @@ async def test_000__txt(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -194,12 +194,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_outgoing, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            len(msgs_from_subproc),
+            len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -220,7 +220,7 @@ async def test_001__txt__str_filetype(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -242,12 +242,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_outgoing, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            len(msgs_from_subproc),
+            len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -270,7 +270,9 @@ async def test_100__json(
 
     # some messages that would make sense json'ing
     msgs_to_subproc = [{"attr-0": v} for v in ["foo", "bar", "baz"]]
-    msgs_from_subproc = [{"attr-a": v, "attr-b": v + v} for v in ["foo", "bar", "baz"]]
+    msgs_outgoing_expected = [
+        {"attr-a": v, "attr-b": v + v} for v in ["foo", "bar", "baz"]
+    ]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -295,12 +297,12 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
         ),
     )
 
-    await assert_results(queue_outgoing, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
             FileType.JSON,
-            len(msgs_from_subproc),
+            len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -323,7 +325,7 @@ async def test_200__pickle(
 
     # some messages that would make sense pickling
     msgs_to_subproc = [date(1995, 12, 3), date(2022, 9, 29), date(2063, 4, 5)]
-    msgs_from_subproc = [d + timedelta(days=1) for d in msgs_to_subproc]
+    msgs_outgoing_expected = [d + timedelta(days=1) for d in msgs_to_subproc]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -348,12 +350,12 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
         ),
     )
 
-    await assert_results(queue_outgoing, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
             FileType.PKL,
-            len(msgs_from_subproc),
+            len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -374,7 +376,11 @@ async def test_300__writer_reader(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["output: oofoof\n", "output: rabrab\n", "output: zabzab\n"]
+    msgs_outgoing_expected = [
+        "output: oofoof\n",
+        "output: rabrab\n",
+        "output: zabzab\n",
+    ]
 
     def reverse_writer(text: Any, fpath: Path) -> None:
         with open(fpath, "w") as f:
@@ -404,12 +410,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         ),
     )
 
-    await assert_results(queue_outgoing, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            len(msgs_from_subproc),
+            len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -430,7 +436,7 @@ async def test_400__exception(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    # msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     start_time = time.time()
 
@@ -485,7 +491,7 @@ async def test_410__blackhole_quarantine(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    # msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     start_time = time.time()
 
@@ -541,7 +547,7 @@ async def test_420__timeout(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    # msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    # msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     start_time = time.time()
 
@@ -595,7 +601,7 @@ async def test_500__multitasking(
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     multitasking = 4
     start_time = time.time()
@@ -627,12 +633,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     print(time.time() - start_time)
     assert time.time() - start_time < multitasking * len(msgs_to_subproc)
 
-    await assert_results(queue_outgoing, msgs_from_subproc)
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            len(msgs_from_subproc),
+            len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -653,7 +659,7 @@ async def test_510__multitasking_exceptions(
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_from_subproc = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     multitasking = 4
     start_time = time.time()
@@ -702,7 +708,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            len(msgs_from_subproc),
+            len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
