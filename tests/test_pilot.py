@@ -717,3 +717,128 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         first_walk,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
+
+
+@pytest.mark.usefixtures("unique_pwd")
+@pytest.mark.parametrize("use_debug_dir", [True, False])
+async def test_520__preload_multitasking(
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: OSWalkList,
+    use_debug_dir: bool,
+) -> None:
+    """Test multitasking within the pilot."""
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+
+    multitasking = 4
+    start_time = time.time()
+
+    await populate_queue(queue_incoming, msgs_to_subproc)
+
+    await consume_and_reply(
+        cmd="""python3 -c "
+import time
+output = open('{{INFILE}}').read().strip() * 2;
+time.sleep(5)
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+        # broker_client=,  # rely on env var
+        # broker_address=,  # rely on env var
+        # auth_token="",
+        queue_incoming=queue_incoming,
+        queue_outgoing=queue_outgoing,
+        ftype_to_subproc=FileType.TXT,
+        ftype_from_subproc=FileType.TXT,
+        # file_writer=UniversalFileInterface.write, # see other tests
+        # file_reader=UniversalFileInterface.read, # see other tests
+        timeout_incoming=5,  # TODO: remove?
+        debug_dir=debug_dir if use_debug_dir else None,
+        multitasking=multitasking,
+    )
+
+    # it should've take ~5 seconds to complete all tasks
+    print(time.time() - start_time)
+    assert time.time() - start_time < multitasking * len(msgs_to_subproc)
+
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
+    if use_debug_dir:
+        assert_debug_dir(
+            debug_dir,
+            FileType.TXT,
+            len(msgs_outgoing_expected),
+            ["in", "out", "stderrfile", "stdoutfile"],
+        )
+    # check for persisted files
+    assert_versus_os_walk(
+        first_walk,
+        [debug_dir if use_debug_dir else Path("./tmp")],
+    )
+
+
+@pytest.mark.usefixtures("unique_pwd")
+@pytest.mark.parametrize("use_debug_dir", [True, False])
+async def test_530__preload_multitasking_exceptions(
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: OSWalkList,
+    use_debug_dir: bool,
+) -> None:
+    """Test multitasking within the pilot."""
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+
+    multitasking = 4
+    start_time = time.time()
+
+    await populate_queue(queue_incoming, msgs_to_subproc)
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"3 Task\(s\) Failed: "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
+        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\]",
+    ) as e:
+        await consume_and_reply(
+            cmd="""python3 -c "
+import time
+output = open('{{INFILE}}').read().strip() * 2;
+time.sleep(5)
+print(output, file=open('{{OUTFILE}}','w'))
+raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            ftype_to_subproc=FileType.TXT,
+            ftype_from_subproc=FileType.TXT,
+            # file_writer=UniversalFileInterface.write, # see other tests
+            # file_reader=UniversalFileInterface.read, # see other tests
+            debug_dir=debug_dir if use_debug_dir else None,
+            multitasking=multitasking,
+        )
+    # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
+    assert str(e.value).count("ValueError: gotta fail: foofoo") == 1
+    assert str(e.value).count("ValueError: gotta fail: barbar") == 1
+    assert str(e.value).count("ValueError: gotta fail: bazbaz") == 1
+
+    # it should've take ~5 seconds to complete all tasks
+    print(time.time() - start_time)
+    assert time.time() - start_time < multitasking * len(msgs_to_subproc)
+
+    await assert_results(queue_outgoing, [])
+    if use_debug_dir:
+        assert_debug_dir(
+            debug_dir,
+            FileType.TXT,
+            len(msgs_outgoing_expected),
+            ["in", "out", "stderrfile", "stdoutfile"],
+        )
+    # check for persisted files
+    assert_versus_os_walk(
+        first_walk,
+        [debug_dir if use_debug_dir else Path("./tmp")],
+    )

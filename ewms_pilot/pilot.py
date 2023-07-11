@@ -394,7 +394,7 @@ async def _consume_and_reply(
                 total_msg_count += 1
                 LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
 
-                await asyncio.sleep(0.1)
+                await asyncio.sleep(0)  # TODO: remove
 
                 if total_msg_count == 1:
                     utils.chirp_status("Tasking")
