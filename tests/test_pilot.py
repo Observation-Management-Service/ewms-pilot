@@ -83,7 +83,7 @@ async def populate_queue(
 
 async def assert_results(
     queue_outgoing: str,
-    msgs_from_subproc: list,
+    msgs_expected: list,
 ) -> None:
     """Get messages and assert against expected results."""
     from_client_q = mq.Queue(
@@ -97,13 +97,13 @@ async def assert_results(
             print(f"{i}: {msg}")
             received.append(msg)
 
-    assert len(received) == len(msgs_from_subproc)
+    assert len(received) == len(msgs_expected)
 
     # check each entry (special handling for dict-types b/c not hashable)
-    if msgs_from_subproc and isinstance(msgs_from_subproc[0], dict):
-        assert set(str(r) for r in received) == set(str(m) for m in msgs_from_subproc)
+    if msgs_expected and isinstance(msgs_expected[0], dict):
+        assert set(str(r) for r in received) == set(str(m) for m in msgs_expected)
     else:
-        assert set(received) == set(msgs_from_subproc)
+        assert set(received) == set(msgs_expected)
 
 
 def assert_debug_dir(
