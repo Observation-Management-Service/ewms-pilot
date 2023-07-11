@@ -8,19 +8,19 @@ certifi==2023.5.7
     # via
     #   pulsar-client
     #   requests
-charset-normalizer==3.1.0
+charset-normalizer==3.2.0
     # via requests
 htchirp==2.0
     # via ewms-pilot (setup.py)
 idna==3.4
     # via requests
-oms-mqclient[pulsar]==2.1.0
+oms-mqclient[pulsar]==2.3.0
     # via ewms-pilot (setup.py)
-pulsar-client==3.2.0
+pulsar-client==3.1.0
     # via oms-mqclient
 requests==2.31.0
     # via wipac-dev-tools
-typing-extensions==4.6.3
+typing-extensions==4.7.1
     # via wipac-dev-tools
 urllib3==2.0.3
     # via requests
