@@ -384,11 +384,12 @@ async def _consume_and_reply(
     LOGGER.info(
         "Listening for messages from server to process tasks then send results..."
     )
+    # open pub
     async with out_queue.open_pub() as pub:
-
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
-        async with in_queue.open_sub_manual_acking(multitasking) as sub:
-
+        # open sub
+        async with in_queue.open_sub_manual_acking() as sub:
+            # get messages/tasks
             async for in_msg in sub.iter_messages():
                 total_msg_count += 1
                 LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
