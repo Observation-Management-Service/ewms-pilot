@@ -592,7 +592,7 @@ async def test_420__timeout(
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_500__multitasking(
+async def test_500__concurrent_load_multitasking(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
@@ -651,7 +651,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_510__multitasking_exceptions(
+async def test_510__concurrent_load_multitasking_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
