@@ -624,7 +624,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             ftype_from_subproc=FileType.TXT,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
-            timeout_incoming=5,  # TODO: remove?
             debug_dir=debug_dir if use_debug_dir else None,
             multitasking=multitasking,
         ),
