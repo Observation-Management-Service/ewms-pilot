@@ -268,7 +268,7 @@ async def consume_and_reply(
         broker_client,
         address=broker_address,
         name=queue_incoming,
-        prefetch=multitasking - 2,
+        prefetch=multitasking - 1,
         auth_token=auth_token,
         except_errors=_EXCEPT_ERRORS,
         # timeout=timeout_incoming, # manually set below
