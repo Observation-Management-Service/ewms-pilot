@@ -16,6 +16,7 @@ import asyncstdlib as asl
 import mqclient as mq
 import pytest
 from ewms_pilot import FileType, config, consume_and_reply
+from ewms_pilot.pilot import _DEFAULT_PREFETCH
 
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger("mqclient").setLevel(logging.INFO)
@@ -590,20 +591,24 @@ async def test_420__timeout(
     )
 
 
+MULTITASKING = 4
+
+
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
+@pytest.mark.parametrize("prefetch", [_DEFAULT_PREFETCH, 0, 1, 2, MULTITASKING - 1, 77])
 async def test_500__concurrent_load_multitasking(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
+    prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
-    multitasking = 4
     start_time = time.time()
 
     # run producer & consumer concurrently
@@ -622,16 +627,17 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.TXT,
             ftype_from_subproc=FileType.TXT,
+            prefetch=prefetch,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
-            multitasking=multitasking,
+            multitasking=MULTITASKING,
         ),
     )
 
     # it should've take ~5 seconds to complete all tasks
     print(time.time() - start_time)
-    assert time.time() - start_time < multitasking * len(msgs_to_subproc)
+    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc)
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
@@ -650,18 +656,19 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
+@pytest.mark.parametrize("prefetch", [_DEFAULT_PREFETCH, 0, 1, 2, MULTITASKING - 1, 77])
 async def test_510__concurrent_load_multitasking_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
+    prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
-    multitasking = 4
     start_time = time.time()
 
     # run producer & consumer concurrently
@@ -688,10 +695,11 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 queue_outgoing=queue_outgoing,
                 ftype_to_subproc=FileType.TXT,
                 ftype_from_subproc=FileType.TXT,
+                prefetch=prefetch,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
-                multitasking=multitasking,
+                multitasking=MULTITASKING,
             ),
         )
     # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
@@ -701,7 +709,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 
     # it should've take ~5 seconds to complete all tasks
     print(time.time() - start_time)
-    assert time.time() - start_time < multitasking * len(msgs_to_subproc)
+    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc)
 
     await assert_results(queue_outgoing, [])
     if use_debug_dir:
@@ -720,18 +728,19 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
+@pytest.mark.parametrize("prefetch", [_DEFAULT_PREFETCH, 0, 1, 2, MULTITASKING - 1, 77])
 async def test_520__preload_multitasking(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
+    prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
-    multitasking = 4
     start_time = time.time()
 
     await populate_queue(queue_incoming, msgs_to_subproc)
@@ -749,16 +758,16 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         queue_outgoing=queue_outgoing,
         ftype_to_subproc=FileType.TXT,
         ftype_from_subproc=FileType.TXT,
+        prefetch=prefetch,
         # file_writer=UniversalFileInterface.write, # see other tests
         # file_reader=UniversalFileInterface.read, # see other tests
-        timeout_incoming=5,  # TODO: remove?
         debug_dir=debug_dir if use_debug_dir else None,
-        multitasking=multitasking,
+        multitasking=MULTITASKING,
     )
 
     # it should've take ~5 seconds to complete all tasks
     print(time.time() - start_time)
-    assert time.time() - start_time < multitasking * len(msgs_to_subproc)
+    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc)
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
@@ -777,18 +786,19 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
+@pytest.mark.parametrize("prefetch", [_DEFAULT_PREFETCH, 0, 1, 2, MULTITASKING - 1, 77])
 async def test_530__preload_multitasking_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
+    prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
-    multitasking = 4
     start_time = time.time()
 
     await populate_queue(queue_incoming, msgs_to_subproc)
@@ -814,10 +824,11 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.TXT,
             ftype_from_subproc=FileType.TXT,
+            prefetch=prefetch,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
-            multitasking=multitasking,
+            multitasking=MULTITASKING,
         )
     # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
     assert str(e.value).count("ValueError: gotta fail: foofoo") == 1
@@ -826,7 +837,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 
     # it should've take ~5 seconds to complete all tasks
     print(time.time() - start_time)
-    assert time.time() - start_time < multitasking * len(msgs_to_subproc)
+    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc)
 
     await assert_results(queue_outgoing, [])
     if use_debug_dir:
