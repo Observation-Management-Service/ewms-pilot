@@ -229,7 +229,7 @@ async def consume_and_reply(
     broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
     auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
     #
-    prefetch: int = _DEFAULT_PREFETCH,
+    prefetch: int = ENV.EWMS_PILOT_PREFETCH,
     #
     timeout_wait_for_first_message: Optional[int] = None,
     timeout_incoming: int = _DEFAULT_TIMEOUT_INCOMING,

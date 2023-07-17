@@ -37,6 +37,7 @@ class EnvConfig:
     EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
     EWMS_PILOT_CONCURRENT_TASKS: int = 1
+    EWMS_PILOT_PREFETCH: int = 0  # off by default -- prefetch is an optimization
 
     def __post_init__(self) -> None:
         if timeout := os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT"):

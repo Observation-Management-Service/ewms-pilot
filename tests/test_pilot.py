@@ -16,7 +16,7 @@ import asyncstdlib as asl
 import mqclient as mq
 import pytest
 from ewms_pilot import FileType, config, consume_and_reply
-from ewms_pilot.pilot import _DEFAULT_PREFETCH
+from ewms_pilot.config import ENV
 
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger("mqclient").setLevel(logging.INFO)
@@ -592,11 +592,25 @@ async def test_420__timeout(
 
 
 MULTITASKING = 4
+PREFETCH_TEST_PARAMETERS = sorted(
+    set(
+        [
+            ENV.EWMS_PILOT_PREFETCH,
+            0,
+            1,
+            2,
+            MULTITASKING - 1,
+            MULTITASKING,
+            MULTITASKING + 1,
+            77,
+        ]
+    )
+)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-@pytest.mark.parametrize("prefetch", [_DEFAULT_PREFETCH, 0, 1, 2, MULTITASKING - 1, 77])
+@pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_500__concurrent_load_multitasking(
     queue_incoming: str,
     queue_outgoing: str,
@@ -656,7 +670,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-@pytest.mark.parametrize("prefetch", [_DEFAULT_PREFETCH, 0, 1, 2, MULTITASKING - 1, 77])
+@pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_510__concurrent_load_multitasking_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
@@ -728,7 +742,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-@pytest.mark.parametrize("prefetch", [_DEFAULT_PREFETCH, 0, 1, 2, MULTITASKING - 1, 77])
+@pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_520__preload_multitasking(
     queue_incoming: str,
     queue_outgoing: str,
@@ -786,7 +800,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-@pytest.mark.parametrize("prefetch", [_DEFAULT_PREFETCH, 0, 1, 2, MULTITASKING - 1, 77])
+@pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_530__preload_multitasking_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
