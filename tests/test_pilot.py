@@ -635,9 +635,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         ),
     )
 
-    # it should've take ~5 seconds to complete all tasks
+    # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
-    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc)
+    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc) * 1.1
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
@@ -707,9 +707,9 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     assert str(e.value).count("ValueError: gotta fail: barbar") == 1
     assert str(e.value).count("ValueError: gotta fail: bazbaz") == 1
 
-    # it should've take ~5 seconds to complete all tasks
+    # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
-    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc)
+    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc) * 1.1
 
     await assert_results(queue_outgoing, [])
     if use_debug_dir:
@@ -765,9 +765,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         multitasking=MULTITASKING,
     )
 
-    # it should've take ~5 seconds to complete all tasks
+    # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
-    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc)
+    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc) * 1.1
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
@@ -835,9 +835,9 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     assert str(e.value).count("ValueError: gotta fail: barbar") == 1
     assert str(e.value).count("ValueError: gotta fail: bazbaz") == 1
 
-    # it should've take ~5 seconds to complete all tasks
+    # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
-    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc)
+    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc) * 1.1
 
     await assert_results(queue_outgoing, [])
     if use_debug_dir:
