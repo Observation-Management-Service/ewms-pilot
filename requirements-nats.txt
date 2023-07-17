@@ -18,7 +18,7 @@ nats-py[nkeys]==2.3.1
     # via oms-mqclient
 nkeys==0.1.0
     # via nats-py
-oms-mqclient[nats]==2.3.1
+oms-mqclient[nats]==2.3.2
     # via ewms-pilot (setup.py)
 requests==2.31.0
     # via wipac-dev-tools
