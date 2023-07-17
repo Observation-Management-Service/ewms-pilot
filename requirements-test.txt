@@ -8,11 +8,11 @@ asyncstdlib==3.10.8
     # via ewms-pilot (setup.py)
 certifi==2023.5.7
     # via requests
-charset-normalizer==3.1.0
+charset-normalizer==3.2.0
     # via requests
-exceptiongroup==1.1.1
+exceptiongroup==1.1.2
     # via pytest
-execnet==1.9.0
+execnet==2.0.2
     # via pytest-xdist
 htchirp==2.0
     # via ewms-pilot (setup.py)
@@ -20,18 +20,18 @@ idna==3.4
     # via requests
 iniconfig==2.0.0
     # via pytest
-oms-mqclient==2.1.0
+oms-mqclient==2.3.2
     # via ewms-pilot (setup.py)
 packaging==23.1
     # via pytest
-pluggy==1.0.0
+pluggy==1.2.0
     # via pytest
-pytest==7.3.1
+pytest==7.4.0
     # via
     #   ewms-pilot (setup.py)
     #   pytest-asyncio
     #   pytest-xdist
-pytest-asyncio==0.21.0
+pytest-asyncio==0.21.1
     # via ewms-pilot (setup.py)
 pytest-xdist==3.3.1
     # via ewms-pilot (setup.py)
@@ -39,7 +39,7 @@ requests==2.31.0
     # via wipac-dev-tools
 tomli==2.0.1
     # via pytest
-typing-extensions==4.6.3
+typing-extensions==4.7.1
     # via wipac-dev-tools
 urllib3==2.0.3
     # via requests

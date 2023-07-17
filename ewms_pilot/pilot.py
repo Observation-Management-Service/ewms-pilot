@@ -27,7 +27,7 @@ _EXCEPT_ERRORS = False
 
 _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
-_DEFAULT_PREFETCH = 1
+_DEFAULT_PREFETCH = 0
 
 # addl time to add to `mq.Queue.ack_timeout` for non-subproc activities
 _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME = 10  # second  # this is more than enough
@@ -133,7 +133,7 @@ def mv_or_rm_file(src: Path, dest: Optional[Path]) -> None:
     if dest:
         # src.rename(dest / src.name)  # mv
         # NOTE: https://github.com/python/cpython/pull/30650
-        shutil.move(src, dest / src.name)
+        shutil.move(str(src), str(dest / src.name))  # py 3.6 requires strs
     else:
         src.unlink()  # rm
 
@@ -229,7 +229,7 @@ async def consume_and_reply(
     broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
     auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
     #
-    prefetch: int = _DEFAULT_PREFETCH,
+    prefetch: int = ENV.EWMS_PILOT_PREFETCH,
     #
     timeout_wait_for_first_message: Optional[int] = None,
     timeout_incoming: int = _DEFAULT_TIMEOUT_INCOMING,
@@ -384,11 +384,12 @@ async def _consume_and_reply(
     LOGGER.info(
         "Listening for messages from server to process tasks then send results..."
     )
+    # open pub
     async with out_queue.open_pub() as pub:
-
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
-        async with in_queue.open_sub_manual_acking(multitasking) as sub:
-
+        # open sub
+        async with in_queue.open_sub_manual_acking() as sub:
+            # get messages/tasks
             async for in_msg in sub.iter_messages():
                 total_msg_count += 1
                 LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
