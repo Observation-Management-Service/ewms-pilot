@@ -27,7 +27,6 @@ _EXCEPT_ERRORS = False
 
 _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
-_DEFAULT_PREFETCH = 0
 
 # addl time to add to `mq.Queue.ack_timeout` for non-subproc activities
 _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME = 10  # second  # this is more than enough
@@ -524,7 +523,7 @@ def main() -> None:
     )
     parser.add_argument(
         "--prefetch",
-        default=_DEFAULT_PREFETCH,
+        default=ENV.EWMS_PILOT_PREFETCH,
         type=int,
         help="prefetch for incoming messages",
     )
