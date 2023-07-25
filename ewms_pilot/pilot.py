@@ -10,7 +10,7 @@ import shlex
 import shutil
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Set, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message
@@ -316,6 +316,8 @@ async def _wait_on_tasks_with_ack(
     tasks: AsyncioTaskMessages,
     return_when_all_done: bool,
     previous_failed: AsyncioTaskMessages,
+    # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
+    rabbitmq_raw_queues: Optional[List[mq.broker_clients.rabbitmq.RabbitMQ]] = None,
 ) -> Tuple[AsyncioTaskMessages, AsyncioTaskMessages]:
     """Get finished tasks and ack/nack their messages.
 
@@ -329,7 +331,12 @@ async def _wait_on_tasks_with_ack(
     while pending:
         # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
 
-        # TODO: alert rabbitmq
+        # alert rabbitmq  # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
+        if rabbitmq_raw_queues:
+            for raw_q in rabbitmq_raw_queues:
+                if raw_q.connection:
+                    LOGGER.info("sending heartbeat to RabbitMQ broker...")
+                    raw_q.connection.process_data_events()
 
         # wait for next task
         done, pending = await asyncio.wait(
@@ -442,6 +449,12 @@ async def _consume_and_reply(
                         pending,
                         return_when_all_done=False,
                         previous_failed=failed,
+                        # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
+                        rabbitmq_raw_queues=(
+                            [pub.pub] + list(sub._subs.keys())  # type: ignore[arg-type]
+                            if in_queue._broker_client.NAME.lower() == "rabbitmq"
+                            else None
+                        ),
                     )
                     # after the first set of messages, set the timeout to the "normal" amount
                     if in_queue.timeout != timeout_incoming:
@@ -462,6 +475,12 @@ async def _consume_and_reply(
                     pending,
                     return_when_all_done=True,
                     previous_failed=failed,
+                    # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
+                    rabbitmq_raw_queues=(
+                        [pub.pub] + list(sub._subs.keys())  # type: ignore[arg-type]
+                        if in_queue._broker_client.NAME.lower() == "rabbitmq"
+                        else None
+                    ),
                 )
                 if pending:
                     LOGGER.error(f"{len(pending)} tasks are pending after finish")
