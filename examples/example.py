@@ -2,6 +2,7 @@
 
 
 import asyncio
+import logging
 from pathlib import Path
 
 import mqclient as mq
@@ -62,6 +63,8 @@ time.sleep(5)
 
 
 if __name__ == "__main__":
+    logging.getLogger().setLevel("DEBUG")
+
     asyncio.run(
         main(
             mq.Queue.make_name(),
