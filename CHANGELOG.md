@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.11.2 (2023-07-25)
+
+### Other
+
+* Bump Dependencies ([#43](https://github.com/Observation-Management-Service/ewms-pilot/issues/43)) ([`b988260`](https://github.com/Observation-Management-Service/ewms-pilot/commit/b9882604985871a3c2ba0b35d52c4aa1e1b16020))
+
 ## v0.11.1 (2023-07-17)
 
 ### Other
