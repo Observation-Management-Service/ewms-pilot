@@ -2,7 +2,6 @@
 
 
 import asyncio
-import logging
 from pathlib import Path
 
 import mqclient as mq
