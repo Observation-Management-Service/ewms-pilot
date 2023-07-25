@@ -311,7 +311,7 @@ async def consume_and_reply(
         raise
 
 
-async def _ack_nack_finished_tasks(
+async def _wait_on_tasks_with_ack(
     sub: mq.queue.ManualQueueSubResource,
     tasks: AsyncioTaskMessages,
     return_when: str,
@@ -415,7 +415,7 @@ async def _consume_and_reply(
                 # if we've met max concurrent tasks, wait for the next one to finish
                 while len(pending) >= multitasking:
                     LOGGER.info("Reached max task concurrency limit, waiting...")
-                    pending, failed = await _ack_nack_finished_tasks(
+                    pending, failed = await _wait_on_tasks_with_ack(
                         sub,
                         pending,
                         return_when=asyncio.FIRST_COMPLETED,
@@ -435,7 +435,7 @@ async def _consume_and_reply(
             # wait for remaining tasks
             if pending:
                 LOGGER.info("Waiting for remaining tasks to finish...")
-                pending, failed = await _ack_nack_finished_tasks(
+                pending, failed = await _wait_on_tasks_with_ack(
                     sub,
                     pending,
                     return_when=asyncio.ALL_COMPLETED,
