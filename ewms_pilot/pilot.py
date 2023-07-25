@@ -340,7 +340,7 @@ async def _wait_on_tasks_with_ack(
         await asyncio.sleep(1.0 if not ENV.CI_TEST else 0)
 
         # handle finished task
-        if task.done:
+        if task.done():
             if task.exception():
                 await sub.nack(msg)
                 previous_failed[task] = msg
