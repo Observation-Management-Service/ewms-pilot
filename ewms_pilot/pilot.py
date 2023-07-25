@@ -317,7 +317,7 @@ async def _wait_on_tasks_with_ack(
     return_when_all_done: bool,
     previous_failed: AsyncioTaskMessages,
     # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-    rabbitmq_raw_queues: Optional[List[mq.broker_clients.rabbitmq.RabbitMQ]] = None,
+    rabbitmq_raw_queues: Optional[List["mq.broker_clients.rabbitmq.RabbitMQ"]] = None,
 ) -> Tuple[AsyncioTaskMessages, AsyncioTaskMessages]:
     """Get finished tasks and ack/nack their messages.
 
