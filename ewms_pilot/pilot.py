@@ -10,7 +10,7 @@ import shlex
 import shutil
 import uuid
 from pathlib import Path
-from typing import Any, Callable, Dict, Optional, Tuple, Union
+from typing import Any, Callable, Dict, Optional, Set, Tuple, Union
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message
@@ -314,7 +314,7 @@ async def consume_and_reply(
 async def _wait_on_tasks_with_ack(
     sub: mq.queue.ManualQueueSubResource,
     tasks: AsyncioTaskMessages,
-    return_when: str,
+    return_when_all_done: bool,
     previous_failed: AsyncioTaskMessages,
 ) -> Tuple[AsyncioTaskMessages, AsyncioTaskMessages]:
     """Get finished tasks and ack/nack their messages.
@@ -324,20 +324,39 @@ async def _wait_on_tasks_with_ack(
             AsyncioTaskMessages: pending tasks and
             AsyncioTaskMessages: failed tasks (plus those in `previous_failed`)
     """
-    done, pending = await asyncio.wait(tasks.keys(), return_when=return_when)
+    done: Set[asyncio.Task] = set()  # type: ignore[type-arg]
+
+    for task, msg in tasks.items():
+        # time to exit?
+        if not return_when_all_done and done:
+            # like return_when=asyncio.FIRST_COMPLETED
+            break
+        elif return_when_all_done and len(done) == len(tasks):
+            # like return_when=asyncio.ALL_COMPLETED
+            break
+        elif task in done:
+            continue
+
+        await asyncio.sleep(1.0 if not ENV.CI_TEST else 0)
+
+        # handle finished task
+        if task.done:
+            if task.exception():
+                await sub.nack(msg)
+                previous_failed[task] = msg
+                LOGGER.error("Task failed:")
+                LOGGER.error(_task_exception_str(task))
+            else:
+                LOGGER.info("Task finished successfully")
+                await sub.ack(msg)
+            done.add(task)
+
+        # TODO: alert rabbitmq
+
     LOGGER.info(f"{len(done)} Tasks Finished")
 
-    for task in done:
-        if task.exception():
-            await sub.nack(tasks[task])
-            previous_failed[task] = tasks[task]
-            LOGGER.error("Task failed:")
-            LOGGER.error(_task_exception_str(task))
-        else:
-            await sub.ack(tasks[task])
-
     return (
-        {t: tasks[t] for t in pending},
+        {t: msg for t, msg in tasks.items() if t not in done},
         previous_failed,
     )
 
@@ -418,7 +437,7 @@ async def _consume_and_reply(
                     pending, failed = await _wait_on_tasks_with_ack(
                         sub,
                         pending,
-                        return_when=asyncio.FIRST_COMPLETED,
+                        return_when_all_done=False,
                         previous_failed=failed,
                     )
                     # after the first set of messages, set the timeout to the "normal" amount
@@ -438,7 +457,7 @@ async def _consume_and_reply(
                 pending, failed = await _wait_on_tasks_with_ack(
                     sub,
                     pending,
-                    return_when=asyncio.ALL_COMPLETED,
+                    return_when_all_done=True,
                     previous_failed=failed,
                 )
                 if pending:

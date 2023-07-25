@@ -39,6 +39,8 @@ class EnvConfig:
     EWMS_PILOT_CONCURRENT_TASKS: int = 1
     EWMS_PILOT_PREFETCH: int = 1  # off by default -- prefetch is an optimization
 
+    CI_TEST: bool = False
+
     def __post_init__(self) -> None:
         if timeout := os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT"):
             LOGGER.warning(
