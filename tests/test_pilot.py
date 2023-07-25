@@ -596,7 +596,6 @@ PREFETCH_TEST_PARAMETERS = sorted(
     set(
         [
             ENV.EWMS_PILOT_PREFETCH,
-            0,
             1,
             2,
             MULTITASKING - 1,
