@@ -324,45 +324,42 @@ async def _wait_on_tasks_with_ack(
             AsyncioTaskMessages: pending tasks and
             AsyncioTaskMessages: failed tasks (plus those in `previous_failed`)
     """
-    done: Set[asyncio.Task] = set()  # type: ignore[type-arg]
+    pending: Set[asyncio.Task] = set(tasks.keys())  # type: ignore[type-arg]
 
-    async def accumulate_done_tasks() -> bool:
-        """Return 'True' when enough tasks are done."""
-        for task, msg in tasks.items():
-            # time to exit?
-            if not return_when_all_done and done:
-                # like return_when=asyncio.FIRST_COMPLETED
-                return True
-            elif return_when_all_done and len(done) == len(tasks):
-                # like return_when=asyncio.ALL_COMPLETED
-                return True
-            elif task in done:
-                continue
+    while pending:
+        # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
 
-            # handle finished task
-            if task.done():
-                if task.exception():
-                    await sub.nack(msg)
-                    previous_failed[task] = msg
-                    LOGGER.error("Task failed:")
-                    LOGGER.error(_task_exception_str(task))
-                else:
-                    LOGGER.info("Task finished successfully")
-                    await sub.ack(msg)
-                done.add(task)
-
-        return False
-
-    while True:
-        await asyncio.sleep(1.0 if not ENV.CI_TEST else 0)
         # TODO: alert rabbitmq
-        if await accumulate_done_tasks():
+
+        # wait for next task
+        done, pending = await asyncio.wait(
+            pending,
+            return_when=asyncio.FIRST_COMPLETED,
+            timeout=1.0,
+        )
+
+        # handle finished tasks
+        for task in done:  # fyi, should just be one task in here max
+            if task.exception():
+                await sub.nack(tasks[task])
+                previous_failed[task] = tasks[task]
+                LOGGER.error("Task failed:")
+                LOGGER.error(_task_exception_str(task))
+            else:
+                LOGGER.info("Task finished successfully")
+                await sub.ack(tasks[task])
+
+        # early exit?
+        if not return_when_all_done and done:
+            # like return_when=asyncio.FIRST_COMPLETED
             break
 
-    LOGGER.info(f"{len(done)} Tasks Finished")
+    LOGGER.info(f"{len(tasks)-len(pending)} Tasks Finished")
 
     return (
-        {t: msg for t, msg in tasks.items() if t not in done},
+        # this is empty if return_when_all_done
+        {t: msg for t, msg in tasks.items() if t in pending},
+        # this now also includes tasks that finished this round
         previous_failed,
     )
 
