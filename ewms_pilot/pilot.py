@@ -341,13 +341,24 @@ async def _wait_on_tasks_with_ack(
         # handle finished tasks
         for task in done:  # fyi, should just be one task in here max
             if task.exception():
-                await sub.nack(tasks[task])
                 previous_failed[task] = tasks[task]
-                LOGGER.error("Task failed:")
+                LOGGER.error("Task failed, attempting to nack original message...")
                 LOGGER.error(_task_exception_str(task))
+                try:
+                    await sub.nack(tasks[task])
+                except mq.broker_client_interface.AckException as e:
+                    LOGGER.exception(e)
+                    LOGGER.error(f"Could not nack: {repr(e)}")
             else:
-                LOGGER.info("Task finished successfully")
-                await sub.ack(tasks[task])
+                LOGGER.info("Task finished, attempting to ack original message...")
+                try:
+                    await sub.ack(tasks[task])
+                except mq.broker_client_interface.AckException as e:
+                    LOGGER.exception(e)
+                    LOGGER.error(
+                        f"Could not ack: {repr(e)} -- task considered as failed"
+                    )
+                    previous_failed[task] = tasks[task]  # task not done until ack
 
         # early exit?
         if not return_when_all_done and done:
