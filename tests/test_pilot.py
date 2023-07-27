@@ -868,7 +868,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     )
 
 
-TEST_100_SLEEP = 60.0
+TEST_100_SLEEP = 180.0
 
 
 @pytest.mark.usefixtures("unique_pwd")
