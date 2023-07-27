@@ -28,6 +28,8 @@ _EXCEPT_ERRORS = False
 _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
 
+_HOUSEKEEPING_TIMEOUT = 1.0  # second
+
 
 class FileType(enum.Enum):
     """Various file types/extensions."""
@@ -333,7 +335,7 @@ async def _wait_on_tasks_with_ack(
         done, pending = await asyncio.wait(
             pending,
             return_when=asyncio.FIRST_COMPLETED,
-            timeout=1.0,
+            timeout=_HOUSEKEEPING_TIMEOUT,
         )
 
         # handle finished tasks

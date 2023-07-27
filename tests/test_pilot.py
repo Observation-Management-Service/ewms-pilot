@@ -11,6 +11,7 @@ import uuid
 from datetime import date, timedelta
 from pathlib import Path
 from typing import Any, List, Tuple
+from unittest.mock import patch
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -853,6 +854,60 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc) * 1.1
 
     await assert_results(queue_outgoing, [])
+    if use_debug_dir:
+        assert_debug_dir(
+            debug_dir,
+            FileType.TXT,
+            len(msgs_outgoing_expected),
+            ["in", "out", "stderrfile", "stdoutfile"],
+        )
+    # check for persisted files
+    assert_versus_os_walk(
+        first_walk,
+        [debug_dir if use_debug_dir else Path("./tmp")],
+    )
+
+
+TEST_100_SLEEP = 180.0
+
+
+@pytest.mark.usefixtures("unique_pwd")
+@pytest.mark.parametrize("use_debug_dir", [True, False])
+@patch("ewms_pilot.pilot._HOUSEKEEPING_TIMEOUT", TEST_100_SLEEP * 10)
+async def test_1000__rabbitmq_heartbeat_workaround(
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: OSWalkList,
+    use_debug_dir: bool,
+) -> None:
+    """Test a normal .txt-based pilot."""
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(queue_incoming, msgs_to_subproc),
+        consume_and_reply(
+            cmd=f"""python3 -c "
+import time;
+output = open('{{INFILE}}').read().strip() * 2;
+time.sleep({TEST_100_SLEEP});
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            ftype_to_subproc=FileType.TXT,
+            ftype_from_subproc=FileType.TXT,
+            # file_writer=UniversalFileInterface.write, # see other tests
+            # file_reader=UniversalFileInterface.read, # see other tests
+            debug_dir=debug_dir if use_debug_dir else None,
+        ),
+    )
+
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
