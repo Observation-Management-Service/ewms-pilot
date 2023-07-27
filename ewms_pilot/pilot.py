@@ -500,6 +500,7 @@ async def _consume_and_reply(
                 LOGGER.info("Waiting for remaining tasks to finish...")
                 pending, failed = await _wait_on_tasks_with_ack(
                     sub,
+                    pub,
                     pending,
                     return_when_all_done=True,
                     previous_failed=failed,
