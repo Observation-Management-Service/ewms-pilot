@@ -19,7 +19,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 from . import utils
 from .config import ENV, LOGGER
 
-AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
+AsyncioTaskMessages = Dict[asyncio.Task[Any], Message]
 
 
 # if there's an error, have the cluster try again (probably a system error)
@@ -58,7 +58,7 @@ class TaskSubprocessError(Exception):
         )
 
 
-def _task_exception_str(task: asyncio.Task) -> str:  # type: ignore[type-arg]
+def _task_exception_str(task: asyncio.Task[Any]) -> str:
     return f"[{type(task.exception()).__name__}: {task.exception()}]"
 
 
@@ -319,7 +319,7 @@ async def _wait_on_tasks_with_ack(
             AsyncioTaskMessages: pending tasks and
             AsyncioTaskMessages: failed tasks (plus those in `previous_failed`)
     """
-    pending: Set[asyncio.Task] = set(tasks.keys())  # type: ignore[type-arg]
+    pending: Set[asyncio.Task[Any]] = set(tasks.keys())
 
     while pending:
         # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
@@ -338,13 +338,13 @@ async def _wait_on_tasks_with_ack(
             timeout=_HOUSEKEEPING_TIMEOUT,
         )
 
-        async def handle_failed_task(task: asyncio.Task) -> None:
+        async def handle_failed_task(task: asyncio.Task[Any]) -> None:
             previous_failed[task] = tasks[task]
             LOGGER.error("Task failed, attempting to nack original message...")
             try:
                 await sub.nack(tasks[task])
             except mq.broker_client_interface.AckException as e:
-                LOGGER.exception(e)
+                # LOGGER.exception(e)
                 LOGGER.error(f"Could not nack: {repr(e)}")
 
         # handle finished task(s)
@@ -361,7 +361,7 @@ async def _wait_on_tasks_with_ack(
                     await pub.send(task.result())
                 # SUCCESSFUL TASK -> failed to send = FAILED TASK!
                 except Exception as e:
-                    LOGGER.exception(e)
+                    # LOGGER.exception(e)
                     LOGGER.error(
                         f"Failed to finished task: {repr(e)}"
                         f" -- task considered as failed"
@@ -374,7 +374,7 @@ async def _wait_on_tasks_with_ack(
                         await sub.ack(tasks[task])
                     # SUCCESSFUL TASK -> result sent -> ack failed = that's okay!
                     except mq.broker_client_interface.AckException as e:
-                        LOGGER.exception(e)
+                        # LOGGER.exception(e)
                         LOGGER.error(
                             "Could not ack (not counting as a failed task"
                             " since task's result was sent successfully) --"
