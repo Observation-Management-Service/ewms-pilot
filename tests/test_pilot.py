@@ -889,10 +889,12 @@ async def test_1000__rabbitmq_heartbeat_workaround(
     await asyncio.gather(
         populate_queue(queue_incoming, msgs_to_subproc),
         consume_and_reply(
-            cmd=f"""python3 -c "
+            cmd="""python3 -c "
 import time;
 output = open('{{INFILE}}').read().strip() * 2;
-time.sleep({TEST_100_SLEEP});
+time.sleep("""
+            + TEST_100_SLEEP
+            + """);
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
