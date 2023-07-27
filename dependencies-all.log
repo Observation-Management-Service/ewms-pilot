@@ -20,7 +20,7 @@ nats-py[nkeys]==2.3.1
     # via oms-mqclient
 nkeys==0.1.0
     # via nats-py
-oms-mqclient[all]==2.4.0
+oms-mqclient[all]==2.4.1
     # via ewms-pilot (setup.py)
 pika==1.3.2
     # via oms-mqclient
