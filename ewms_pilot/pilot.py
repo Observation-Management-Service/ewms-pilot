@@ -149,8 +149,6 @@ async def process_msg_task(
     #
     staging_dir: Path,
     keep_debug_dir: bool,
-    #
-    pub: mq.queue.QueuePubResource,
 ) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
     task_id = uuid.uuid4().hex
@@ -204,11 +202,12 @@ async def process_msg_task(
 
     # send
     LOGGER.info("Sending return message...")
-    await pub.send(out_msg)
 
     # cleanup -- on success only
     if not keep_debug_dir:
         shutil.rmtree(staging_subdir)  # rm -r
+
+    return out_msg
 
 
 @utils.async_htchirping
@@ -306,6 +305,7 @@ async def consume_and_reply(
 
 async def _wait_on_tasks_with_ack(
     sub: mq.queue.ManualQueueSubResource,
+    pub: mq.queue.QueuePubResource,
     tasks: AsyncioTaskMessages,
     return_when_all_done: bool,
     previous_failed: AsyncioTaskMessages,
@@ -338,27 +338,51 @@ async def _wait_on_tasks_with_ack(
             timeout=_HOUSEKEEPING_TIMEOUT,
         )
 
-        # handle finished tasks
+        async def handle_failed_task(task: asyncio.Task) -> None:
+            previous_failed[task] = tasks[task]
+            LOGGER.error("Task failed, attempting to nack original message...")
+            try:
+                await sub.nack(tasks[task])
+            except mq.broker_client_interface.AckException as e:
+                LOGGER.exception(e)
+                LOGGER.error(f"Could not nack: {repr(e)}")
+
+        # handle finished task(s)
         for task in done:  # fyi, should just be one task in here max
+            # FAILED TASK
             if task.exception():
-                previous_failed[task] = tasks[task]
-                LOGGER.error("Task failed, attempting to nack original message...")
                 LOGGER.error(_task_exception_str(task))
-                try:
-                    await sub.nack(tasks[task])
-                except mq.broker_client_interface.AckException as e:
-                    LOGGER.exception(e)
-                    LOGGER.error(f"Could not nack: {repr(e)}")
+                await handle_failed_task(task)
+            # SUCCESSFUL TASK
             else:
-                LOGGER.info("Task finished, attempting to ack original message...")
+                # SUCCESSFUL TASK -> send result
                 try:
-                    await sub.ack(tasks[task])
-                except mq.broker_client_interface.AckException as e:
+                    LOGGER.info("Task finished, attempting to send result message...")
+                    await pub.send(task.result())
+                # SUCCESSFUL TASK -> failed to send = FAILED TASK!
+                except Exception as e:
                     LOGGER.exception(e)
                     LOGGER.error(
-                        f"Could not ack: {repr(e)} -- task considered as failed"
+                        f"Failed to finished task: {repr(e)}"
+                        f" -- task considered as failed"
                     )
-                    previous_failed[task] = tasks[task]  # task not done until ack
+                    await handle_failed_task(task)
+                # SUCCESSFUL TASK -> result sent -> ack original message
+                else:
+                    try:
+                        LOGGER.info("Now, attempting to ack original message...")
+                        await sub.ack(tasks[task])
+                    # SUCCESSFUL TASK -> result sent -> ack failed = that's okay!
+                    except mq.broker_client_interface.AckException as e:
+                        LOGGER.exception(e)
+                        LOGGER.error(
+                            "Could not ack (not counting as a failed task"
+                            " since task's result was sent successfully) --"
+                            " NOTE: outgoing queue may eventually get"
+                            " duplicate result when original message is"
+                            " re-delivered by broker to another pilot"
+                            " & the new result is sent"
+                        )
 
         # early exit?
         if not return_when_all_done and done:
@@ -440,7 +464,6 @@ async def _consume_and_reply(
                         file_reader,
                         staging_dir,
                         keep_debug_dir,
-                        pub,
                     )
                 )
                 pending[task] = in_msg
@@ -450,6 +473,7 @@ async def _consume_and_reply(
                     LOGGER.info("Reached max task concurrency limit, waiting...")
                     pending, failed = await _wait_on_tasks_with_ack(
                         sub,
+                        pub,
                         pending,
                         return_when_all_done=False,
                         previous_failed=failed,
