@@ -26,7 +26,7 @@ nats-py[nkeys]==2.3.1
     # via oms-mqclient
 nkeys==0.1.0
     # via nats-py
-oms-mqclient[all]==2.4.1
+oms-mqclient[all]==2.4.2
     # via ewms-pilot (setup.py)
 packaging==23.1
     # via pytest
