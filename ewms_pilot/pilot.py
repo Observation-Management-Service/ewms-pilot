@@ -28,9 +28,6 @@ _EXCEPT_ERRORS = False
 _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
 
-# addl time to add to `mq.Queue.ack_timeout` for non-subproc activities
-_ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME = 10  # second  # this is more than enough
-
 
 class FileType(enum.Enum):
     """Various file types/extensions."""
@@ -254,10 +251,6 @@ async def consume_and_reply(
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
 
-    ack_timeout = None
-    if task_timeout:
-        ack_timeout = task_timeout + _ACK_TIMEOUT_NONSUBPROC_OVERHEAD_TIME
-
     if not isinstance(ftype_to_subproc, FileType):
         ftype_to_subproc = FileType(ftype_to_subproc)
     if not isinstance(ftype_from_subproc, FileType):
@@ -271,7 +264,6 @@ async def consume_and_reply(
         auth_token=auth_token,
         except_errors=_EXCEPT_ERRORS,
         # timeout=timeout_incoming, # manually set below
-        ack_timeout=ack_timeout,
     )
     out_queue = mq.Queue(
         broker_client,
@@ -280,7 +272,6 @@ async def consume_and_reply(
         auth_token=auth_token,
         except_errors=_EXCEPT_ERRORS,
         timeout=timeout_outgoing,
-        ack_timeout=ack_timeout,
     )
 
     try:
