@@ -893,7 +893,7 @@ async def test_1000__rabbitmq_heartbeat_workaround(
 import time;
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep("""
-            + TEST_100_SLEEP
+            + str(TEST_100_SLEEP)
             + """);
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # broker_client=,  # rely on env var
