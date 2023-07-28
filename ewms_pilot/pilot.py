@@ -58,10 +58,6 @@ class TaskSubprocessError(Exception):
         )
 
 
-def _task_exception_str(task: asyncio.Task) -> str:  # type: ignore[type-arg]
-    return f"[{type(task.exception()).__name__}: {task.exception()}]"
-
-
 class UniversalFileInterface:
     """Support reading and writing for any `FileType` file extension."""
 
@@ -308,16 +304,16 @@ async def _wait_on_tasks_with_ack(
     pub: mq.queue.QueuePubResource,
     tasks_msgs: AsyncioTaskMessages,
     return_when_all_done: bool,
-    previous_failed: AsyncioTaskMessages,
+    previous_task_errors: List[BaseException],
     # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
     rabbitmq_raw_queues: Optional[List["mq.broker_clients.rabbitmq.RabbitMQ"]] = None,
-) -> Tuple[AsyncioTaskMessages, AsyncioTaskMessages]:
+) -> Tuple[AsyncioTaskMessages, List[BaseException]]:
     """Get finished tasks and ack/nack their messages.
 
     Returns:
         Tuple:
             AsyncioTaskMessages: pending tasks and
-            AsyncioTaskMessages: failed tasks (plus those in `previous_failed`)
+            List[BaseException]: failed tasks' exceptions (plus those in `previous_task_errors`)
     """
     pending: Set[asyncio.Task] = set(tasks_msgs.keys())  # type: ignore[type-arg]
 
@@ -338,8 +334,8 @@ async def _wait_on_tasks_with_ack(
             timeout=_HOUSEKEEPING_TIMEOUT,
         )
 
-        async def handle_failed_task(task: asyncio.Task) -> None:  # type: ignore[type-arg]
-            previous_failed[task] = tasks_msgs[task]
+        async def handle_failed_task(task: asyncio.Task, exception: BaseException) -> None:  # type: ignore[type-arg]
+            previous_task_errors.append(exception)
             LOGGER.error("Task failed, attempting to nack original message...")
             try:
                 await sub.nack(tasks_msgs[task])
@@ -350,9 +346,9 @@ async def _wait_on_tasks_with_ack(
         # handle finished task(s)
         for task in done:  # fyi, should just be one task in here max
             # FAILED TASK
-            if task.exception():
-                LOGGER.error(_task_exception_str(task))
-                await handle_failed_task(task)
+            if e := task.exception():
+                LOGGER.error(repr(e))
+                await handle_failed_task(task, e)
             # SUCCESSFUL TASK
             else:
                 # SUCCESSFUL TASK -> send result
@@ -366,7 +362,7 @@ async def _wait_on_tasks_with_ack(
                         f"Failed to finished task: {repr(e)}"
                         f" -- task considered as failed"
                     )
-                    await handle_failed_task(task)
+                    await handle_failed_task(task, e)
                 # SUCCESSFUL TASK -> result sent -> ack original message
                 else:
                     try:
@@ -395,7 +391,7 @@ async def _wait_on_tasks_with_ack(
         # this is empty if return_when_all_done
         {t: msg for t, msg in tasks_msgs.items() if t in pending},
         # this now also includes tasks that finished this round
-        previous_failed,
+        previous_task_errors,
     )
 
 
@@ -426,7 +422,7 @@ async def _consume_and_reply(
     Return number of processed tasks.
     """
     pending: AsyncioTaskMessages = {}
-    failed: AsyncioTaskMessages = {}
+    task_errors: List[BaseException] = []
 
     # for the first (set) of messages, use 'timeout_wait_for_first_message' if given
     in_queue.timeout = (
@@ -471,12 +467,12 @@ async def _consume_and_reply(
                 # if we've met max concurrent tasks, wait for the next one to finish
                 while len(pending) >= multitasking:
                     LOGGER.info("Reached max task concurrency limit, waiting...")
-                    pending, failed = await _wait_on_tasks_with_ack(
+                    pending, task_errors = await _wait_on_tasks_with_ack(
                         sub,
                         pub,
                         pending,
                         return_when_all_done=False,
-                        previous_failed=failed,
+                        previous_task_errors=task_errors,
                         # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
                         rabbitmq_raw_queues=(
                             [pub.pub] + list(sub._subs.keys())  # type: ignore[arg-type]
@@ -489,7 +485,7 @@ async def _consume_and_reply(
                         in_queue.timeout = timeout_incoming
 
                 # if 1+ fail, then don't consume anymore; wait for remaining tasks
-                if failed:
+                if task_errors:
                     LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
                     break
 
@@ -498,12 +494,12 @@ async def _consume_and_reply(
             # wait for remaining tasks
             if pending:
                 LOGGER.info("Waiting for remaining tasks to finish...")
-                pending, failed = await _wait_on_tasks_with_ack(
+                pending, task_errors = await _wait_on_tasks_with_ack(
                     sub,
                     pub,
                     pending,
                     return_when_all_done=True,
-                    previous_failed=failed,
+                    previous_task_errors=task_errors,
                     # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
                     rabbitmq_raw_queues=(
                         [pub.pub] + list(sub._subs.keys())  # type: ignore[arg-type]
@@ -525,10 +521,10 @@ async def _consume_and_reply(
     # cleanup
     if not list(staging_dir.iterdir()):  # if empty
         shutil.rmtree(staging_dir)  # rm -r
-    if failed:
+    if task_errors:
         raise RuntimeError(
-            f"{len(failed)} Task(s) Failed: "
-            f"{', '.join(_task_exception_str(f) for f in failed)}"
+            f"{len(task_errors)} Task(s) Failed: "
+            f"{', '.join(repr(e) for e in task_errors)}"
         )
     return total_msg_count
 
