@@ -446,7 +446,7 @@ async def test_400__exception(
     with pytest.raises(
         RuntimeError,
         match=r"1 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: no good!\]",
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: no good!'\)",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -501,7 +501,7 @@ async def test_410__blackhole_quarantine(
     with pytest.raises(
         RuntimeError,
         match=r"1 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: no good!\]",
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: no good!'\)",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -689,9 +689,9 @@ async def test_510__concurrent_load_multitasking_exceptions(
     with pytest.raises(
         RuntimeError,
         match=r"3 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\]",
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz\)'), "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz\)'), "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz\)')",
     ) as e:
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -820,9 +820,9 @@ async def test_530__preload_multitasking_exceptions(
     with pytest.raises(
         RuntimeError,
         match=r"3 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\]",
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz\)'), "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz\)'), "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz\)')",
     ) as e:
         await consume_and_reply(
             cmd="""python3 -c "
