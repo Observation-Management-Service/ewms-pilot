@@ -868,46 +868,55 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     )
 
 
-TEST_100_SLEEP = 180.0
+TEST_100_SLEEP = 60.0
 
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-@patch("ewms_pilot.pilot._HOUSEKEEPING_TIMEOUT", TEST_100_SLEEP * 10)
+@pytest.mark.parametrize(
+    "housekeeping_timeout",
+    [
+        TEST_100_SLEEP * 10,
+        TEST_100_SLEEP,
+        TEST_100_SLEEP / 10,
+    ],
+)
 async def test_1000__rabbitmq_heartbeat_workaround(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
+    housekeeping_timeout: float,
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
     # run producer & consumer concurrently
-    await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
-        consume_and_reply(
-            cmd="""python3 -c "
-import time;
-output = open('{{INFILE}}').read().strip() * 2;
-time.sleep("""
-            + str(TEST_100_SLEEP)
-            + """);
-print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
-            queue_incoming=queue_incoming,
-            queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
-            debug_dir=debug_dir if use_debug_dir else None,
-        ),
-    )
+    with patch("ewms_pilot.pilot._HOUSEKEEPING_TIMEOUT", housekeeping_timeout):
+        await asyncio.gather(
+            populate_queue(queue_incoming, msgs_to_subproc),
+            consume_and_reply(
+                cmd="""python3 -c "
+    import time;
+    output = open('{{INFILE}}').read().strip() * 2;
+    time.sleep("""
+                + str(TEST_100_SLEEP)
+                + """);
+    print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+                # broker_client=,  # rely on env var
+                # broker_address=,  # rely on env var
+                # auth_token="",
+                queue_incoming=queue_incoming,
+                queue_outgoing=queue_outgoing,
+                ftype_to_subproc=FileType.TXT,
+                ftype_from_subproc=FileType.TXT,
+                # file_writer=UniversalFileInterface.write, # see other tests
+                # file_reader=UniversalFileInterface.read, # see other tests
+                debug_dir=debug_dir if use_debug_dir else None,
+            ),
+        )
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
