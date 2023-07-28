@@ -19,7 +19,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 from . import utils
 from .config import ENV, LOGGER
 
-AsyncioTaskMessages = Dict["asyncio.Task[Any]", Message]  # py3.8 can't subscript type
+AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
 
 
 # if there's an error, have the cluster try again (probably a system error)
@@ -58,7 +58,7 @@ class TaskSubprocessError(Exception):
         )
 
 
-def _task_exception_str(task: asyncio.Task[Any]) -> str:
+def _task_exception_str(task: asyncio.Task) -> str:  # type: ignore[type-arg]
     return f"[{type(task.exception()).__name__}: {task.exception()}]"
 
 
@@ -319,7 +319,7 @@ async def _wait_on_tasks_with_ack(
             AsyncioTaskMessages: pending tasks and
             AsyncioTaskMessages: failed tasks (plus those in `previous_failed`)
     """
-    pending: Set[asyncio.Task[Any]] = set(tasks.keys())
+    pending: Set[asyncio.Task] = set(tasks.keys())  # type: ignore[type-arg]
 
     while pending:
         # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
@@ -338,7 +338,7 @@ async def _wait_on_tasks_with_ack(
             timeout=_HOUSEKEEPING_TIMEOUT,
         )
 
-        async def handle_failed_task(task: asyncio.Task[Any]) -> None:
+        async def handle_failed_task(task: asyncio.Task) -> None:  # type: ignore[type-arg]
             previous_failed[task] = tasks[task]
             LOGGER.error("Task failed, attempting to nack original message...")
             try:
