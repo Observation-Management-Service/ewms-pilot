@@ -864,7 +864,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     )
 
 
-TEST_100_SLEEP = 60.0
+TEST_1000_SLEEP = 120.0  # anything lower doesn't upset rabbitmq enough
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -872,9 +872,9 @@ TEST_100_SLEEP = 60.0
 @pytest.mark.parametrize(
     "housekeeping_timeout",
     [
-        TEST_100_SLEEP * 10,
-        TEST_100_SLEEP,
-        TEST_100_SLEEP / 10,
+        TEST_1000_SLEEP * 10,
+        TEST_1000_SLEEP,
+        TEST_1000_SLEEP / 10,
     ],
 )
 async def test_1000__rabbitmq_heartbeat_workaround(
@@ -898,7 +898,7 @@ async def test_1000__rabbitmq_heartbeat_workaround(
 import time;
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep("""
-                + str(TEST_100_SLEEP)
+                + str(TEST_1000_SLEEP)
                 + """);
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 # broker_client=,  # rely on env var
