@@ -864,7 +864,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     )
 
 
-TEST_1000_SLEEP = 120.0  # anything lower doesn't upset rabbitmq enough
+TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
 
 
 @pytest.mark.usefixtures("unique_pwd")
