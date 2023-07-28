@@ -19,7 +19,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 from . import utils
 from .config import ENV, LOGGER
 
-AsyncioTaskMessages = Dict[asyncio.Task[Any], Message]
+AsyncioTaskMessages = Dict["asyncio.Task[Any]", Message]  # py3.8 can't subscript type
 
 
 # if there's an error, have the cluster try again (probably a system error)
