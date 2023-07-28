@@ -343,7 +343,7 @@ async def _wait_on_tasks_with_ack(
             LOGGER.error("Task failed, attempting to nack original message...")
             try:
                 await sub.nack(tasks[task])
-            except mq.broker_client_interface.AckException as e:
+            except Exception as e:
                 # LOGGER.exception(e)
                 LOGGER.error(f"Could not nack: {repr(e)}")
 
