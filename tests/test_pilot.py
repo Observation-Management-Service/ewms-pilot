@@ -555,7 +555,7 @@ async def test_420__timeout(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: [TimeoutError: ]")
+        RuntimeError, match=re.escape("1 Task(s) Failed: TimeoutError()")
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
