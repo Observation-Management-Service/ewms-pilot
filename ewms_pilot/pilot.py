@@ -306,7 +306,7 @@ async def consume_and_reply(
 async def _wait_on_tasks_with_ack(
     sub: mq.queue.ManualQueueSubResource,
     pub: mq.queue.QueuePubResource,
-    tasks: AsyncioTaskMessages,
+    tasks_msgs: AsyncioTaskMessages,
     return_when_all_done: bool,
     previous_failed: AsyncioTaskMessages,
     # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
@@ -319,7 +319,7 @@ async def _wait_on_tasks_with_ack(
             AsyncioTaskMessages: pending tasks and
             AsyncioTaskMessages: failed tasks (plus those in `previous_failed`)
     """
-    pending: Set[asyncio.Task] = set(tasks.keys())  # type: ignore[type-arg]
+    pending: Set[asyncio.Task] = set(tasks_msgs.keys())  # type: ignore[type-arg]
 
     while pending:
         # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
@@ -339,10 +339,10 @@ async def _wait_on_tasks_with_ack(
         )
 
         async def handle_failed_task(task: asyncio.Task) -> None:  # type: ignore[type-arg]
-            previous_failed[task] = tasks[task]
+            previous_failed[task] = tasks_msgs[task]
             LOGGER.error("Task failed, attempting to nack original message...")
             try:
-                await sub.nack(tasks[task])
+                await sub.nack(tasks_msgs[task])
             except Exception as e:
                 # LOGGER.exception(e)
                 LOGGER.error(f"Could not nack: {repr(e)}")
@@ -371,7 +371,7 @@ async def _wait_on_tasks_with_ack(
                 else:
                     try:
                         LOGGER.info("Now, attempting to ack original message...")
-                        await sub.ack(tasks[task])
+                        await sub.ack(tasks_msgs[task])
                     # SUCCESSFUL TASK -> result sent -> ack failed = that's okay!
                     except mq.broker_client_interface.AckException as e:
                         # LOGGER.exception(e)
@@ -389,11 +389,11 @@ async def _wait_on_tasks_with_ack(
             # like return_when=asyncio.FIRST_COMPLETED
             break
 
-    LOGGER.info(f"{len(tasks)-len(pending)} Tasks Finished")
+    LOGGER.info(f"{len(tasks_msgs)-len(pending)} Tasks Finished")
 
     return (
         # this is empty if return_when_all_done
-        {t: msg for t, msg in tasks.items() if t in pending},
+        {t: msg for t, msg in tasks_msgs.items() if t in pending},
         # this now also includes tasks that finished this round
         previous_failed,
     )
