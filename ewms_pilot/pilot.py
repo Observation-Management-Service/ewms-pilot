@@ -272,7 +272,7 @@ async def consume_and_reply(
     )
 
     try:
-        await _consume_and_reply(
+        task_errors = await _consume_and_reply(
             cmd,
             in_queue,
             out_queue,
@@ -290,6 +290,11 @@ async def consume_and_reply(
             task_timeout,
             multitasking,
         )
+        if task_errors:
+            raise RuntimeError(
+                f"{len(task_errors)} Task(s) Failed: "
+                f"{', '.join(repr(e) for e in task_errors)}"
+            )
     except Exception as e:
         if quarantine_time:
             msg = f"{e} (Quarantining for {quarantine_time} seconds)"
@@ -416,10 +421,10 @@ async def _consume_and_reply(
     #
     task_timeout: Optional[int],
     multitasking: int,
-) -> int:
+) -> List[BaseException]:
     """Consume and reply loop.
 
-    Return number of processed tasks.
+    Return errors of failed tasks.
     """
     pending: AsyncioTaskMessages = {}
     task_errors: List[BaseException] = []
@@ -521,12 +526,8 @@ async def _consume_and_reply(
     # cleanup
     if not list(staging_dir.iterdir()):  # if empty
         shutil.rmtree(staging_dir)  # rm -r
-    if task_errors:
-        raise RuntimeError(
-            f"{len(task_errors)} Task(s) Failed: "
-            f"{', '.join(repr(e) for e in task_errors)}"
-        )
-    return total_msg_count
+
+    return task_errors
 
 
 def main() -> None:
