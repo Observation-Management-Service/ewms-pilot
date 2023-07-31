@@ -915,7 +915,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
     # run producer & consumer concurrently
     with patch("ewms_pilot.pilot._HOUSEKEEPING_TIMEOUT", housekeeping_timeout):
-        if housekeeping_timeout >= TEST_1000_SLEEP:
+        if housekeeping_timeout > TEST_1000_SLEEP:
             with pytest.raises(
                 RuntimeError,
                 match=re.escape(
@@ -931,7 +931,18 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         len([]),
                         ["in", "out", "stderrfile", "stdoutfile"],
                     )
-        else:
+        elif housekeeping_timeout == TEST_1000_SLEEP:
+            with pytest.raises(mq.broker_client_interface.ClosingFailedException):
+                await _test()
+                await assert_results(queue_outgoing, [])
+                if use_debug_dir:
+                    assert_debug_dir(
+                        debug_dir,
+                        FileType.TXT,
+                        len([]),
+                        ["in", "out", "stderrfile", "stdoutfile"],
+                    )
+        else:  # housekeeping_timeout < TEST_1000_SLEEP
             await _test()
             await assert_results(queue_outgoing, msgs_outgoing_expected)
             if use_debug_dir:
