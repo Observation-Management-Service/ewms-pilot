@@ -5,6 +5,7 @@ import asyncio
 from pathlib import Path
 
 import mqclient as mq
+import wipac_dev_tools
 from ewms_pilot import FileType, config, consume_and_reply
 
 
@@ -62,6 +63,8 @@ time.sleep(5)
 
 
 if __name__ == "__main__":
+    wipac_dev_tools.logging_tools.set_level("DEBUG", first_party_loggers=["ewms-pilot"])
+
     asyncio.run(
         main(
             mq.Queue.make_name(),

@@ -12,7 +12,7 @@ htchirp==2.0
     # via ewms-pilot (setup.py)
 idna==3.4
     # via requests
-oms-mqclient==2.3.4
+oms-mqclient==2.4.3
     # via ewms-pilot (setup.py)
 requests==2.31.0
     # via wipac-dev-tools

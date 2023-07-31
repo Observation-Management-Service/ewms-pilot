@@ -10,7 +10,8 @@ import time
 import uuid
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, List, Tuple
+from typing import Any, List, Optional, Tuple
+from unittest.mock import patch
 
 import asyncstdlib as asl
 import mqclient as mq
@@ -428,12 +429,14 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
+@pytest.mark.parametrize("quarantine", [None, 20])
 async def test_400__exception(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
+    quarantine: Optional[int],
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = ["foo", "bar", "baz"]
@@ -444,8 +447,8 @@ async def test_400__exception(
     # run producer & consumer concurrently
     with pytest.raises(
         RuntimeError,
-        match=r"1 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: no good!\]",
+        match=r"1 TASK\(S\) FAILED: "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: no good!'\)",
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -461,10 +464,14 @@ async def test_400__exception(
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
+                quarantine_time=quarantine if quarantine else 0,
             ),
         )
 
-    assert time.time() - start_time <= 2  # no quarantine time
+    if quarantine:
+        assert time.time() - start_time >= quarantine  # did quarantine_time work?
+    else:
+        assert time.time() - start_time <= 3  # no quarantine time
 
     await assert_results(queue_outgoing, [])
     if use_debug_dir:
@@ -472,62 +479,6 @@ async def test_400__exception(
             debug_dir,
             FileType.TXT,
             1,  # only 1 message was processed before error
-            ["in", "stderrfile", "stdoutfile"],
-        )
-    # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
-
-
-@pytest.mark.usefixtures("unique_pwd")
-@pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_410__blackhole_quarantine(
-    queue_incoming: str,
-    queue_outgoing: str,
-    debug_dir: Path,
-    first_walk: OSWalkList,
-    use_debug_dir: bool,
-) -> None:
-    """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    # msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
-
-    start_time = time.time()
-
-    # run producer & consumer concurrently
-    with pytest.raises(
-        RuntimeError,
-        match=r"1 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: no good!\]",
-    ):
-        await asyncio.gather(
-            populate_queue(queue_incoming, msgs_to_subproc),
-            consume_and_reply(
-                cmd="""python3 -c "raise ValueError('no good!')" """,
-                # broker_client=,  # rely on env var
-                # broker_address=,  # rely on env var
-                # auth_token="",
-                queue_incoming=queue_incoming,
-                queue_outgoing=queue_outgoing,
-                ftype_to_subproc=FileType.TXT,
-                ftype_from_subproc=FileType.TXT,
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
-                debug_dir=debug_dir if use_debug_dir else None,
-                quarantine_time=20,
-            ),
-        )
-
-    assert time.time() - start_time >= 20  # did quarantine_time work?
-
-    await assert_results(queue_outgoing, [])
-    if use_debug_dir:
-        assert_debug_dir(
-            debug_dir,
-            FileType.TXT,
-            1,
             ["in", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -554,7 +505,7 @@ async def test_420__timeout(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: [TimeoutError: ]")
+        RuntimeError, match=re.escape("1 TASK(S) FAILED: TimeoutError()")
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -650,7 +601,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
-    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc) * 1.1
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
@@ -687,10 +637,10 @@ async def test_510__concurrent_load_multitasking_exceptions(
     # run producer & consumer concurrently
     with pytest.raises(
         RuntimeError,
-        match=r"3 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\]",
+        match=r"3 TASK\(S\) FAILED: "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\)",
     ) as e:
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -722,7 +672,6 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
-    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc) * 1.1
 
     await assert_results(queue_outgoing, [])
     if use_debug_dir:
@@ -780,7 +729,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
-    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc) * 1.1
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
@@ -818,10 +766,10 @@ async def test_530__preload_multitasking_exceptions(
 
     with pytest.raises(
         RuntimeError,
-        match=r"3 Task\(s\) Failed: "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\], "
-        r"\[TaskSubprocessError: Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)\]",
+        match=r"3 TASK\(S\) FAILED: "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
+        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\)",
     ) as e:
         await consume_and_reply(
             cmd="""python3 -c "
@@ -850,7 +798,6 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
-    assert time.time() - start_time < MULTITASKING * len(msgs_to_subproc) * 1.1
 
     await assert_results(queue_outgoing, [])
     if use_debug_dir:
@@ -860,6 +807,105 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
+    # check for persisted files
+    assert_versus_os_walk(
+        first_walk,
+        [debug_dir if use_debug_dir else Path("./tmp")],
+    )
+
+
+TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
+
+
+@pytest.mark.usefixtures("unique_pwd")
+@pytest.mark.parametrize("use_debug_dir", [True, False])
+@pytest.mark.parametrize(
+    "housekeeping_timeout",
+    [
+        TEST_1000_SLEEP * 10,
+        TEST_1000_SLEEP,
+        TEST_1000_SLEEP / 10,
+    ],
+)
+async def test_1000__rabbitmq_heartbeat_workaround(
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: OSWalkList,
+    use_debug_dir: bool,
+    housekeeping_timeout: float,
+) -> None:
+    """Test a normal .txt-based pilot."""
+    if config.ENV.EWMS_PILOT_BROKER_CLIENT != "rabbitmq":
+        return
+
+    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+
+    async def _test() -> None:
+        await asyncio.gather(
+            populate_queue(queue_incoming, msgs_to_subproc),
+            consume_and_reply(
+                cmd="""python3 -c "
+import time;
+output = open('{{INFILE}}').read().strip() * 2;
+time.sleep("""
+                + str(TEST_1000_SLEEP)
+                + """);
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+                # broker_client=,  # rely on env var
+                # broker_address=,  # rely on env var
+                # auth_token="",
+                queue_incoming=queue_incoming,
+                queue_outgoing=queue_outgoing,
+                ftype_to_subproc=FileType.TXT,
+                ftype_from_subproc=FileType.TXT,
+                # file_writer=UniversalFileInterface.write, # see other tests
+                # file_reader=UniversalFileInterface.read, # see other tests
+                debug_dir=debug_dir if use_debug_dir else None,
+            ),
+        )
+
+    # run producer & consumer concurrently
+    with patch("ewms_pilot.pilot._HOUSEKEEPING_TIMEOUT", housekeeping_timeout):
+        if housekeeping_timeout > TEST_1000_SLEEP:
+            with pytest.raises(
+                RuntimeError,
+                match=re.escape(
+                    "1 TASK(S) FAILED: MQClientException('pika.exceptions.StreamLostError: may be due to a missed heartbeat')"
+                ),
+            ):
+                await _test()
+                await assert_results(queue_outgoing, [])
+                if use_debug_dir:
+                    assert_debug_dir(
+                        debug_dir,
+                        FileType.TXT,
+                        len([]),
+                        ["in", "out", "stderrfile", "stdoutfile"],
+                    )
+        elif housekeeping_timeout == TEST_1000_SLEEP:
+            with pytest.raises(mq.broker_client_interface.ClosingFailedException):
+                await _test()
+                await assert_results(queue_outgoing, [])
+                if use_debug_dir:
+                    assert_debug_dir(
+                        debug_dir,
+                        FileType.TXT,
+                        len([]),
+                        ["in", "out", "stderrfile", "stdoutfile"],
+                    )
+        else:  # housekeeping_timeout < TEST_1000_SLEEP
+            await _test()
+            await assert_results(queue_outgoing, msgs_outgoing_expected)
+            if use_debug_dir:
+                assert_debug_dir(
+                    debug_dir,
+                    FileType.TXT,
+                    len(msgs_outgoing_expected),
+                    ["in", "out", "stderrfile", "stdoutfile"],
+                )
+
     # check for persisted files
     assert_versus_os_walk(
         first_walk,

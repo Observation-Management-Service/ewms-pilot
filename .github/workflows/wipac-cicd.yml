@@ -13,6 +13,7 @@ env:
   EWMS_PILOT_TIMEOUT_INCOMING: 1
   EWMS_PILOT_TIMEOUT_OUTGOING: 1
 
+
 jobs:
 
   py-versions:
@@ -160,7 +161,7 @@ jobs:
           pip install --upgrade pip wheel setuptools pytest
           export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker_client }}
           pip install .[test,${{ matrix.broker_client }}]
-          python -m pytest -vvv tests -n 10
+          python -m pytest -vvv tests -n 32
       - name: broker output
         if: always()
         run: |
