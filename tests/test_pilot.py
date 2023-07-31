@@ -889,30 +889,42 @@ async def test_1000__rabbitmq_heartbeat_workaround(
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
-    # run producer & consumer concurrently
-    with patch("ewms_pilot.pilot._HOUSEKEEPING_TIMEOUT", housekeeping_timeout):
-        await asyncio.gather(
-            populate_queue(queue_incoming, msgs_to_subproc),
-            consume_and_reply(
-                cmd="""python3 -c "
+    async def _test() -> None:
+        with patch("ewms_pilot.pilot._HOUSEKEEPING_TIMEOUT", housekeeping_timeout):
+            await asyncio.gather(
+                populate_queue(queue_incoming, msgs_to_subproc),
+                consume_and_reply(
+                    cmd="""python3 -c "
 import time;
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep("""
-                + str(TEST_1000_SLEEP)
-                + """);
+                    + str(TEST_1000_SLEEP)
+                    + """);
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
-                # broker_client=,  # rely on env var
-                # broker_address=,  # rely on env var
-                # auth_token="",
-                queue_incoming=queue_incoming,
-                queue_outgoing=queue_outgoing,
-                ftype_to_subproc=FileType.TXT,
-                ftype_from_subproc=FileType.TXT,
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
-                debug_dir=debug_dir if use_debug_dir else None,
+                    # broker_client=,  # rely on env var
+                    # broker_address=,  # rely on env var
+                    # auth_token="",
+                    queue_incoming=queue_incoming,
+                    queue_outgoing=queue_outgoing,
+                    ftype_to_subproc=FileType.TXT,
+                    ftype_from_subproc=FileType.TXT,
+                    # file_writer=UniversalFileInterface.write, # see other tests
+                    # file_reader=UniversalFileInterface.read, # see other tests
+                    debug_dir=debug_dir if use_debug_dir else None,
+                ),
+            )
+
+    # run producer & consumer concurrently
+    if housekeeping_timeout >= TEST_1000_SLEEP:
+        with pytest.raises(
+            RuntimeError,
+            match=re.escape(
+                "1 Task(s) Failed: MQClientException('pika.exceptions.StreamLostError: may be due to a missed heartbeat')"
             ),
-        )
+        ):
+            await _test()
+    else:
+        await _test()
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
     if use_debug_dir:
