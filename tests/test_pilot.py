@@ -447,7 +447,7 @@ async def test_400__exception(
     # run producer & consumer concurrently
     with pytest.raises(
         RuntimeError,
-        match=r"1 Task\(s\) Failed: "
+        match=r"1 TASK\(S\) FAILED: "
         r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: no good!'\)",
     ):
         await asyncio.gather(
@@ -637,7 +637,7 @@ async def test_510__concurrent_load_multitasking_exceptions(
     # run producer & consumer concurrently
     with pytest.raises(
         RuntimeError,
-        match=r"3 Task\(s\) Failed: "
+        match=r"3 TASK\(S\) FAILED: "
         r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
         r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
         r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\)",
@@ -766,7 +766,7 @@ async def test_530__preload_multitasking_exceptions(
 
     with pytest.raises(
         RuntimeError,
-        match=r"3 Task\(s\) Failed: "
+        match=r"3 TASK\(S\) FAILED: "
         r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
         r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
         r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\)",
