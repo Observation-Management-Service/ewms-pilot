@@ -357,41 +357,42 @@ async def _wait_on_tasks_with_ack(
         )
 
         # HANDLE FINISHED TASK(S)
-            # FAILED TASK
-            if e := task.exception():
         # fyi, most likely one task in here unless 2+ finish at same time
         for task in done:
+            try:
+                result = task.result()
+            except Exception as e:
+                # FAILED TASK!
                 await handle_failed_task(task, e)
-            # SUCCESSFUL TASK
-            else:
-                # SUCCESSFUL TASK -> send result
-                try:
-                    LOGGER.info("TASK FINISHED -- attempting to send result message...")
-                    await pub.send(task.result())
-                # SUCCESSFUL TASK -> failed to send = FAILED TASK!
-                except Exception as e:
-                    # LOGGER.exception(e)
-                    LOGGER.error(
-                        f"Failed to send finished task's result: {repr(e)}"
-                        f" -- task now considered as failed"
-                    )
-                    await handle_failed_task(task, e)
-                # SUCCESSFUL TASK -> result sent -> ack original message
-                else:
-                    try:
-                        LOGGER.info("Now, attempting to ack original message...")
-                        await sub.ack(tasks_msgs[task])
-                    # SUCCESSFUL TASK -> result sent -> ack failed = that's okay!
-                    except mq.broker_client_interface.AckException as e:
-                        # LOGGER.exception(e)
-                        LOGGER.error(
-                            f"Could not ack ({repr(e)}) -- not counting as a failed task"
-                            " since task's result was sent successfully -- "
-                            "NOTE: outgoing queue may eventually get"
-                            " duplicate result when original message is"
-                            " re-delivered by broker to another pilot"
-                            " & the new result is sent"
-                        )
+                continue
+
+            # SUCCESSFUL TASK -> send result
+            try:
+                LOGGER.info("TASK FINISHED -- attempting to send result message...")
+                await pub.send(result)
+            except Exception as e:
+                # -> failed to send = FAILED TASK!
+                LOGGER.error(
+                    f"Failed to send finished task's result: {repr(e)}"
+                    f" -- task now considered as failed"
+                )
+                await handle_failed_task(task, e)
+                continue
+
+            # SUCCESSFUL TASK -> result sent -> ack original message
+            try:
+                LOGGER.info("Now, attempting to ack original message...")
+                await sub.ack(tasks_msgs[task])
+            except mq.broker_client_interface.AckException as e:
+                # -> result sent -> ack failed = that's okay!
+                LOGGER.error(
+                    f"Could not ack ({repr(e)}) -- not counting as a failed task"
+                    " since task's result was sent successfully -- "
+                    "NOTE: outgoing queue may eventually get"
+                    " duplicate result when original message is"
+                    " re-delivered by broker to another pilot"
+                    " & the new result is sent"
+                )
 
         # early exit?
         if not return_when_all_done and done:
