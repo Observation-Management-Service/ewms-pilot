@@ -206,6 +206,13 @@ async def process_msg_task(
     return out_msg
 
 
+def _all_task_errors_string(task_errors: List[BaseException]) -> str:
+    return (
+        f"{len(task_errors)} TASK(S) FAILED: "
+        f"{', '.join(repr(e) for e in task_errors)}"
+    )
+
+
 @utils.async_htchirping
 async def consume_and_reply(
     cmd: str,
@@ -291,10 +298,7 @@ async def consume_and_reply(
             multitasking,
         )
         if task_errors:
-            raise RuntimeError(
-                f"{len(task_errors)} Task(s) Failed: "
-                f"{', '.join(repr(e) for e in task_errors)}"
-            )
+            raise RuntimeError(_all_task_errors_string(task_errors))
     except Exception as e:
         if quarantine_time:
             msg = f"{e} (Quarantining for {quarantine_time} seconds)"
@@ -322,6 +326,19 @@ async def _wait_on_tasks_with_ack(
     """
     pending: Set[asyncio.Task] = set(tasks_msgs.keys())  # type: ignore[type-arg]
 
+    async def handle_failed_task(task: asyncio.Task, exception: BaseException) -> None:  # type: ignore[type-arg]
+        previous_task_errors.append(exception)
+        LOGGER.error(
+            f"TASK FAILED ({repr(exception)}) -- attempting to nack original message..."
+        )
+        try:
+            await sub.nack(tasks_msgs[task])
+        except Exception as e:
+            # LOGGER.exception(e)
+            LOGGER.error(f"Could not nack: {repr(e)}")
+        LOGGER.error(_all_task_errors_string(previous_task_errors))
+
+    # LOOP!
     while pending:
         # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
 
@@ -339,33 +356,23 @@ async def _wait_on_tasks_with_ack(
             timeout=_HOUSEKEEPING_TIMEOUT,
         )
 
-        async def handle_failed_task(task: asyncio.Task, exception: BaseException) -> None:  # type: ignore[type-arg]
-            previous_task_errors.append(exception)
-            LOGGER.error("Task failed, attempting to nack original message...")
-            try:
-                await sub.nack(tasks_msgs[task])
-            except Exception as e:
-                # LOGGER.exception(e)
-                LOGGER.error(f"Could not nack: {repr(e)}")
-
-        # handle finished task(s)
+        # HANDLE FINISHED TASK(S)
         for task in done:  # fyi, should just be one task in here max
             # FAILED TASK
             if e := task.exception():
-                LOGGER.error(repr(e))
                 await handle_failed_task(task, e)
             # SUCCESSFUL TASK
             else:
                 # SUCCESSFUL TASK -> send result
                 try:
-                    LOGGER.info("Task finished, attempting to send result message...")
+                    LOGGER.info("TASK FINISHED -- attempting to send result message...")
                     await pub.send(task.result())
                 # SUCCESSFUL TASK -> failed to send = FAILED TASK!
                 except Exception as e:
                     # LOGGER.exception(e)
                     LOGGER.error(
-                        f"Failed to finished task: {repr(e)}"
-                        f" -- task considered as failed"
+                        f"Failed to send finished task's result: {repr(e)}"
+                        f" -- task now considered as failed"
                     )
                     await handle_failed_task(task, e)
                 # SUCCESSFUL TASK -> result sent -> ack original message
