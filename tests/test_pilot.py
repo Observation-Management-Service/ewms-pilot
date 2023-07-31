@@ -505,7 +505,7 @@ async def test_420__timeout(
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 Task(s) Failed: TimeoutError()")
+        RuntimeError, match=re.escape("1 TASK(S) FAILED: TimeoutError()")
     ):
         await asyncio.gather(
             populate_queue(queue_incoming, msgs_to_subproc),
@@ -872,7 +872,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             with pytest.raises(
                 RuntimeError,
                 match=re.escape(
-                    "1 Task(s) Failed: MQClientException('pika.exceptions.StreamLostError: may be due to a missed heartbeat')"
+                    "1 TASK(S) FAILED: MQClientException('pika.exceptions.StreamLostError: may be due to a missed heartbeat')"
                 ),
             ):
                 await _test()
