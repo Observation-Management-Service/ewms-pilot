@@ -886,6 +886,9 @@ async def test_1000__rabbitmq_heartbeat_workaround(
     housekeeping_timeout: float,
 ) -> None:
     """Test a normal .txt-based pilot."""
+    if config.ENV.EWMS_PILOT_BROKER_CLIENT != "rabbitmq":
+        return
+
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
