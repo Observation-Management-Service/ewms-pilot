@@ -360,7 +360,7 @@ async def _wait_on_tasks_with_ack(
         # fyi, most likely one task in here unless 2+ finish at same time
         for task in done:
             try:
-                result = task.result()
+                result = await task
             except Exception as e:
                 # FAILED TASK!
                 await handle_failed_task(task, e)
