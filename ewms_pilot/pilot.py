@@ -372,9 +372,9 @@ async def _wait_on_tasks_with_ack(
                     except mq.broker_client_interface.AckException as e:
                         # LOGGER.exception(e)
                         LOGGER.error(
-                            "Could not ack (not counting as a failed task"
-                            " since task's result was sent successfully) --"
-                            " NOTE: outgoing queue may eventually get"
+                            f"Could not ack ({repr(e)}) -- not counting as a failed task"
+                            " since task's result was sent successfully -- "
+                            "NOTE: outgoing queue may eventually get"
                             " duplicate result when original message is"
                             " re-delivered by broker to another pilot"
                             " & the new result is sent"
