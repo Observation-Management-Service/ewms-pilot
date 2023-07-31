@@ -357,9 +357,10 @@ async def _wait_on_tasks_with_ack(
         )
 
         # HANDLE FINISHED TASK(S)
-        for task in done:  # fyi, should just be one task in here max
             # FAILED TASK
             if e := task.exception():
+        # fyi, most likely one task in here unless 2+ finish at same time
+        for task in done:
                 await handle_failed_task(task, e)
             # SUCCESSFUL TASK
             else:
