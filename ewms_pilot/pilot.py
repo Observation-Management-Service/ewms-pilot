@@ -314,8 +314,7 @@ async def _wait_on_tasks_with_ack(
     tasks_msgs: AsyncioTaskMessages,
     return_when_all_done: bool,
     previous_task_errors: List[BaseException],
-    # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-    _send_heartbeat_to_rabbitmq: Callable[[], None],
+    housekeeping_fn: Callable[[], None],
 ) -> Tuple[AsyncioTaskMessages, List[BaseException]]:
     """Get finished tasks and ack/nack their messages.
 
@@ -342,8 +341,7 @@ async def _wait_on_tasks_with_ack(
     while pending:
         # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
 
-        # alert rabbitmq  # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-        _send_heartbeat_to_rabbitmq()
+        housekeeping_fn()
 
         # wait for next task
         done, pending = await asyncio.wait(
@@ -441,7 +439,7 @@ async def _consume_and_reply(
         else timeout_incoming
     )
 
-    def _send_heartbeat_to_rabbitmq() -> None:
+    def housekeeping_fn() -> None:
         # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
         if in_queue._broker_client.NAME.lower() != "rabbitmq":
             return
@@ -496,8 +494,7 @@ async def _consume_and_reply(
                         pending,
                         return_when_all_done=False,
                         previous_task_errors=task_errors,
-                        # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-                        _send_heartbeat_to_rabbitmq=_send_heartbeat_to_rabbitmq,
+                        housekeeping_fn=housekeeping_fn,
                     )
 
                 # if 1+ fail, then don't consume anymore; wait for remaining tasks
@@ -516,8 +513,7 @@ async def _consume_and_reply(
                     pending,
                     return_when_all_done=True,
                     previous_task_errors=task_errors,
-                    # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-                    _send_heartbeat_to_rabbitmq=_send_heartbeat_to_rabbitmq,
+                    housekeeping_fn=housekeeping_fn,
                 )
                 if pending:
                     LOGGER.error(f"{len(pending)} tasks are pending after finish")
