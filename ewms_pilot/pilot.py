@@ -465,6 +465,10 @@ async def _consume_and_reply(
                 total_msg_count += 1
                 LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
 
+                # after the first message, set the timeout to the "normal" amount
+                if in_queue.timeout != timeout_incoming:
+                    in_queue.timeout = timeout_incoming
+
                 if total_msg_count == 1:
                     utils.chirp_status("Tasking")
 
@@ -495,9 +499,6 @@ async def _consume_and_reply(
                         # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
                         _send_heartbeat_to_rabbitmq=_send_heartbeat_to_rabbitmq,
                     )
-                    # after the first set of messages, set the timeout to the "normal" amount
-                    if in_queue.timeout != timeout_incoming:
-                        in_queue.timeout = timeout_incoming
 
                 # if 1+ fail, then don't consume anymore; wait for remaining tasks
                 if task_errors:
