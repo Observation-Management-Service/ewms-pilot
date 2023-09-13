@@ -14,7 +14,7 @@ htchirp==2.0
     # via ewms-pilot (setup.py)
 idna==3.4
     # via requests
-oms-mqclient[pulsar]==2.4.5
+oms-mqclient[pulsar]==2.4.6
     # via ewms-pilot (setup.py)
 pulsar-client==3.1.0
     # via oms-mqclient
