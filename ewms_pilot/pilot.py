@@ -445,10 +445,10 @@ async def _consume_and_reply(
         # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
         if in_queue._broker_client.NAME.lower() != "rabbitmq":
             return
-        for raw_q in [pub.pub] + list(sub._subs.keys()):  # type: ignore[arg-type]
-            if raw_q.connection:
+        for raw_q in [pub.pub, sub._sub]:
+            if raw_q.connection:  # type: ignore[union-attr]
                 LOGGER.info("sending heartbeat to RabbitMQ broker...")
-                raw_q.connection.process_data_events()
+                raw_q.connection.process_data_events()  # type: ignore[union-attr]
 
     # GO!
     total_msg_count = 0
