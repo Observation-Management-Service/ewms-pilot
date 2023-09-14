@@ -820,7 +820,7 @@ TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
 @pytest.mark.parametrize(
-    "housekeeping_timeout",
+    "rabbitmq_heartbeat_interval",
     [
         TEST_1000_SLEEP * 10,
         TEST_1000_SLEEP,
@@ -833,7 +833,7 @@ async def test_1000__rabbitmq_heartbeat_workaround(
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
-    housekeeping_timeout: float,
+    rabbitmq_heartbeat_interval: float,
 ) -> None:
     """Test a normal .txt-based pilot."""
     if config.ENV.EWMS_PILOT_BROKER_CLIENT != "rabbitmq":
@@ -869,9 +869,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     # run producer & consumer concurrently
     with patch(
         "ewms_pilot.pilot.Housekeeping.RABBITMQ_HEARTBEAT_INTERVAL",
-        housekeeping_timeout,
+        rabbitmq_heartbeat_interval,
     ):
-        if housekeeping_timeout > TEST_1000_SLEEP:
+        if rabbitmq_heartbeat_interval > TEST_1000_SLEEP:
             with pytest.raises(
                 RuntimeError,
                 match=re.escape(
@@ -887,7 +887,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         len([]),
                         ["in", "out", "stderrfile", "stdoutfile"],
                     )
-        elif housekeeping_timeout == TEST_1000_SLEEP:
+        elif rabbitmq_heartbeat_interval == TEST_1000_SLEEP:
             with pytest.raises(mq.broker_client_interface.ClosingFailedException):
                 await _test()
                 await assert_results(queue_outgoing, [])
@@ -898,7 +898,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         len([]),
                         ["in", "out", "stderrfile", "stdoutfile"],
                     )
-        else:  # housekeeping_timeout < TEST_1000_SLEEP
+        else:  # rabbitmq_heartbeat_interval < TEST_1000_SLEEP
             await _test()
             await assert_results(queue_outgoing, msgs_outgoing_expected)
             if use_debug_dir:
