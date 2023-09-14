@@ -407,14 +407,14 @@ async def _wait_on_tasks_with_ack(
 def listener_loop_exit(
     task_errors: List[BaseException],
     current_msg_waittime: float,
-    listener_loop_timeout: float,
+    msg_waittime_timeout: float,
 ) -> bool:
     """Essentially a big IF condition -- but now with logging!"""
     if task_errors:
         LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
         return True
-    if current_msg_waittime > listener_loop_timeout:
-        LOGGER.info(f"Timed out waiting for incoming message: {listener_loop_timeout=}")
+    if current_msg_waittime > msg_waittime_timeout:
+        LOGGER.info(f"Timed out waiting for incoming message: {msg_waittime_timeout=}")
         return True
     return False
 
@@ -497,7 +497,7 @@ async def _consume_and_reply(
             f"currently {timeout_incoming}"
         )
     in_queue.timeout = _REFRESH_INTERVAL
-    listener_loop_timeout = timeout_wait_for_first_message or timeout_incoming
+    msg_waittime_timeout = timeout_wait_for_first_message or timeout_incoming
 
     # GO!
     total_msg_count = 0
@@ -512,9 +512,9 @@ async def _consume_and_reply(
         # "listener loop" -- get messages and do tasks
         # intermittently halting to process housekeeping things
         #
-        current_msg_waittime = 0.0
+        msg_waittime_current = 0.0
         while not listener_loop_exit(
-            task_errors, current_msg_waittime, listener_loop_timeout
+            task_errors, msg_waittime_current, msg_waittime_timeout
         ):
             housekeeper.work(in_queue, sub, pub)
             #
@@ -525,12 +525,12 @@ async def _consume_and_reply(
                 LOGGER.info("Listening for incoming message...")
                 try:
                     in_msg = await anext(sub.iter_messages())  # -> in_queue.timeout
-                    current_msg_waittime = 0.0
+                    msg_waittime_current = 0.0
                     total_msg_count += 1
                     LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
 
                     # after the first message, set the timeout to the "normal" amount
-                    listener_loop_timeout = timeout_incoming
+                    msg_waittime_timeout = timeout_incoming
 
                     if total_msg_count == 1:
                         utils.chirp_status("Tasking")
@@ -554,7 +554,7 @@ async def _consume_and_reply(
                     # no message this round
                     #   incrementing by the timeout value allows us to
                     #   not worry about time not spent waiting for a message
-                    current_msg_waittime += in_queue.timeout
+                    msg_waittime_current += in_queue.timeout
 
             # wait on finished task (or timeout)
             pending, task_errors = await _wait_on_tasks_with_ack(
