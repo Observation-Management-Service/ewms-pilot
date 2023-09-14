@@ -484,8 +484,9 @@ async def _consume_and_reply(
             #
             # get messages/tasks
             if len(pending) >= multitasking:
-                LOGGER.info("Reached max task concurrency limit, waiting...")
+                LOGGER.info("At max task concurrency limit")
             else:
+                LOGGER.info("Listening for incoming message...")
                 try:
                     in_msg = await anext(sub.iter_messages())  # -> in_queue.timeout
                     recent_msg_ts = time.time()
@@ -512,11 +513,13 @@ async def _consume_and_reply(
                         )
                     )
                     pending[task] = in_msg
+                    continue  # we got one message, so maybe the queue is saturated
                 except StopAsyncIteration:
                     # no message this round
                     pass
 
             # wait on finished task (or housekeeping timeout)
+            LOGGER.info("Waiting on tasks...")
             pending, task_errors = await _wait_on_tasks_with_ack(
                 sub,
                 pub,
