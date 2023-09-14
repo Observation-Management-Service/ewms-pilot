@@ -349,6 +349,7 @@ async def _wait_on_tasks_with_ack(
         LOGGER.error(_all_task_errors_string(previous_task_errors))
 
     # wait for next task
+    LOGGER.info("Waiting on tasks...")
     done, pending = await asyncio.wait(
         pending,
         return_when=asyncio.FIRST_COMPLETED,
@@ -537,7 +538,6 @@ async def _consume_and_reply(
                     pass
 
             # wait on finished task (or housekeeping timeout)
-            LOGGER.info("Waiting on tasks...")
             pending, task_errors = await _wait_on_tasks_with_ack(
                 sub,
                 pub,
