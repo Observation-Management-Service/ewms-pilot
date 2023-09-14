@@ -8,6 +8,7 @@ import json
 import pickle
 import shlex
 import shutil
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
@@ -432,9 +433,6 @@ async def _consume_and_reply(
     pending: AsyncioTaskMessages = {}
     task_errors: List[BaseException] = []
 
-    # for the first messages, use 'timeout_wait_for_first_message' if given
-    in_queue.timeout = timeout_wait_for_first_message or timeout_incoming
-
     def housekeeping_fn() -> None:
         # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
         if in_queue._broker_client.NAME.lower() != "rabbitmq":
@@ -444,16 +442,32 @@ async def _consume_and_reply(
                 LOGGER.info("sending heartbeat to RabbitMQ broker...")
                 raw_q.connection.process_data_events()  # type: ignore[union-attr]
 
+    def did_timeout(time_of_last_message: float, timeout: float) -> bool:
+        if time.time() - time_of_last_message > timeout:
+            LOGGER.info(f"Timed out waiting for incoming message: {timeout=}")
+            return True
+        return False
+
     # GO!
     total_msg_count = 0
-    LOGGER.info("Listening for messages to process tasks then send results...")
-    # open pub
-    async with out_queue.open_pub() as pub:
+    LOGGER.info(
+        "Listening for messages from server to process tasks then send results..."
+    )
+    #
+    # open pub & sub
+    async with out_queue.open_pub() as pub, in_queue.open_sub_manual_acking() as sub:
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
-        # open sub
-        async with in_queue.open_sub_manual_acking() as sub:
+        #
+        # outer loop to process housekeeping things
+        in_queue.timeout = int(_HOUSEKEEPING_TIMEOUT)
+        timeout = timeout_wait_for_first_message or timeout_incoming
+        time_of_last_message = time.time()
+        while (not task_errors) and did_timeout(time_of_last_message, timeout):
+            housekeeping_fn()
+            #
             # get messages/tasks
             async for in_msg in sub.iter_messages():
+                time_of_last_message = time.time()
                 total_msg_count += 1
                 LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
 
