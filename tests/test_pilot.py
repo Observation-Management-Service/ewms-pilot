@@ -860,6 +860,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 queue_outgoing=queue_outgoing,
                 ftype_to_subproc=FileType.TXT,
                 ftype_from_subproc=FileType.TXT,
+                timeout_incoming=refresh_interval_rabbitmq_heartbeat_interval * 1.5,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
