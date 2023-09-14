@@ -466,7 +466,8 @@ async def _consume_and_reply(
             housekeeping_fn()
             #
             # get messages/tasks
-            async for in_msg in sub.iter_messages():  # exits on in_queue.timeout
+            try:
+                in_msg = await anext(sub.iter_messages())  # exits on in_queue.timeout
                 time_of_last_message = time.time()
                 total_msg_count += 1
                 LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
@@ -492,23 +493,26 @@ async def _consume_and_reply(
                     )
                 )
                 pending[task] = in_msg
+            except StopIteration:
+                # no message this round
+                pass
 
-                # if we've met max concurrent tasks, wait for the next one to finish
-                while len(pending) >= multitasking:
-                    LOGGER.info("Reached max task concurrency limit, waiting...")
-                    pending, task_errors = await _wait_on_tasks_with_ack(
-                        sub,
-                        pub,
-                        pending,
-                        return_when_all_done=False,
-                        previous_task_errors=task_errors,
-                        housekeeping_fn=housekeeping_fn,
-                    )
+            # if we've met max concurrent tasks, wait for the next one to finish
+            while len(pending) >= multitasking:
+                LOGGER.info("Reached max task concurrency limit, waiting...")
+                pending, task_errors = await _wait_on_tasks_with_ack(
+                    sub,
+                    pub,
+                    pending,
+                    return_when_all_done=False,
+                    previous_task_errors=task_errors,
+                    housekeeping_fn=housekeeping_fn,
+                )
 
-                # if 1+ fail, then don't consume anymore; wait for remaining tasks
-                if task_errors:
-                    LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
-                    break
+            # if 1+ fail, then don't consume anymore; wait for remaining tasks
+            if task_errors:
+                LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
+                break
 
         LOGGER.info("No more new tasks to process")
 
