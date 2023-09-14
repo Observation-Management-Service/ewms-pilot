@@ -432,12 +432,8 @@ async def _consume_and_reply(
     pending: AsyncioTaskMessages = {}
     task_errors: List[BaseException] = []
 
-    # for the first (set) of messages, use 'timeout_wait_for_first_message' if given
-    in_queue.timeout = (
-        timeout_wait_for_first_message
-        if timeout_wait_for_first_message
-        else timeout_incoming
-    )
+    # for the first messages, use 'timeout_wait_for_first_message' if given
+    in_queue.timeout = timeout_wait_for_first_message or timeout_incoming
 
     def housekeeping_fn() -> None:
         # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
@@ -450,9 +446,7 @@ async def _consume_and_reply(
 
     # GO!
     total_msg_count = 0
-    LOGGER.info(
-        "Listening for messages from server to process tasks then send results..."
-    )
+    LOGGER.info("Listening for messages to process tasks then send results...")
     # open pub
     async with out_queue.open_pub() as pub:
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
