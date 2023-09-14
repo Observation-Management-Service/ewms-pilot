@@ -38,7 +38,7 @@ _EXCEPT_ERRORS = False
 _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
 
-_HOUSEKEEPING_TIMEOUT: int = 5  # second
+_REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main loop
 
 
 class FileType(enum.Enum):
@@ -418,6 +418,38 @@ def listener_loop_exit(
     return False
 
 
+class Housekeeping:
+    """Manage and perform housekeeping."""
+
+    RABBITMQ_HEARTBEAT_INTERVAL = 5
+
+    def __init__(self) -> None:
+        self.prev_rabbitmq_heartbeat = 0.0
+
+    def work(
+        self,
+        in_queue: mq.Queue,
+        sub: mq.queue.ManualQueueSubResource,
+        pub: mq.queue.QueuePubResource,
+    ) -> None:
+        """Do housekeeping."""
+
+        # rabbitmq heartbeats
+        # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
+        if in_queue._broker_client.NAME.lower() == "rabbitmq":
+            if (
+                time.time() - self.prev_rabbitmq_heartbeat
+                > self.RABBITMQ_HEARTBEAT_INTERVAL
+            ):
+                self.prev_rabbitmq_heartbeat = time.time()
+                for raw_q in [pub.pub, sub._sub]:
+                    if raw_q.connection:  # type: ignore[union-attr]
+                        LOGGER.info("sending heartbeat to RabbitMQ broker...")
+                        raw_q.connection.process_data_events()  # type: ignore[union-attr]
+
+        # TODO -- add other housekeeping
+
+
 async def _consume_and_reply(
     cmd: str,
     #
@@ -447,13 +479,7 @@ async def _consume_and_reply(
     pending: AsyncioTaskMessages = {}
     task_errors: List[BaseException] = []
 
-    def housekeeping_fn() -> None:
-        # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-        if in_queue._broker_client.NAME.lower() == "rabbitmq":
-            for raw_q in [pub.pub, sub._sub]:
-                if raw_q.connection:  # type: ignore[union-attr]
-                    LOGGER.info("sending heartbeat to RabbitMQ broker...")
-                    raw_q.connection.process_data_events()  # type: ignore[union-attr]
+    housekeeper = Housekeeping()
 
     # GO!
     total_msg_count = 0
@@ -468,11 +494,11 @@ async def _consume_and_reply(
         # "listener loop" -- get messages and do tasks
         # intermittently halt listening to process housekeeping things
         #
-        in_queue.timeout = _HOUSEKEEPING_TIMEOUT
+        in_queue.timeout = _REFRESH_INTERVAL
         listener_loop_timeout = timeout_wait_for_first_message or timeout_incoming
         recent_msg_ts = time.time()
         while not listener_loop_exit(task_errors, recent_msg_ts, listener_loop_timeout):
-            housekeeping_fn()
+            housekeeper.work(in_queue, sub, pub)
             #
             # get messages/tasks
             if len(pending) >= multitasking:
@@ -517,7 +543,7 @@ async def _consume_and_reply(
                 pub,
                 pending,
                 previous_task_errors=task_errors,
-                timeout=_HOUSEKEEPING_TIMEOUT,
+                timeout=_REFRESH_INTERVAL,
             )
 
         #
@@ -525,7 +551,7 @@ async def _consume_and_reply(
         # intermittently halt listening to process housekeeping things
         #
         while pending:
-            housekeeping_fn()
+            housekeeper.work(in_queue, sub, pub)
             LOGGER.info("Waiting for remaining tasks to finish...")
             # wait on finished task (or housekeeping timeout)
             pending, task_errors = await _wait_on_tasks_with_ack(
@@ -533,7 +559,7 @@ async def _consume_and_reply(
                 pub,
                 pending,
                 previous_task_errors=task_errors,
-                timeout=_HOUSEKEEPING_TIMEOUT,
+                timeout=_REFRESH_INTERVAL,
             )
 
     # log/chirp
