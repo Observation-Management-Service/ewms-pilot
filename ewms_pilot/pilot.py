@@ -334,6 +334,8 @@ async def _wait_on_tasks_with_ack(
             List[BaseException]: failed tasks' exceptions (plus those in `previous_task_errors`)
     """
     pending: Set[asyncio.Task] = set(tasks_msgs.keys())  # type: ignore[type-arg]
+    if not pending:
+        return {}, previous_task_errors
 
     async def handle_failed_task(task: asyncio.Task, exception: BaseException) -> None:  # type: ignore[type-arg]
         previous_task_errors.append(exception)
