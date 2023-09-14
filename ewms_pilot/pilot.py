@@ -466,23 +466,22 @@ async def _consume_and_reply(
     async with out_queue.open_pub() as pub, in_queue.open_sub_manual_acking() as sub:
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
         #
-        # outer loop to process housekeeping things
+        # "listener loop" intermittently halts listening to process housekeeping things
         in_queue.timeout = int(_HOUSEKEEPING_TIMEOUT)
-        timeout = timeout_wait_for_first_message or timeout_incoming
-        time_of_last_message = time.time()
-        while (not task_errors) and (not did_timeout(time_of_last_message, timeout)):
+        listener_loop_timeout = timeout_wait_for_first_message or timeout_incoming
+        recent_msg_ts = time.time()
+        while not (task_errors or did_timeout(recent_msg_ts, listener_loop_timeout)):
             housekeeping_fn()
             #
             # get messages/tasks
             try:
                 in_msg = await anext(sub.iter_messages())  # exits on in_queue.timeout
-                time_of_last_message = time.time()
+                recent_msg_ts = time.time()
                 total_msg_count += 1
                 LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
 
                 # after the first message, set the timeout to the "normal" amount
-                if in_queue.timeout != timeout_incoming:
-                    in_queue.timeout = timeout_incoming
+                listener_loop_timeout = timeout_incoming
 
                 if total_msg_count == 1:
                     utils.chirp_status("Tasking")
