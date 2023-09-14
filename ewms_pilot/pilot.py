@@ -8,6 +8,7 @@ import json
 import pickle
 import shlex
 import shutil
+import sys
 import time
 import uuid
 from pathlib import Path
@@ -19,6 +20,14 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from . import utils
 from .config import ENV, LOGGER
+
+# fmt:off
+if sys.version_info[1] < 10:
+    # this is built in for py3.10+
+    async def anext(ait):
+        return await ait.__anext__()
+# fmt:on
+
 
 AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
 
