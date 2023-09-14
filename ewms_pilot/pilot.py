@@ -512,8 +512,10 @@ async def _consume_and_reply(
         # "listener loop" -- get messages and do tasks
         # intermittently halt listening to process housekeeping things
         #
-        recent_msg_ts = time.time()
-        while not listener_loop_exit(task_errors, recent_msg_ts, listener_loop_timeout):
+        current_msg_waittime = 0.0
+        while not listener_loop_exit(
+            task_errors, current_msg_waittime, listener_loop_timeout
+        ):
             housekeeper.work(in_queue, sub, pub)
             #
             # get messages/tasks
@@ -523,7 +525,7 @@ async def _consume_and_reply(
                 LOGGER.info("Listening for incoming message...")
                 try:
                     in_msg = await anext(sub.iter_messages())  # -> in_queue.timeout
-                    recent_msg_ts = time.time()
+                    current_msg_waittime = 0.0
                     total_msg_count += 1
                     LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
 
@@ -550,7 +552,9 @@ async def _consume_and_reply(
                     continue  # we got one message, so maybe the queue is saturated
                 except StopAsyncIteration:
                     # no message this round
-                    pass
+                    #   incrementing by the timeout value allows us to
+                    #   not worry about time not spent waiting for a message
+                    current_msg_waittime += in_queue.timeout
 
             # wait on finished task (or housekeeping timeout)
             pending, task_errors = await _wait_on_tasks_with_ack(
