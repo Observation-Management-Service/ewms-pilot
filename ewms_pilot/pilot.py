@@ -349,7 +349,7 @@ async def _wait_on_tasks_with_ack(
         LOGGER.error(_all_task_errors_string(previous_task_errors))
 
     # wait for next task
-    LOGGER.info("Waiting on tasks...")
+    LOGGER.debug("Waiting on tasks...")
     done, pending = await asyncio.wait(
         pending,
         return_when=asyncio.FIRST_COMPLETED,
@@ -520,9 +520,9 @@ async def _consume_and_reply(
             #
             # get messages/tasks
             if len(pending) >= multitasking:
-                LOGGER.info("At max task concurrency limit")
+                LOGGER.debug("At max task concurrency limit")
             else:
-                LOGGER.info("Listening for incoming message...")
+                LOGGER.debug("Listening for incoming message...")
                 try:
                     in_msg = await anext(sub.iter_messages())  # -> in_queue.timeout
                     msg_waittime_current = 0.0
@@ -565,13 +565,16 @@ async def _consume_and_reply(
                 timeout=_REFRESH_INTERVAL,
             )
 
+        LOGGER.info("Done listening for messages")
+
         #
         # "clean up loop" -- wait for remaining tasks
         # intermittently halting to process housekeeping things
         #
+        if pending:
+            LOGGER.debug("Waiting for remaining tasks to finish...")
         while pending:
             housekeeper.work(in_queue, sub, pub)
-            LOGGER.info("Waiting for remaining tasks to finish...")
             # wait on finished task (or timeout)
             pending, task_errors = await _wait_on_tasks_with_ack(
                 sub,
