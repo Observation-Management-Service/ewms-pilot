@@ -322,9 +322,8 @@ async def _wait_on_tasks_with_ack(
     sub: mq.queue.ManualQueueSubResource,
     pub: mq.queue.QueuePubResource,
     tasks_msgs: AsyncioTaskMessages,
-    return_when_all_done: bool,
+    # return_when_all_done: bool,
     previous_task_errors: List[BaseException],
-    housekeeping_fn: Callable[[], None],
 ) -> Tuple[AsyncioTaskMessages, List[BaseException]]:
     """Get finished tasks and ack/nack their messages.
 
@@ -348,60 +347,58 @@ async def _wait_on_tasks_with_ack(
         LOGGER.error(_all_task_errors_string(previous_task_errors))
 
     # LOOP!
-    while pending:
-        # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
+    # while pending:
+    # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
 
-        housekeeping_fn()
+    # wait for next task
+    done, pending = await asyncio.wait(
+        pending,
+        return_when=asyncio.FIRST_COMPLETED,
+        timeout=_HOUSEKEEPING_TIMEOUT,
+    )
 
-        # wait for next task
-        done, pending = await asyncio.wait(
-            pending,
-            return_when=asyncio.FIRST_COMPLETED,
-            timeout=_HOUSEKEEPING_TIMEOUT,
-        )
+    # HANDLE FINISHED TASK(S)
+    # fyi, most likely one task in here unless 2+ finish at same time
+    for task in done:
+        try:
+            result = await task
+        except Exception as e:
+            # FAILED TASK!
+            await handle_failed_task(task, e)
+            continue
 
-        # HANDLE FINISHED TASK(S)
-        # fyi, most likely one task in here unless 2+ finish at same time
-        for task in done:
-            try:
-                result = await task
-            except Exception as e:
-                # FAILED TASK!
-                await handle_failed_task(task, e)
-                continue
+        # SUCCESSFUL TASK -> send result
+        try:
+            LOGGER.info("TASK FINISHED -- attempting to send result message...")
+            await pub.send(result)
+        except Exception as e:
+            # -> failed to send = FAILED TASK!
+            LOGGER.error(
+                f"Failed to send finished task's result: {repr(e)}"
+                f" -- task now considered as failed"
+            )
+            await handle_failed_task(task, e)
+            continue
 
-            # SUCCESSFUL TASK -> send result
-            try:
-                LOGGER.info("TASK FINISHED -- attempting to send result message...")
-                await pub.send(result)
-            except Exception as e:
-                # -> failed to send = FAILED TASK!
-                LOGGER.error(
-                    f"Failed to send finished task's result: {repr(e)}"
-                    f" -- task now considered as failed"
-                )
-                await handle_failed_task(task, e)
-                continue
+        # SUCCESSFUL TASK -> result sent -> ack original message
+        try:
+            LOGGER.info("Now, attempting to ack original message...")
+            await sub.ack(tasks_msgs[task])
+        except mq.broker_client_interface.AckException as e:
+            # -> result sent -> ack failed = that's okay!
+            LOGGER.error(
+                f"Could not ack ({repr(e)}) -- not counting as a failed task"
+                " since task's result was sent successfully -- "
+                "NOTE: outgoing queue may eventually get"
+                " duplicate result when original message is"
+                " re-delivered by broker to another pilot"
+                " & the new result is sent"
+            )
 
-            # SUCCESSFUL TASK -> result sent -> ack original message
-            try:
-                LOGGER.info("Now, attempting to ack original message...")
-                await sub.ack(tasks_msgs[task])
-            except mq.broker_client_interface.AckException as e:
-                # -> result sent -> ack failed = that's okay!
-                LOGGER.error(
-                    f"Could not ack ({repr(e)}) -- not counting as a failed task"
-                    " since task's result was sent successfully -- "
-                    "NOTE: outgoing queue may eventually get"
-                    " duplicate result when original message is"
-                    " re-delivered by broker to another pilot"
-                    " & the new result is sent"
-                )
-
-        # early exit?
-        if not return_when_all_done and done:
-            # like return_when=asyncio.FIRST_COMPLETED
-            break
+        # # early exit?
+        # if not return_when_all_done and done:
+        #     # like return_when=asyncio.FIRST_COMPLETED
+        #     break
 
     LOGGER.info(f"{len(tasks_msgs)-len(pending)} Tasks Finished")
 
@@ -451,10 +448,10 @@ async def _consume_and_reply(
                     raw_q.connection.process_data_events()  # type: ignore[union-attr]
 
     def did_timeout(time_of_last_message: float, timeout: float) -> bool:
-        if time.time() - time_of_last_message > timeout:
+        did = time.time() - time_of_last_message > timeout
+        if did:
             LOGGER.info(f"Timed out waiting for incoming message: {timeout=}")
-            return True
-        return False
+        return did
 
     # GO!
     total_msg_count = 0
@@ -466,7 +463,9 @@ async def _consume_and_reply(
     async with out_queue.open_pub() as pub, in_queue.open_sub_manual_acking() as sub:
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
         #
-        # "listener loop" intermittently halts listening to process housekeeping things
+        # "listener loop" -- get messages and do tasks
+        # intermittently halt listening to process housekeeping things
+        #
         in_queue.timeout = int(_HOUSEKEEPING_TIMEOUT)
         listener_loop_timeout = timeout_wait_for_first_message or timeout_incoming
         recent_msg_ts = time.time()
@@ -474,68 +473,70 @@ async def _consume_and_reply(
             housekeeping_fn()
             #
             # get messages/tasks
-            try:
-                in_msg = await anext(sub.iter_messages())  # exits on in_queue.timeout
-                recent_msg_ts = time.time()
-                total_msg_count += 1
-                LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
-
-                # after the first message, set the timeout to the "normal" amount
-                listener_loop_timeout = timeout_incoming
-
-                if total_msg_count == 1:
-                    utils.chirp_status("Tasking")
-
-                task = asyncio.create_task(
-                    process_msg_task(
-                        in_msg.data,
-                        cmd,
-                        task_timeout,
-                        ftype_to_subproc,
-                        ftype_from_subproc,
-                        file_writer,
-                        file_reader,
-                        staging_dir,
-                        keep_debug_dir,
-                    )
-                )
-                pending[task] = in_msg
-            except StopAsyncIteration:
-                # no message this round
-                pass
-
-            # if we've met max concurrent tasks, wait for the next one to finish
-            while len(pending) >= multitasking:
+            if len(pending) >= multitasking:
                 LOGGER.info("Reached max task concurrency limit, waiting...")
-                pending, task_errors = await _wait_on_tasks_with_ack(
-                    sub,
-                    pub,
-                    pending,
-                    return_when_all_done=False,
-                    previous_task_errors=task_errors,
-                    housekeeping_fn=housekeeping_fn,
-                )
+            else:
+                try:
+                    in_msg = await anext(sub.iter_messages())  # -> in_queue.timeout
+                    recent_msg_ts = time.time()
+                    total_msg_count += 1
+                    LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
 
-            # if 1+ fail, then don't consume anymore; wait for remaining tasks
-            if task_errors:
-                LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
-                break
+                    # after the first message, set the timeout to the "normal" amount
+                    listener_loop_timeout = timeout_incoming
 
-        LOGGER.info("No more new tasks to process")
+                    if total_msg_count == 1:
+                        utils.chirp_status("Tasking")
 
-        # wait for remaining tasks
-        if pending:
+                    task = asyncio.create_task(
+                        process_msg_task(
+                            in_msg.data,
+                            cmd,
+                            task_timeout,
+                            ftype_to_subproc,
+                            ftype_from_subproc,
+                            file_writer,
+                            file_reader,
+                            staging_dir,
+                            keep_debug_dir,
+                        )
+                    )
+                    pending[task] = in_msg
+                except StopAsyncIteration:
+                    # no message this round
+                    pass
+
+            pending, task_errors = await _wait_on_tasks_with_ack(
+                sub,
+                pub,
+                pending,
+                # return_when_all_done=False,
+                previous_task_errors=task_errors,
+                # housekeeping_fn=housekeeping_fn,
+            )
+
+        #
+        # post-"listener loop" logging
+        if task_errors:
+            LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
+        else:
+            LOGGER.info("No more new tasks to process")
+
+        #
+        # "clean up loop" -- wait for remaining tasks
+        # intermittently halt listening to process housekeeping things
+        #
+        while pending:
+            housekeeping_fn()
             LOGGER.info("Waiting for remaining tasks to finish...")
             pending, task_errors = await _wait_on_tasks_with_ack(
                 sub,
                 pub,
                 pending,
-                return_when_all_done=True,
+                # return_when_all_done=False,
                 previous_task_errors=task_errors,
-                housekeeping_fn=housekeeping_fn,
+                # housekeeping_fn=housekeeping_fn,
             )
-            if pending:
-                LOGGER.error(f"{len(pending)} tasks are pending after finish")
 
     # log/chirp
     chirp_msg = f"Done Tasking: completed {total_msg_count} task(s)"
