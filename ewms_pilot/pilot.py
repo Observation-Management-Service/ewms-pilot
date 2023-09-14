@@ -444,12 +444,11 @@ async def _consume_and_reply(
 
     def housekeeping_fn() -> None:
         # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-        if in_queue._broker_client.NAME.lower() != "rabbitmq":
-            return
-        for raw_q in [pub.pub, sub._sub]:
-            if raw_q.connection:  # type: ignore[union-attr]
-                LOGGER.info("sending heartbeat to RabbitMQ broker...")
-                raw_q.connection.process_data_events()  # type: ignore[union-attr]
+        if in_queue._broker_client.NAME.lower() == "rabbitmq":
+            for raw_q in [pub.pub, sub._sub]:
+                if raw_q.connection:  # type: ignore[union-attr]
+                    LOGGER.info("sending heartbeat to RabbitMQ broker...")
+                    raw_q.connection.process_data_events()  # type: ignore[union-attr]
 
     def did_timeout(time_of_last_message: float, timeout: float) -> bool:
         if time.time() - time_of_last_message > timeout:
