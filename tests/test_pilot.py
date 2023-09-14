@@ -78,6 +78,8 @@ async def populate_queue(
 
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
+            if not i % 2:  # add some chaos -- make the queue not saturated
+                await asyncio.sleep(1)
             await pub.send(msg)
 
     assert i + 1 == len(msgs_to_subproc)  # pylint:disable=undefined-loop-variable
