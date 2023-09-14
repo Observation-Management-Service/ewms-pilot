@@ -508,6 +508,7 @@ async def _consume_and_reply(
     # open pub & sub
     async with out_queue.open_pub() as pub, in_queue.open_sub_manual_acking() as sub:
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
+        message_iterator = sub.iter_messages()
         #
         # "listener loop" -- get messages and do tasks
         # intermittently halting to process housekeeping things
@@ -524,7 +525,7 @@ async def _consume_and_reply(
             else:
                 LOGGER.debug("Listening for incoming message...")
                 try:
-                    in_msg = await anext(sub.iter_messages())  # -> in_queue.timeout
+                    in_msg = await anext(message_iterator)  # -> in_queue.timeout
                     msg_waittime_current = 0.0
                     total_msg_count += 1
                     LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
