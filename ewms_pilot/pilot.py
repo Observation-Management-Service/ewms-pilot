@@ -406,14 +406,14 @@ async def _wait_on_tasks_with_ack(
 
 def listener_loop_exit(
     task_errors: List[BaseException],
-    recent_msg_ts: float,
+    current_msg_waittime: float,
     listener_loop_timeout: float,
 ) -> bool:
     """Essentially a big IF condition -- but now with logging!"""
     if task_errors:
         LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
         return True
-    if time.time() - recent_msg_ts > listener_loop_timeout:
+    if current_msg_waittime > listener_loop_timeout:
         LOGGER.info(f"Timed out waiting for incoming message: {listener_loop_timeout=}")
         return True
     return False
@@ -510,7 +510,7 @@ async def _consume_and_reply(
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
         #
         # "listener loop" -- get messages and do tasks
-        # intermittently halt listening to process housekeeping things
+        # intermittently halting to process housekeeping things
         #
         current_msg_waittime = 0.0
         while not listener_loop_exit(
@@ -567,7 +567,7 @@ async def _consume_and_reply(
 
         #
         # "clean up loop" -- wait for remaining tasks
-        # intermittently halt listening to process housekeeping things
+        # intermittently halting to process housekeeping things
         #
         while pending:
             housekeeper.work(in_queue, sub, pub)
