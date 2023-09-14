@@ -38,7 +38,7 @@ _EXCEPT_ERRORS = False
 _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
 
-_HOUSEKEEPING_TIMEOUT = 5.0  # second
+_HOUSEKEEPING_TIMEOUT: int = 5  # second
 
 
 class FileType(enum.Enum):
@@ -324,6 +324,7 @@ async def _wait_on_tasks_with_ack(
     tasks_msgs: AsyncioTaskMessages,
     # return_when_all_done: bool,
     previous_task_errors: List[BaseException],
+    timeout: int,
 ) -> Tuple[AsyncioTaskMessages, List[BaseException]]:
     """Get finished tasks and ack/nack their messages.
 
@@ -354,7 +355,7 @@ async def _wait_on_tasks_with_ack(
     done, pending = await asyncio.wait(
         pending,
         return_when=asyncio.FIRST_COMPLETED,
-        timeout=_HOUSEKEEPING_TIMEOUT,
+        timeout=timeout,
     )
 
     # HANDLE FINISHED TASK(S)
@@ -475,7 +476,7 @@ async def _consume_and_reply(
         # "listener loop" -- get messages and do tasks
         # intermittently halt listening to process housekeeping things
         #
-        in_queue.timeout = int(_HOUSEKEEPING_TIMEOUT)
+        in_queue.timeout = _HOUSEKEEPING_TIMEOUT
         listener_loop_timeout = timeout_wait_for_first_message or timeout_incoming
         recent_msg_ts = time.time()
         while not listener_loop_exit(task_errors, recent_msg_ts, listener_loop_timeout):
@@ -523,6 +524,7 @@ async def _consume_and_reply(
                 # return_when_all_done=False,
                 previous_task_errors=task_errors,
                 # housekeeping_fn=housekeeping_fn,
+                timeout=_HOUSEKEEPING_TIMEOUT,
             )
 
         #
@@ -540,6 +542,7 @@ async def _consume_and_reply(
                 # return_when_all_done=False,
                 previous_task_errors=task_errors,
                 # housekeeping_fn=housekeeping_fn,
+                timeout=_HOUSEKEEPING_TIMEOUT,
             )
 
     # log/chirp
