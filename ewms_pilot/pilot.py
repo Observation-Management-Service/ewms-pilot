@@ -556,7 +556,7 @@ async def _consume_and_reply(
                     #   not worry about time not spent waiting for a message
                     current_msg_waittime += in_queue.timeout
 
-            # wait on finished task (or housekeeping timeout)
+            # wait on finished task (or timeout)
             pending, task_errors = await _wait_on_tasks_with_ack(
                 sub,
                 pub,
@@ -572,7 +572,7 @@ async def _consume_and_reply(
         while pending:
             housekeeper.work(in_queue, sub, pub)
             LOGGER.info("Waiting for remaining tasks to finish...")
-            # wait on finished task (or housekeeping timeout)
+            # wait on finished task (or timeout)
             pending, task_errors = await _wait_on_tasks_with_ack(
                 sub,
                 pub,
