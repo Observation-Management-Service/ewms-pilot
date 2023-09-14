@@ -443,9 +443,9 @@ class Housekeeping:
             ):
                 self.prev_rabbitmq_heartbeat = time.time()
                 for raw_q in [pub.pub, sub._sub]:
-                    if raw_q.connection:  # type: ignore[union-attr]
+                    if raw_q.connection:  # type: ignore[attr-defined, union-attr]
                         LOGGER.info("sending heartbeat to RabbitMQ broker...")
-                        raw_q.connection.process_data_events()  # type: ignore[union-attr]
+                        raw_q.connection.process_data_events()  # type: ignore[attr-defined, union-attr]
 
         # TODO -- add other housekeeping
 
