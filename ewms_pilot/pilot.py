@@ -556,6 +556,7 @@ async def _consume_and_reply(
                     #   incrementing by the timeout value allows us to
                     #   not worry about time not spent waiting for a message
                     msg_waittime_current += in_queue.timeout
+                    message_iterator = sub.iter_messages()
 
             # wait on finished task (or timeout)
             pending, task_errors = await _wait_on_tasks_with_ack(
