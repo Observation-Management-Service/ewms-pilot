@@ -482,6 +482,23 @@ async def _consume_and_reply(
 
     housekeeper = Housekeeping()
 
+    # timeouts
+    if (
+        timeout_wait_for_first_message is not None
+        and timeout_wait_for_first_message < _REFRESH_INTERVAL
+    ):
+        raise ValueError(
+            f"'timeout_wait_for_first_message' cannot be less than {_REFRESH_INTERVAL}: "
+            f"currently {timeout_wait_for_first_message}"
+        )
+    if timeout_incoming < _REFRESH_INTERVAL:
+        raise ValueError(
+            f"'timeout_incoming' cannot be less than {_REFRESH_INTERVAL}: "
+            f"currently {timeout_incoming}"
+        )
+    in_queue.timeout = _REFRESH_INTERVAL
+    listener_loop_timeout = timeout_wait_for_first_message or timeout_incoming
+
     # GO!
     total_msg_count = 0
     LOGGER.info(
@@ -495,8 +512,6 @@ async def _consume_and_reply(
         # "listener loop" -- get messages and do tasks
         # intermittently halt listening to process housekeeping things
         #
-        in_queue.timeout = _REFRESH_INTERVAL
-        listener_loop_timeout = timeout_wait_for_first_message or timeout_incoming
         recent_msg_ts = time.time()
         while not listener_loop_exit(task_errors, recent_msg_ts, listener_loop_timeout):
             housekeeper.work(in_queue, sub, pub)
