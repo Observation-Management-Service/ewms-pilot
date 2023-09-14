@@ -867,7 +867,10 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         )
 
     # run producer & consumer concurrently
-    with patch("ewms_pilot.pilot._HOUSEKEEPING_TIMEOUT", housekeeping_timeout):
+    with patch(
+        "ewms_pilot.pilot.Housekeeping.RABBITMQ_HEARTBEAT_INTERVAL",
+        housekeeping_timeout,
+    ):
         if housekeeping_timeout > TEST_1000_SLEEP:
             with pytest.raises(
                 RuntimeError,
