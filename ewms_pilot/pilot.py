@@ -322,7 +322,6 @@ async def _wait_on_tasks_with_ack(
     sub: mq.queue.ManualQueueSubResource,
     pub: mq.queue.QueuePubResource,
     tasks_msgs: AsyncioTaskMessages,
-    # return_when_all_done: bool,
     previous_task_errors: List[BaseException],
     timeout: int,
 ) -> Tuple[AsyncioTaskMessages, List[BaseException]]:
@@ -349,10 +348,6 @@ async def _wait_on_tasks_with_ack(
             LOGGER.error(f"Could not nack: {repr(e)}")
         LOGGER.error(_all_task_errors_string(previous_task_errors))
 
-    # LOOP!
-    # while pending:
-    # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
-
     # wait for next task
     done, pending = await asyncio.wait(
         pending,
@@ -361,7 +356,7 @@ async def _wait_on_tasks_with_ack(
     )
 
     # HANDLE FINISHED TASK(S)
-    # fyi, most likely one task in here unless 2+ finish at same time
+    # fyi, most likely one task in here, but 2+ could finish at same time
     for task in done:
         try:
             result = await task
@@ -398,15 +393,10 @@ async def _wait_on_tasks_with_ack(
                 " & the new result is sent"
             )
 
-        # # early exit?
-        # if not return_when_all_done and done:
-        #     # like return_when=asyncio.FIRST_COMPLETED
-        #     break
-
-    LOGGER.info(f"{len(tasks_msgs)-len(pending)} Tasks Finished")
+    if done:
+        LOGGER.info(f"{len(tasks_msgs)-len(pending)} Tasks Finished")
 
     return (
-        # this is empty if return_when_all_done
         {t: msg for t, msg in tasks_msgs.items() if t in pending},
         # this now also includes tasks that finished this round
         previous_task_errors,
@@ -526,9 +516,7 @@ async def _consume_and_reply(
                 sub,
                 pub,
                 pending,
-                # return_when_all_done=False,
                 previous_task_errors=task_errors,
-                # housekeeping_fn=housekeeping_fn,
                 timeout=_HOUSEKEEPING_TIMEOUT,
             )
 
@@ -544,9 +532,7 @@ async def _consume_and_reply(
                 sub,
                 pub,
                 pending,
-                # return_when_all_done=False,
                 previous_task_errors=task_errors,
-                # housekeeping_fn=housekeeping_fn,
                 timeout=_HOUSEKEEPING_TIMEOUT,
             )
 
