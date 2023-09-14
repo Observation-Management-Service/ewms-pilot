@@ -471,7 +471,7 @@ async def _consume_and_reply(
         in_queue.timeout = int(_HOUSEKEEPING_TIMEOUT)
         timeout = timeout_wait_for_first_message or timeout_incoming
         time_of_last_message = time.time()
-        while (not task_errors) and did_timeout(time_of_last_message, timeout):
+        while (not task_errors) and (not did_timeout(time_of_last_message, timeout)):
             housekeeping_fn()
             #
             # get messages/tasks
