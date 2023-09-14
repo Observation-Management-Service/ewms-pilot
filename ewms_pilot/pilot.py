@@ -501,7 +501,7 @@ async def _consume_and_reply(
                     )
                 )
                 pending[task] = in_msg
-            except StopIteration:
+            except StopAsyncIteration:
                 # no message this round
                 pass
 
