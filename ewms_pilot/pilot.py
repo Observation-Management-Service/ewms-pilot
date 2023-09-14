@@ -466,7 +466,7 @@ async def _consume_and_reply(
             housekeeping_fn()
             #
             # get messages/tasks
-            async for in_msg in sub.iter_messages():
+            async for in_msg in sub.iter_messages():  # exits on in_queue.timeout
                 time_of_last_message = time.time()
                 total_msg_count += 1
                 LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
@@ -510,21 +510,21 @@ async def _consume_and_reply(
                     LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
                     break
 
-            LOGGER.info("No more new tasks to process")
+        LOGGER.info("No more new tasks to process")
 
-            # wait for remaining tasks
+        # wait for remaining tasks
+        if pending:
+            LOGGER.info("Waiting for remaining tasks to finish...")
+            pending, task_errors = await _wait_on_tasks_with_ack(
+                sub,
+                pub,
+                pending,
+                return_when_all_done=True,
+                previous_task_errors=task_errors,
+                housekeeping_fn=housekeeping_fn,
+            )
             if pending:
-                LOGGER.info("Waiting for remaining tasks to finish...")
-                pending, task_errors = await _wait_on_tasks_with_ack(
-                    sub,
-                    pub,
-                    pending,
-                    return_when_all_done=True,
-                    previous_task_errors=task_errors,
-                    housekeeping_fn=housekeeping_fn,
-                )
-                if pending:
-                    LOGGER.error(f"{len(pending)} tasks are pending after finish")
+                LOGGER.error(f"{len(pending)} tasks are pending after finish")
 
     # log/chirp
     chirp_msg = f"Done Tasking: completed {total_msg_count} task(s)"
