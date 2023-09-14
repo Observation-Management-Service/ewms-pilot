@@ -410,6 +410,21 @@ async def _wait_on_tasks_with_ack(
     )
 
 
+def listener_loop_exit(
+    task_errors: List[BaseException],
+    recent_msg_ts: float,
+    listener_loop_timeout: float,
+) -> bool:
+    """Essentially a big IF condition -- but now with logging!"""
+    if task_errors:
+        LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
+        return True
+    if time.time() - recent_msg_ts > listener_loop_timeout:
+        LOGGER.info(f"Timed out waiting for incoming message: {listener_loop_timeout=}")
+        return True
+    return False
+
+
 async def _consume_and_reply(
     cmd: str,
     #
@@ -447,12 +462,6 @@ async def _consume_and_reply(
                     LOGGER.info("sending heartbeat to RabbitMQ broker...")
                     raw_q.connection.process_data_events()  # type: ignore[union-attr]
 
-    def did_timeout(time_of_last_message: float, timeout: float) -> bool:
-        did = time.time() - time_of_last_message > timeout
-        if did:
-            LOGGER.info(f"Timed out waiting for incoming message: {timeout=}")
-        return did
-
     # GO!
     total_msg_count = 0
     LOGGER.info(
@@ -469,7 +478,7 @@ async def _consume_and_reply(
         in_queue.timeout = int(_HOUSEKEEPING_TIMEOUT)
         listener_loop_timeout = timeout_wait_for_first_message or timeout_incoming
         recent_msg_ts = time.time()
-        while not (task_errors or did_timeout(recent_msg_ts, listener_loop_timeout)):
+        while not listener_loop_exit(task_errors, recent_msg_ts, listener_loop_timeout):
             housekeeping_fn()
             #
             # get messages/tasks
@@ -506,6 +515,7 @@ async def _consume_and_reply(
                     # no message this round
                     pass
 
+            # wait on finished task (or housekeeping timeout)
             pending, task_errors = await _wait_on_tasks_with_ack(
                 sub,
                 pub,
@@ -516,19 +526,13 @@ async def _consume_and_reply(
             )
 
         #
-        # post-"listener loop" logging
-        if task_errors:
-            LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
-        else:
-            LOGGER.info("No more new tasks to process")
-
-        #
         # "clean up loop" -- wait for remaining tasks
         # intermittently halt listening to process housekeeping things
         #
         while pending:
             housekeeping_fn()
             LOGGER.info("Waiting for remaining tasks to finish...")
+            # wait on finished task (or housekeeping timeout)
             pending, task_errors = await _wait_on_tasks_with_ack(
                 sub,
                 pub,
