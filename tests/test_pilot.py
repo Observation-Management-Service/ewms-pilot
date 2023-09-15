@@ -82,7 +82,7 @@ async def populate_queue(
 
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
-            if not i % 2:  # add some chaos -- make the queue not saturated
+            if i and i % 2 == 0:  # add some chaos -- make the queue not saturated
                 await asyncio.sleep(timeout_incoming / 2)
             await pub.send(msg)
 
