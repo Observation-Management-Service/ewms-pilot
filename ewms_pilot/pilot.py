@@ -28,7 +28,7 @@ _EXCEPT_ERRORS = False
 _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
 
-_HOUSEKEEPING_TIMEOUT = 1.0  # second
+_HOUSEKEEPING_TIMEOUT = 5.0  # second
 
 
 class FileType(enum.Enum):
