@@ -518,6 +518,7 @@ async def _consume_and_reply(
             task_errors, msg_waittime_current, msg_waittime_timeout
         ):
             housekeeper.work(in_queue, sub, pub)
+            await asyncio.sleep(0)  # hand over control to other async tasks
             #
             # get messages/tasks
             if len(pending) >= multitasking:
