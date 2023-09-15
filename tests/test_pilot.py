@@ -24,6 +24,9 @@ logging.getLogger("mqclient").setLevel(logging.INFO)
 logging.getLogger("pika").setLevel(logging.WARNING)
 
 
+TIMEOUT_INCOMING = 3
+
+
 @pytest.fixture
 def queue_incoming() -> str:
     """Get the name of a queue for talking to client(s)."""
@@ -68,6 +71,7 @@ def first_walk() -> OSWalkList:
 async def populate_queue(
     queue_incoming: str,
     msgs_to_subproc: list,
+    timeout_incoming: int,
 ) -> None:
     """Send messages to queue."""
     to_client_q = mq.Queue(
@@ -79,7 +83,7 @@ async def populate_queue(
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
             if not i % 2:  # add some chaos -- make the queue not saturated
-                await asyncio.sleep(1)
+                await asyncio.sleep(timeout_incoming / 2)
             await pub.send(msg)
 
     assert i + 1 == len(msgs_to_subproc)  # pylint:disable=undefined-loop-variable
@@ -180,7 +184,11 @@ async def test_000__txt(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
@@ -192,6 +200,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.TXT,
             ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
@@ -228,7 +237,11 @@ async def test_001__txt__str_filetype(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
@@ -240,6 +253,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=".txt",
             ftype_from_subproc=".txt",
+            timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
@@ -280,7 +294,11 @@ async def test_100__json(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 import json;
@@ -295,6 +313,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.JSON,
             ftype_from_subproc=FileType.JSON,
+            timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
@@ -333,7 +352,11 @@ async def test_200__pickle(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 import pickle;
@@ -348,6 +371,7 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.PKL,
             ftype_from_subproc=FileType.PKL,
+            timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
@@ -396,7 +420,11 @@ async def test_300__writer_reader(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
@@ -408,6 +436,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.TXT,
             ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
             file_writer=reverse_writer,
             file_reader=reader_w_prefix,
             debug_dir=debug_dir if use_debug_dir else None,
@@ -453,7 +482,11 @@ async def test_400__exception(
         r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: no good!'\)",
     ):
         await asyncio.gather(
-            populate_queue(queue_incoming, msgs_to_subproc),
+            populate_queue(
+                queue_incoming,
+                msgs_to_subproc,
+                timeout_incoming=TIMEOUT_INCOMING,
+            ),
             consume_and_reply(
                 cmd="""python3 -c "raise ValueError('no good!')" """,
                 # broker_client=,  # rely on env var
@@ -463,6 +496,7 @@ async def test_400__exception(
                 queue_outgoing=queue_outgoing,
                 ftype_to_subproc=FileType.TXT,
                 ftype_from_subproc=FileType.TXT,
+                timeout_incoming=TIMEOUT_INCOMING,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
@@ -510,7 +544,11 @@ async def test_420__timeout(
         RuntimeError, match=re.escape("1 TASK(S) FAILED: TimeoutError()")
     ):
         await asyncio.gather(
-            populate_queue(queue_incoming, msgs_to_subproc),
+            populate_queue(
+                queue_incoming,
+                msgs_to_subproc,
+                timeout_incoming=TIMEOUT_INCOMING,
+            ),
             consume_and_reply(
                 cmd="""python3 -c "import time; time.sleep(30)" """,
                 # broker_client=,  # rely on env var
@@ -520,6 +558,7 @@ async def test_420__timeout(
                 queue_outgoing=queue_outgoing,
                 ftype_to_subproc=FileType.TXT,
                 ftype_from_subproc=FileType.TXT,
+                timeout_incoming=TIMEOUT_INCOMING,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
@@ -579,7 +618,11 @@ async def test_500__concurrent_load_multitasking(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 import time
@@ -593,6 +636,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.TXT,
             ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
@@ -645,7 +689,11 @@ async def test_510__concurrent_load_multitasking_exceptions(
         r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\)",
     ) as e:
         await asyncio.gather(
-            populate_queue(queue_incoming, msgs_to_subproc),
+            populate_queue(
+                queue_incoming,
+                msgs_to_subproc,
+                timeout_incoming=TIMEOUT_INCOMING,
+            ),
             consume_and_reply(
                 cmd="""python3 -c "
 import time
@@ -660,6 +708,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 queue_outgoing=queue_outgoing,
                 ftype_to_subproc=FileType.TXT,
                 ftype_from_subproc=FileType.TXT,
+                timeout_incoming=TIMEOUT_INCOMING,
                 prefetch=prefetch,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
@@ -707,7 +756,11 @@ async def test_520__preload_multitasking(
 
     start_time = time.time()
 
-    await populate_queue(queue_incoming, msgs_to_subproc)
+    await populate_queue(
+        queue_incoming,
+        msgs_to_subproc,
+        timeout_incoming=TIMEOUT_INCOMING,
+    )
 
     await consume_and_reply(
         cmd="""python3 -c "
@@ -722,6 +775,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         queue_outgoing=queue_outgoing,
         ftype_to_subproc=FileType.TXT,
         ftype_from_subproc=FileType.TXT,
+        timeout_incoming=TIMEOUT_INCOMING,
         prefetch=prefetch,
         # file_writer=UniversalFileInterface.write, # see other tests
         # file_reader=UniversalFileInterface.read, # see other tests
@@ -764,7 +818,11 @@ async def test_530__preload_multitasking_exceptions(
 
     start_time = time.time()
 
-    await populate_queue(queue_incoming, msgs_to_subproc)
+    await populate_queue(
+        queue_incoming,
+        msgs_to_subproc,
+        timeout_incoming=TIMEOUT_INCOMING,
+    )
 
     with pytest.raises(
         RuntimeError,
@@ -787,6 +845,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.TXT,
             ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
@@ -844,9 +903,15 @@ async def test_1000__rabbitmq_heartbeat_workaround(
     msgs_to_subproc = ["foo", "bar", "baz"]
     msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
 
+    timeout_incoming = int(refresh_interval_rabbitmq_heartbeat_interval * 1.5)
+
     async def _test() -> None:
         await asyncio.gather(
-            populate_queue(queue_incoming, msgs_to_subproc),
+            populate_queue(
+                queue_incoming,
+                msgs_to_subproc,
+                timeout_incoming=timeout_incoming,
+            ),
             consume_and_reply(
                 cmd="""python3 -c "
 import time;
@@ -862,9 +927,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 queue_outgoing=queue_outgoing,
                 ftype_to_subproc=FileType.TXT,
                 ftype_from_subproc=FileType.TXT,
-                timeout_incoming=int(
-                    refresh_interval_rabbitmq_heartbeat_interval * 1.5
-                ),
+                timeout_incoming=timeout_incoming,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
