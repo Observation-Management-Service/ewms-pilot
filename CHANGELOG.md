@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.12.2 (2023-09-15)
+
+### Other
+
+* Pin `oms-mqclient==2.4.4` ([#47](https://github.com/Observation-Management-Service/ewms-pilot/issues/47)) ([`86b9a5a`](https://github.com/Observation-Management-Service/ewms-pilot/commit/86b9a5ad54600137fd127bd0bb42d9af1c1dd1ab))
+
 ## v0.12.1 (2023-09-15)
 
 ### Other
