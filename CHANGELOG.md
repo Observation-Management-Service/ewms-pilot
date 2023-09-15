@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.12.1 (2023-09-15)
+
+### Other
+
+* Slow Down Heartbeat ([#46](https://github.com/Observation-Management-Service/ewms-pilot/issues/46)) ([`30b6a69`](https://github.com/Observation-Management-Service/ewms-pilot/commit/30b6a698ede14e0869efbb42b87605c0a6d0cf21))
+
 ## v0.12.0 (2023-07-31)
 
 
