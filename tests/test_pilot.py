@@ -686,10 +686,11 @@ async def test_510__concurrent_load_multitasking_exceptions(
     # run producer & consumer concurrently
     with pytest.raises(
         RuntimeError,
-        match=r"3 TASK\(S\) FAILED: "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\)",
+        match=f"{MULTITASKING} TASK(S) FAILED: "
+        + ", ".join(
+            r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: .*'\)"
+            for _ in range(MULTITASKING)
+        ),
     ) as e:
         await asyncio.gather(
             populate_queue(
@@ -720,9 +721,13 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             ),
         )
     # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
-    assert str(e.value).count("ValueError: gotta fail: foofoo") == 1
-    assert str(e.value).count("ValueError: gotta fail: barbar") == 1
-    assert str(e.value).count("ValueError: gotta fail: bazbaz") == 1
+    for i in range(MULTITASKING):
+        assert (
+            str(e.value).count(
+                f"ValueError: gotta fail: {msgs_outgoing_expected[i].strip()}"
+            )
+            == 1
+        )
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
@@ -829,10 +834,11 @@ async def test_530__preload_multitasking_exceptions(
 
     with pytest.raises(
         RuntimeError,
-        match=r"3 TASK\(S\) FAILED: "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\)",
+        match=f"{MULTITASKING} TASK(S) FAILED: "
+        + ", ".join(
+            r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: .*'\)"
+            for _ in range(MULTITASKING)
+        ),
     ) as e:
         await consume_and_reply(
             cmd="""python3 -c "
@@ -856,9 +862,13 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             multitasking=MULTITASKING,
         )
     # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
-    assert str(e.value).count("ValueError: gotta fail: foofoo") == 1
-    assert str(e.value).count("ValueError: gotta fail: barbar") == 1
-    assert str(e.value).count("ValueError: gotta fail: bazbaz") == 1
+    for i in range(MULTITASKING):
+        assert (
+            str(e.value).count(
+                f"ValueError: gotta fail: {msgs_outgoing_expected[i].strip()}"
+            )
+            == 1
+        )
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
