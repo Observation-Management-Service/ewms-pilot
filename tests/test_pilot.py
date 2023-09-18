@@ -688,7 +688,7 @@ async def test_510__concurrent_load_multitasking_exceptions(
         RuntimeError,
         match=f"{MULTITASKING} TASK(S) FAILED: "
         + ", ".join(
-            r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: .*'\)"
+            rf"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: ({'|'.join(x.strip() for x in msgs_outgoing_expected[:MULTITASKING])})'\)"
             for _ in range(MULTITASKING)
         ),
     ) as e:
@@ -836,7 +836,7 @@ async def test_530__preload_multitasking_exceptions(
         RuntimeError,
         match=f"{MULTITASKING} TASK(S) FAILED: "
         + ", ".join(
-            r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: .*'\)"
+            rf"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: ({'|'.join(x.strip() for x in msgs_outgoing_expected[:MULTITASKING])})'\)"
             for _ in range(MULTITASKING)
         ),
     ) as e:
