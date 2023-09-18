@@ -26,6 +26,8 @@ logging.getLogger("pika").setLevel(logging.WARNING)
 
 TIMEOUT_INCOMING = 3
 
+MSGS_TO_SUBPROC = ["item" + str(i) for i in range(30)]
+
 
 @pytest.fixture
 def queue_incoming() -> str:
@@ -179,8 +181,8 @@ async def test_000__txt(
     use_debug_dir: bool,
 ) -> None:
     """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -232,8 +234,8 @@ async def test_001__txt__str_filetype(
     use_debug_dir: bool,
 ) -> None:
     """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -287,10 +289,8 @@ async def test_100__json(
     """Test a normal .json-based pilot."""
 
     # some messages that would make sense json'ing
-    msgs_to_subproc = [{"attr-0": v} for v in ["foo", "bar", "baz"]]
-    msgs_outgoing_expected = [
-        {"attr-a": v, "attr-b": v + v} for v in ["foo", "bar", "baz"]
-    ]
+    msgs_to_subproc = [{"attr-0": v} for v in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [{"attr-a": v, "attr-b": v + v} for v in MSGS_TO_SUBPROC]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -347,7 +347,14 @@ async def test_200__pickle(
     """Test a normal .pkl-based pilot."""
 
     # some messages that would make sense pickling
-    msgs_to_subproc = [date(1995, 12, 3), date(2022, 9, 29), date(2063, 4, 5)]
+    msgs_to_subproc = [
+        date(
+            1995 + int(re.sub(r"[^0-9]", "", x)),
+            int(re.sub(r"[^0-9]", "", x)) % 12 + 1,
+            int(re.sub(r"[^0-9]", "", x)) % 28 + 1,
+        )
+        for x in MSGS_TO_SUBPROC
+    ]
     msgs_outgoing_expected = [d + timedelta(days=1) for d in msgs_to_subproc]
 
     # run producer & consumer concurrently
@@ -403,11 +410,9 @@ async def test_300__writer_reader(
     use_debug_dir: bool,
 ) -> None:
     """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [
-        "output: oofoof\n",
-        "output: rabrab\n",
-        "output: zabzab\n",
+        f"output: {reversed(x)}{reversed(x)}\n" for x in MSGS_TO_SUBPROC
     ]
 
     def reverse_writer(text: Any, fpath: Path) -> None:
@@ -470,8 +475,8 @@ async def test_400__exception(
     quarantine: Optional[int],
 ) -> None:
     """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    # msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
 
     start_time = time.time()
 
@@ -534,8 +539,8 @@ async def test_420__timeout(
     use_debug_dir: bool,
 ) -> None:
     """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    # msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
 
     start_time = time.time()
 
@@ -611,8 +616,8 @@ async def test_500__concurrent_load_multitasking(
     prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
 
     start_time = time.time()
 
@@ -675,8 +680,8 @@ async def test_510__concurrent_load_multitasking_exceptions(
     prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
 
     start_time = time.time()
 
@@ -751,8 +756,8 @@ async def test_520__preload_multitasking(
     prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
 
     start_time = time.time()
 
@@ -813,8 +818,8 @@ async def test_530__preload_multitasking_exceptions(
     prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
 
     start_time = time.time()
 
@@ -900,8 +905,8 @@ async def test_1000__rabbitmq_heartbeat_workaround(
     if config.ENV.EWMS_PILOT_BROKER_CLIENT != "rabbitmq":
         return
 
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
 
     timeout_incoming = int(refresh_interval_rabbitmq_heartbeat_interval * 1.5)
 
