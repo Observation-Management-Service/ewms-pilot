@@ -434,6 +434,8 @@ class Housekeeping:
         pub: mq.queue.QueuePubResource,
     ) -> None:
         """Do housekeeping."""
+        await asyncio.sleep(0)  # hand over control to other async tasks
+
         # rabbitmq heartbeats
         # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
         if in_queue._broker_client.NAME.lower() == "rabbitmq":
@@ -447,8 +449,7 @@ class Housekeeping:
                         LOGGER.info("sending heartbeat to RabbitMQ broker...")
                         raw_q.connection.process_data_events()  # type: ignore[attr-defined, union-attr]
 
-        # other housekeeping
-        await asyncio.sleep(0)  # hand over control to other async tasks
+        # TODO -- add other housekeeping
 
 
 async def _consume_and_reply(
