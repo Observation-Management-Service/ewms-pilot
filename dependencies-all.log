@@ -28,7 +28,7 @@ pulsar-client==3.1.0
     # via oms-mqclient
 requests==2.31.0
     # via wipac-dev-tools
-typing-extensions==4.7.1
+typing-extensions==4.8.0
     # via wipac-dev-tools
 urllib3==2.0.4
     # via requests

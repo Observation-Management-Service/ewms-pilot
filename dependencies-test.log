@@ -35,7 +35,7 @@ pytest-xdist==3.3.1
     # via ewms-pilot (setup.py)
 requests==2.31.0
     # via wipac-dev-tools
-typing-extensions==4.7.1
+typing-extensions==4.8.0
     # via wipac-dev-tools
 urllib3==2.0.4
     # via requests
