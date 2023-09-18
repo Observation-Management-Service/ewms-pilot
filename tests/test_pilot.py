@@ -411,9 +411,7 @@ async def test_300__writer_reader(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [
-        f"output: {reversed(x)}{reversed(x)}\n" for x in MSGS_TO_SUBPROC
-    ]
+    msgs_outgoing_expected = [f"output: {x[::-1]}{x[::-1]}\n" for x in MSGS_TO_SUBPROC]
 
     def reverse_writer(text: Any, fpath: Path) -> None:
         with open(fpath, "w") as f:
