@@ -890,9 +890,10 @@ TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
 @pytest.mark.parametrize(
     "refresh_interval_rabbitmq_heartbeat_interval",
     [
-        TEST_1000_SLEEP * 10,
-        TEST_1000_SLEEP,
-        TEST_1000_SLEEP / 10,
+        # note -- the broker hb timeout is ~1 min and is triggered after ~2x
+        TEST_1000_SLEEP * 10,  # won't actually wait this long
+        TEST_1000_SLEEP,  # ~= to ~2x (see above)
+        TEST_1000_SLEEP / 10,  # will have no hb issues
     ],
 )
 async def test_1000__rabbitmq_heartbeat_workaround(
