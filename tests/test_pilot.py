@@ -724,7 +724,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         )
     # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
     # we already know there are MULTITASKING subproc errors
-    for msg in range(msgs_outgoing_expected):
+    for msg in msgs_outgoing_expected:
         assert str(e.value).count(f"ValueError: gotta fail: {msg.strip()}") <= 1
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
@@ -861,7 +861,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         )
     # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
     # we already know there are MULTITASKING subproc errors
-    for msg in range(msgs_outgoing_expected):
+    for msg in msgs_outgoing_expected:
         assert str(e.value).count(f"ValueError: gotta fail: {msg.strip()}") <= 1
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
