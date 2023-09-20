@@ -24,6 +24,11 @@ logging.getLogger("mqclient").setLevel(logging.INFO)
 logging.getLogger("pika").setLevel(logging.WARNING)
 
 
+TIMEOUT_INCOMING = 3
+
+MSGS_TO_SUBPROC = ["item" + str(i) for i in range(30)]
+
+
 @pytest.fixture
 def queue_incoming() -> str:
     """Get the name of a queue for talking to client(s)."""
@@ -68,6 +73,7 @@ def first_walk() -> OSWalkList:
 async def populate_queue(
     queue_incoming: str,
     msgs_to_subproc: list,
+    timeout_incoming: int,
 ) -> None:
     """Send messages to queue."""
     to_client_q = mq.Queue(
@@ -78,6 +84,10 @@ async def populate_queue(
 
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
+            if i and i % 2 == 0:  # add some chaos -- make the queue not saturated
+                await asyncio.sleep(timeout_incoming / 4)
+            else:
+                await asyncio.sleep(0)  # for consistency
             await pub.send(msg)
 
     assert i + 1 == len(msgs_to_subproc)  # pylint:disable=undefined-loop-variable
@@ -173,12 +183,16 @@ async def test_000__txt(
     use_debug_dir: bool,
 ) -> None:
     """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
@@ -190,6 +204,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.TXT,
             ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
@@ -221,12 +236,16 @@ async def test_001__txt__str_filetype(
     use_debug_dir: bool,
 ) -> None:
     """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
@@ -238,6 +257,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=".txt",
             ftype_from_subproc=".txt",
+            timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
@@ -271,14 +291,16 @@ async def test_100__json(
     """Test a normal .json-based pilot."""
 
     # some messages that would make sense json'ing
-    msgs_to_subproc = [{"attr-0": v} for v in ["foo", "bar", "baz"]]
-    msgs_outgoing_expected = [
-        {"attr-a": v, "attr-b": v + v} for v in ["foo", "bar", "baz"]
-    ]
+    msgs_to_subproc = [{"attr-0": v} for v in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [{"attr-a": v, "attr-b": v + v} for v in MSGS_TO_SUBPROC]
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 import json;
@@ -293,6 +315,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.JSON,
             ftype_from_subproc=FileType.JSON,
+            timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
@@ -326,12 +349,23 @@ async def test_200__pickle(
     """Test a normal .pkl-based pilot."""
 
     # some messages that would make sense pickling
-    msgs_to_subproc = [date(1995, 12, 3), date(2022, 9, 29), date(2063, 4, 5)]
+    msgs_to_subproc = [
+        date(
+            1995 + int(re.sub(r"[^0-9]", "", x)),
+            int(re.sub(r"[^0-9]", "", x)) % 12 + 1,
+            int(re.sub(r"[^0-9]", "", x)) % 28 + 1,
+        )
+        for x in MSGS_TO_SUBPROC
+    ]
     msgs_outgoing_expected = [d + timedelta(days=1) for d in msgs_to_subproc]
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 import pickle;
@@ -346,6 +380,7 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.PKL,
             ftype_from_subproc=FileType.PKL,
+            timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
@@ -377,12 +412,8 @@ async def test_300__writer_reader(
     use_debug_dir: bool,
 ) -> None:
     """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = [
-        "output: oofoof\n",
-        "output: rabrab\n",
-        "output: zabzab\n",
-    ]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"output: {x[::-1]}{x[::-1]}\n" for x in MSGS_TO_SUBPROC]
 
     def reverse_writer(text: Any, fpath: Path) -> None:
         with open(fpath, "w") as f:
@@ -394,7 +425,11 @@ async def test_300__writer_reader(
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
@@ -406,6 +441,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.TXT,
             ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
             file_writer=reverse_writer,
             file_reader=reader_w_prefix,
             debug_dir=debug_dir if use_debug_dir else None,
@@ -439,8 +475,8 @@ async def test_400__exception(
     quarantine: Optional[int],
 ) -> None:
     """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    # msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
@@ -451,7 +487,11 @@ async def test_400__exception(
         r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: no good!'\)",
     ):
         await asyncio.gather(
-            populate_queue(queue_incoming, msgs_to_subproc),
+            populate_queue(
+                queue_incoming,
+                msgs_to_subproc,
+                timeout_incoming=TIMEOUT_INCOMING,
+            ),
             consume_and_reply(
                 cmd="""python3 -c "raise ValueError('no good!')" """,
                 # broker_client=,  # rely on env var
@@ -461,6 +501,7 @@ async def test_400__exception(
                 queue_outgoing=queue_outgoing,
                 ftype_to_subproc=FileType.TXT,
                 ftype_from_subproc=FileType.TXT,
+                timeout_incoming=TIMEOUT_INCOMING,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
@@ -498,8 +539,8 @@ async def test_420__timeout(
     use_debug_dir: bool,
 ) -> None:
     """Test a normal .txt-based pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    # msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
@@ -508,7 +549,11 @@ async def test_420__timeout(
         RuntimeError, match=re.escape("1 TASK(S) FAILED: TimeoutError()")
     ):
         await asyncio.gather(
-            populate_queue(queue_incoming, msgs_to_subproc),
+            populate_queue(
+                queue_incoming,
+                msgs_to_subproc,
+                timeout_incoming=TIMEOUT_INCOMING,
+            ),
             consume_and_reply(
                 cmd="""python3 -c "import time; time.sleep(30)" """,
                 # broker_client=,  # rely on env var
@@ -518,6 +563,7 @@ async def test_420__timeout(
                 queue_outgoing=queue_outgoing,
                 ftype_to_subproc=FileType.TXT,
                 ftype_from_subproc=FileType.TXT,
+                timeout_incoming=TIMEOUT_INCOMING,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
@@ -570,14 +616,18 @@ async def test_500__concurrent_load_multitasking(
     prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
     # run producer & consumer concurrently
     await asyncio.gather(
-        populate_queue(queue_incoming, msgs_to_subproc),
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
         consume_and_reply(
             cmd="""python3 -c "
 import time
@@ -591,6 +641,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.TXT,
             ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
@@ -629,21 +680,26 @@ async def test_510__concurrent_load_multitasking_exceptions(
     prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
     # run producer & consumer concurrently
     with pytest.raises(
         RuntimeError,
-        match=r"3 TASK\(S\) FAILED: "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\)",
+        match=re.escape(f"{MULTITASKING} TASK(S) FAILED: ")
+        + ", ".join(  # b/c we don't guarantee in-order delivery, we cannot assert which messages each subproc failed on
+            r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: [^']+'\)"
+            for _ in range(MULTITASKING)
+        ),
     ) as e:
         await asyncio.gather(
-            populate_queue(queue_incoming, msgs_to_subproc),
+            populate_queue(
+                queue_incoming,
+                msgs_to_subproc,
+                timeout_incoming=TIMEOUT_INCOMING,
+            ),
             consume_and_reply(
                 cmd="""python3 -c "
 import time
@@ -658,6 +714,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 queue_outgoing=queue_outgoing,
                 ftype_to_subproc=FileType.TXT,
                 ftype_from_subproc=FileType.TXT,
+                timeout_incoming=TIMEOUT_INCOMING,
                 prefetch=prefetch,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
@@ -666,9 +723,9 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             ),
         )
     # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
-    assert str(e.value).count("ValueError: gotta fail: foofoo") == 1
-    assert str(e.value).count("ValueError: gotta fail: barbar") == 1
-    assert str(e.value).count("ValueError: gotta fail: bazbaz") == 1
+    # we already know there are MULTITASKING subproc errors
+    for msg in msgs_outgoing_expected:
+        assert str(e.value).count(f"ValueError: gotta fail: {msg.strip()}") <= 1
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
@@ -678,7 +735,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            len(msgs_outgoing_expected),
+            MULTITASKING,
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -700,12 +757,16 @@ async def test_520__preload_multitasking(
     prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
-    await populate_queue(queue_incoming, msgs_to_subproc)
+    await populate_queue(
+        queue_incoming,
+        msgs_to_subproc,
+        timeout_incoming=TIMEOUT_INCOMING,
+    )
 
     await consume_and_reply(
         cmd="""python3 -c "
@@ -720,6 +781,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         queue_outgoing=queue_outgoing,
         ftype_to_subproc=FileType.TXT,
         ftype_from_subproc=FileType.TXT,
+        timeout_incoming=TIMEOUT_INCOMING,
         prefetch=prefetch,
         # file_writer=UniversalFileInterface.write, # see other tests
         # file_reader=UniversalFileInterface.read, # see other tests
@@ -757,19 +819,24 @@ async def test_530__preload_multitasking_exceptions(
     prefetch: int,
 ) -> None:
     """Test multitasking within the pilot."""
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
-    await populate_queue(queue_incoming, msgs_to_subproc)
+    await populate_queue(
+        queue_incoming,
+        msgs_to_subproc,
+        timeout_incoming=TIMEOUT_INCOMING,
+    )
 
     with pytest.raises(
         RuntimeError,
-        match=r"3 TASK\(S\) FAILED: "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\), "
-        r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: (foofoo|barbar|bazbaz)'\)",
+        match=re.escape(f"{MULTITASKING} TASK(S) FAILED: ")
+        + ", ".join(  # b/c we don't guarantee in-order delivery, we cannot assert which messages each subproc failed on
+            r"TaskSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: [^']+'\)"
+            for _ in range(MULTITASKING)
+        ),
     ) as e:
         await consume_and_reply(
             cmd="""python3 -c "
@@ -785,6 +852,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             queue_outgoing=queue_outgoing,
             ftype_to_subproc=FileType.TXT,
             ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
@@ -792,9 +860,9 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             multitasking=MULTITASKING,
         )
     # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
-    assert str(e.value).count("ValueError: gotta fail: foofoo") == 1
-    assert str(e.value).count("ValueError: gotta fail: barbar") == 1
-    assert str(e.value).count("ValueError: gotta fail: bazbaz") == 1
+    # we already know there are MULTITASKING subproc errors
+    for msg in msgs_outgoing_expected:
+        assert str(e.value).count(f"ValueError: gotta fail: {msg.strip()}") <= 1
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
@@ -804,7 +872,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            len(msgs_outgoing_expected),
+            MULTITASKING,
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -820,11 +888,12 @@ TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
 @pytest.mark.parametrize(
-    "housekeeping_timeout",
+    "refresh_interval_rabbitmq_heartbeat_interval",
     [
-        TEST_1000_SLEEP * 10,
-        TEST_1000_SLEEP,
-        TEST_1000_SLEEP / 10,
+        # note -- the broker hb timeout is ~1 min and is triggered after ~2x
+        TEST_1000_SLEEP * 10,  # won't actually wait this long
+        TEST_1000_SLEEP,  # ~= to ~2x (see above)
+        TEST_1000_SLEEP / 10,  # will have no hb issues
     ],
 )
 async def test_1000__rabbitmq_heartbeat_workaround(
@@ -833,18 +902,25 @@ async def test_1000__rabbitmq_heartbeat_workaround(
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
-    housekeeping_timeout: float,
+    refresh_interval_rabbitmq_heartbeat_interval: float,
 ) -> None:
     """Test a normal .txt-based pilot."""
     if config.ENV.EWMS_PILOT_BROKER_CLIENT != "rabbitmq":
         return
 
-    msgs_to_subproc = ["foo", "bar", "baz"]
-    msgs_outgoing_expected = ["foofoo\n", "barbar\n", "bazbaz\n"]
+    msgs_to_subproc = MSGS_TO_SUBPROC[:2]
+    # ^^^ should be sufficient plus avoids waiting for all to send
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+
+    timeout_incoming = int(refresh_interval_rabbitmq_heartbeat_interval * 1.5)
 
     async def _test() -> None:
         await asyncio.gather(
-            populate_queue(queue_incoming, msgs_to_subproc),
+            populate_queue(
+                queue_incoming,
+                msgs_to_subproc,
+                timeout_incoming=timeout_incoming,
+            ),
             consume_and_reply(
                 cmd="""python3 -c "
 import time;
@@ -860,6 +936,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 queue_outgoing=queue_outgoing,
                 ftype_to_subproc=FileType.TXT,
                 ftype_from_subproc=FileType.TXT,
+                timeout_incoming=timeout_incoming,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
@@ -867,8 +944,14 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         )
 
     # run producer & consumer concurrently
-    with patch("ewms_pilot.pilot._HOUSEKEEPING_TIMEOUT", housekeeping_timeout):
-        if housekeeping_timeout > TEST_1000_SLEEP:
+    with patch(
+        "ewms_pilot.pilot._REFRESH_INTERVAL",
+        refresh_interval_rabbitmq_heartbeat_interval,
+    ), patch(
+        "ewms_pilot.pilot.Housekeeping.RABBITMQ_HEARTBEAT_INTERVAL",
+        refresh_interval_rabbitmq_heartbeat_interval,
+    ):
+        if refresh_interval_rabbitmq_heartbeat_interval > TEST_1000_SLEEP:
             with pytest.raises(
                 RuntimeError,
                 match=re.escape(
@@ -884,7 +967,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         len([]),
                         ["in", "out", "stderrfile", "stdoutfile"],
                     )
-        elif housekeeping_timeout == TEST_1000_SLEEP:
+        elif refresh_interval_rabbitmq_heartbeat_interval == TEST_1000_SLEEP:
             with pytest.raises(mq.broker_client_interface.ClosingFailedException):
                 await _test()
                 await assert_results(queue_outgoing, [])
@@ -895,7 +978,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         len([]),
                         ["in", "out", "stderrfile", "stdoutfile"],
                     )
-        else:  # housekeeping_timeout < TEST_1000_SLEEP
+        else:  # refresh_interval_rabbitmq_heartbeat_interval < TEST_1000_SLEEP
             await _test()
             await assert_results(queue_outgoing, msgs_outgoing_expected)
             if use_debug_dir:

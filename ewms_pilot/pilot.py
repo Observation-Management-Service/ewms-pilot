@@ -8,6 +8,8 @@ import json
 import pickle
 import shlex
 import shutil
+import sys
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
@@ -19,6 +21,14 @@ from wipac_dev_tools import argparse_tools, logging_tools
 from . import utils
 from .config import ENV, LOGGER
 
+# fmt:off
+if sys.version_info[1] < 10:
+    # this is built in for py3.10+
+    async def anext(ait):
+        return await ait.__anext__()
+# fmt:on
+
+
 AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
 
 
@@ -28,7 +38,7 @@ _EXCEPT_ERRORS = False
 _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
 
-_HOUSEKEEPING_TIMEOUT = 5.0  # second
+_REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main loop
 
 
 class FileType(enum.Enum):
@@ -312,10 +322,8 @@ async def _wait_on_tasks_with_ack(
     sub: mq.queue.ManualQueueSubResource,
     pub: mq.queue.QueuePubResource,
     tasks_msgs: AsyncioTaskMessages,
-    return_when_all_done: bool,
     previous_task_errors: List[BaseException],
-    # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-    rabbitmq_raw_queues: Optional[List["mq.broker_clients.rabbitmq.RabbitMQ"]] = None,
+    timeout: int,
 ) -> Tuple[AsyncioTaskMessages, List[BaseException]]:
     """Get finished tasks and ack/nack their messages.
 
@@ -325,6 +333,8 @@ async def _wait_on_tasks_with_ack(
             List[BaseException]: failed tasks' exceptions (plus those in `previous_task_errors`)
     """
     pending: Set[asyncio.Task] = set(tasks_msgs.keys())  # type: ignore[type-arg]
+    if not pending:
+        return {}, previous_task_errors
 
     async def handle_failed_task(task: asyncio.Task, exception: BaseException) -> None:  # type: ignore[type-arg]
         previous_task_errors.append(exception)
@@ -338,75 +348,108 @@ async def _wait_on_tasks_with_ack(
             LOGGER.error(f"Could not nack: {repr(e)}")
         LOGGER.error(_all_task_errors_string(previous_task_errors))
 
-    # LOOP!
-    while pending:
-        # looping over asyncio.FIRST_COMPLETED is like asyncio.ALL_COMPLETED
+    # wait for next task
+    LOGGER.debug("Waiting on tasks...")
+    done, pending = await asyncio.wait(
+        pending,
+        return_when=asyncio.FIRST_COMPLETED,
+        timeout=timeout,
+    )
 
-        # alert rabbitmq  # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-        if rabbitmq_raw_queues:
-            for raw_q in rabbitmq_raw_queues:
-                if raw_q.connection:
-                    LOGGER.info("sending heartbeat to RabbitMQ broker...")
-                    raw_q.connection.process_data_events()
+    # HANDLE FINISHED TASK(S)
+    # fyi, most likely one task in here, but 2+ could finish at same time
+    for task in done:
+        try:
+            result = await task
+        except Exception as e:
+            # FAILED TASK!
+            await handle_failed_task(task, e)
+            continue
 
-        # wait for next task
-        done, pending = await asyncio.wait(
-            pending,
-            return_when=asyncio.FIRST_COMPLETED,
-            timeout=_HOUSEKEEPING_TIMEOUT,
-        )
+        # SUCCESSFUL TASK -> send result
+        try:
+            LOGGER.info("TASK FINISHED -- attempting to send result message...")
+            await pub.send(result)
+        except Exception as e:
+            # -> failed to send = FAILED TASK!
+            LOGGER.error(
+                f"Failed to send finished task's result: {repr(e)}"
+                f" -- task now considered as failed"
+            )
+            await handle_failed_task(task, e)
+            continue
 
-        # HANDLE FINISHED TASK(S)
-        # fyi, most likely one task in here unless 2+ finish at same time
-        for task in done:
-            try:
-                result = await task
-            except Exception as e:
-                # FAILED TASK!
-                await handle_failed_task(task, e)
-                continue
+        # SUCCESSFUL TASK -> result sent -> ack original message
+        try:
+            LOGGER.info("Now, attempting to ack original message...")
+            await sub.ack(tasks_msgs[task])
+        except mq.broker_client_interface.AckException as e:
+            # -> result sent -> ack failed = that's okay!
+            LOGGER.error(
+                f"Could not ack ({repr(e)}) -- not counting as a failed task"
+                " since task's result was sent successfully -- "
+                "NOTE: outgoing queue may eventually get"
+                " duplicate result when original message is"
+                " re-delivered by broker to another pilot"
+                " & the new result is sent"
+            )
 
-            # SUCCESSFUL TASK -> send result
-            try:
-                LOGGER.info("TASK FINISHED -- attempting to send result message...")
-                await pub.send(result)
-            except Exception as e:
-                # -> failed to send = FAILED TASK!
-                LOGGER.error(
-                    f"Failed to send finished task's result: {repr(e)}"
-                    f" -- task now considered as failed"
-                )
-                await handle_failed_task(task, e)
-                continue
-
-            # SUCCESSFUL TASK -> result sent -> ack original message
-            try:
-                LOGGER.info("Now, attempting to ack original message...")
-                await sub.ack(tasks_msgs[task])
-            except mq.broker_client_interface.AckException as e:
-                # -> result sent -> ack failed = that's okay!
-                LOGGER.error(
-                    f"Could not ack ({repr(e)}) -- not counting as a failed task"
-                    " since task's result was sent successfully -- "
-                    "NOTE: outgoing queue may eventually get"
-                    " duplicate result when original message is"
-                    " re-delivered by broker to another pilot"
-                    " & the new result is sent"
-                )
-
-        # early exit?
-        if not return_when_all_done and done:
-            # like return_when=asyncio.FIRST_COMPLETED
-            break
-
-    LOGGER.info(f"{len(tasks_msgs)-len(pending)} Tasks Finished")
+    if done:
+        LOGGER.info(f"{len(tasks_msgs)-len(pending)} Tasks Finished")
 
     return (
-        # this is empty if return_when_all_done
         {t: msg for t, msg in tasks_msgs.items() if t in pending},
         # this now also includes tasks that finished this round
         previous_task_errors,
     )
+
+
+def listener_loop_exit(
+    task_errors: List[BaseException],
+    current_msg_waittime: float,
+    msg_waittime_timeout: float,
+) -> bool:
+    """Essentially a big IF condition -- but now with logging!"""
+    if task_errors:
+        LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
+        return True
+    if current_msg_waittime > msg_waittime_timeout:
+        LOGGER.info(f"Timed out waiting for incoming message: {msg_waittime_timeout=}")
+        return True
+    return False
+
+
+class Housekeeping:
+    """Manage and perform housekeeping."""
+
+    RABBITMQ_HEARTBEAT_INTERVAL = 5
+
+    def __init__(self) -> None:
+        self.prev_rabbitmq_heartbeat = 0.0
+
+    async def work(
+        self,
+        in_queue: mq.Queue,
+        sub: mq.queue.ManualQueueSubResource,
+        pub: mq.queue.QueuePubResource,
+    ) -> None:
+        """Do housekeeping."""
+        await asyncio.sleep(0)  # hand over control to other async tasks
+
+        # rabbitmq heartbeats
+        # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
+        if in_queue._broker_client.NAME.lower() == "rabbitmq":
+            if (
+                time.time() - self.prev_rabbitmq_heartbeat
+                > self.RABBITMQ_HEARTBEAT_INTERVAL
+            ):
+                self.prev_rabbitmq_heartbeat = time.time()
+                for raw_q in [pub.pub, sub._sub]:
+                    if raw_q.connection:  # type: ignore[attr-defined, union-attr]
+                        LOGGER.info("sending heartbeat to RabbitMQ broker...")
+                        raw_q.connection.process_data_events()  # type: ignore[attr-defined, union-attr]
+
+        # TODO -- add other housekeeping
 
 
 async def _consume_and_reply(
@@ -438,91 +481,111 @@ async def _consume_and_reply(
     pending: AsyncioTaskMessages = {}
     task_errors: List[BaseException] = []
 
-    # for the first (set) of messages, use 'timeout_wait_for_first_message' if given
-    in_queue.timeout = (
-        timeout_wait_for_first_message
-        if timeout_wait_for_first_message
-        else timeout_incoming
-    )
+    housekeeper = Housekeeping()
+
+    # timeouts
+    if (
+        timeout_wait_for_first_message is not None
+        and timeout_wait_for_first_message < _REFRESH_INTERVAL
+    ):
+        raise ValueError(
+            f"'timeout_wait_for_first_message' cannot be less than {_REFRESH_INTERVAL}: "
+            f"currently {timeout_wait_for_first_message}"
+        )
+    if timeout_incoming < _REFRESH_INTERVAL:
+        raise ValueError(
+            f"'timeout_incoming' cannot be less than {_REFRESH_INTERVAL}: "
+            f"currently {timeout_incoming}"
+        )
+    in_queue.timeout = _REFRESH_INTERVAL
+    msg_waittime_timeout = timeout_wait_for_first_message or timeout_incoming
 
     # GO!
     total_msg_count = 0
     LOGGER.info(
         "Listening for messages from server to process tasks then send results..."
     )
-    # open pub
-    async with out_queue.open_pub() as pub:
+    #
+    # open pub & sub
+    async with out_queue.open_pub() as pub, in_queue.open_sub_manual_acking() as sub:
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
-        # open sub
-        async with in_queue.open_sub_manual_acking() as sub:
+        message_iterator = sub.iter_messages()
+        #
+        # "listener loop" -- get messages and do tasks
+        # intermittently halting to process housekeeping things
+        #
+        msg_waittime_current = 0.0
+        while not listener_loop_exit(
+            task_errors, msg_waittime_current, msg_waittime_timeout
+        ):
+            await housekeeper.work(in_queue, sub, pub)
+            #
             # get messages/tasks
-            async for in_msg in sub.iter_messages():
-                total_msg_count += 1
-                LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
+            if len(pending) >= multitasking:
+                LOGGER.debug("At max task concurrency limit")
+            else:
+                LOGGER.debug("Listening for incoming message...")
+                try:
+                    in_msg = await anext(message_iterator)  # -> in_queue.timeout
+                    msg_waittime_current = 0.0
+                    total_msg_count += 1
+                    LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
 
-                if total_msg_count == 1:
-                    utils.chirp_status("Tasking")
+                    # after the first message, set the timeout to the "normal" amount
+                    msg_waittime_timeout = timeout_incoming
 
-                task = asyncio.create_task(
-                    process_msg_task(
-                        in_msg.data,
-                        cmd,
-                        task_timeout,
-                        ftype_to_subproc,
-                        ftype_from_subproc,
-                        file_writer,
-                        file_reader,
-                        staging_dir,
-                        keep_debug_dir,
+                    if total_msg_count == 1:
+                        utils.chirp_status("Tasking")
+
+                    task = asyncio.create_task(
+                        process_msg_task(
+                            in_msg.data,
+                            cmd,
+                            task_timeout,
+                            ftype_to_subproc,
+                            ftype_from_subproc,
+                            file_writer,
+                            file_reader,
+                            staging_dir,
+                            keep_debug_dir,
+                        )
                     )
-                )
-                pending[task] = in_msg
+                    pending[task] = in_msg
+                    continue  # we got one message, so maybe the queue is saturated
+                except StopAsyncIteration:
+                    # no message this round
+                    #   incrementing by the timeout value allows us to
+                    #   not worry about time not spent waiting for a message
+                    msg_waittime_current += in_queue.timeout
+                    message_iterator = sub.iter_messages()
 
-                # if we've met max concurrent tasks, wait for the next one to finish
-                while len(pending) >= multitasking:
-                    LOGGER.info("Reached max task concurrency limit, waiting...")
-                    pending, task_errors = await _wait_on_tasks_with_ack(
-                        sub,
-                        pub,
-                        pending,
-                        return_when_all_done=False,
-                        previous_task_errors=task_errors,
-                        # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-                        rabbitmq_raw_queues=(
-                            [pub.pub] + list(sub._subs.keys())  # type: ignore[arg-type]
-                            if in_queue._broker_client.NAME.lower() == "rabbitmq"
-                            else None
-                        ),
-                    )
-                    # after the first set of messages, set the timeout to the "normal" amount
-                    if in_queue.timeout != timeout_incoming:
-                        in_queue.timeout = timeout_incoming
+            # wait on finished task (or timeout)
+            pending, task_errors = await _wait_on_tasks_with_ack(
+                sub,
+                pub,
+                pending,
+                previous_task_errors=task_errors,
+                timeout=_REFRESH_INTERVAL,
+            )
 
-                # if 1+ fail, then don't consume anymore; wait for remaining tasks
-                if task_errors:
-                    LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
-                    break
+        LOGGER.info("Done listening for messages")
 
-            LOGGER.info("No more new tasks to process")
-
-            # wait for remaining tasks
-            if pending:
-                LOGGER.info("Waiting for remaining tasks to finish...")
-                pending, task_errors = await _wait_on_tasks_with_ack(
-                    sub,
-                    pub,
-                    pending,
-                    return_when_all_done=True,
-                    previous_task_errors=task_errors,
-                    # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-                    rabbitmq_raw_queues=(
-                        [pub.pub] + list(sub._subs.keys())  # type: ignore[arg-type]
-                        if in_queue._broker_client.NAME.lower() == "rabbitmq"
-                        else None
-                    ),
-                )
-                if pending:
-                    LOGGER.error(f"{len(pending)} tasks are pending after finish")
+        #
+        # "clean up loop" -- wait for remaining tasks
+        # intermittently halting to process housekeeping things
+        #
+        if pending:
+            LOGGER.debug("Waiting for remaining tasks to finish...")
+        while pending:
+            await housekeeper.work(in_queue, sub, pub)
+            # wait on finished task (or timeout)
+            pending, task_errors = await _wait_on_tasks_with_ack(
+                sub,
+                pub,
+                pending,
+                previous_task_errors=task_errors,
+                timeout=_REFRESH_INTERVAL,
+            )
 
     # log/chirp
     chirp_msg = f"Done Tasking: completed {total_msg_count} task(s)"
