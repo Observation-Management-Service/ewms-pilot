@@ -907,7 +907,8 @@ async def test_1000__rabbitmq_heartbeat_workaround(
     if config.ENV.EWMS_PILOT_BROKER_CLIENT != "rabbitmq":
         return
 
-    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_to_subproc = MSGS_TO_SUBPROC[:2]
+    # ^^^ should be sufficient plus avoids waiting for all to send
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     timeout_incoming = int(refresh_interval_rabbitmq_heartbeat_interval * 1.5)
