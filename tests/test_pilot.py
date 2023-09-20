@@ -739,7 +739,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            len(msgs_outgoing_expected),
+            MULTITASKING,
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -880,7 +880,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         assert_debug_dir(
             debug_dir,
             FileType.TXT,
-            len(msgs_outgoing_expected),
+            MULTITASKING,
             ["in", "out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
