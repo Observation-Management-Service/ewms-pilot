@@ -184,7 +184,7 @@ async def test_000__txt(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -237,7 +237,7 @@ async def test_001__txt__str_filetype(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -476,7 +476,7 @@ async def test_400__exception(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    # msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
@@ -540,7 +540,7 @@ async def test_420__timeout(
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    # msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
@@ -617,7 +617,7 @@ async def test_500__concurrent_load_multitasking(
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
@@ -681,7 +681,7 @@ async def test_510__concurrent_load_multitasking_exceptions(
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
@@ -758,7 +758,7 @@ async def test_520__preload_multitasking(
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
@@ -820,7 +820,7 @@ async def test_530__preload_multitasking_exceptions(
 ) -> None:
     """Test multitasking within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
@@ -908,7 +908,7 @@ async def test_1000__rabbitmq_heartbeat_workaround(
         return
 
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     timeout_incoming = int(refresh_interval_rabbitmq_heartbeat_interval * 1.5)
 
