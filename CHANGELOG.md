@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.12.3 (2023-09-21)
+
+### Other
+
+* Heartbeat Fix for Long Asynchronous Tasks Followup ([#48](https://github.com/Observation-Management-Service/ewms-pilot/issues/48)) ([`de98af9`](https://github.com/Observation-Management-Service/ewms-pilot/commit/de98af997f659b74fef5dd988a4c21c3d20db8df))
+* Heartbeat Fix for Long Asynchronous Tasks ([#45](https://github.com/Observation-Management-Service/ewms-pilot/issues/45)) ([`4d95a43`](https://github.com/Observation-Management-Service/ewms-pilot/commit/4d95a435417ea644eb581499a46800c6cba4c708))
+
 ## v0.12.2 (2023-09-15)
 
 ### Other
