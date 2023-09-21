@@ -73,7 +73,7 @@ def first_walk() -> OSWalkList:
 async def populate_queue(
     queue_incoming: str,
     msgs_to_subproc: list,
-    intermittent_sleep: int,
+    intermittent_sleep: float,
 ) -> None:
     """Send messages to queue."""
     to_client_q = mq.Queue(
