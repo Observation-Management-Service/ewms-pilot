@@ -203,7 +203,7 @@ async def process_msg_task(
         raise
 
     # Successful Case: get message and move to debug dir
-    out_msg_data = file_reader(outfilepath)
+    out_data = file_reader(outfilepath)
 
     # send
     LOGGER.info("Sending return message...")
@@ -212,7 +212,7 @@ async def process_msg_task(
     if not keep_debug_dir:
         shutil.rmtree(staging_subdir)  # rm -r
 
-    return out_msg_data
+    return out_data
 
 
 def _all_task_errors_string(task_errors: List[BaseException]) -> str:
