@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.12.4 (2023-09-21)
+
+### Other
+
+* Use `Message.uuid` for Tracking ([#49](https://github.com/Observation-Management-Service/ewms-pilot/issues/49)) ([`382754b`](https://github.com/Observation-Management-Service/ewms-pilot/commit/382754ba25389e56361b155bda35cd7b01c146bf))
+
 ## v0.12.3 (2023-09-21)
 
 ### Other
