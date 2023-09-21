@@ -143,7 +143,7 @@ def mv_or_rm_file(src: Path, dest: Optional[Path]) -> None:
 
 
 async def process_msg_task(
-    in_msg: Any,
+    in_msg: Message,
     cmd: str,
     task_timeout: Optional[int],
     #
@@ -157,24 +157,23 @@ async def process_msg_task(
     keep_debug_dir: bool,
 ) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
-    task_id = uuid.uuid4().hex
 
     # staging-dir logic
-    staging_subdir = staging_dir / task_id
+    staging_subdir = staging_dir / str(in_msg.uuid)
     staging_subdir.mkdir(parents=True, exist_ok=False)
     stderrfile = staging_subdir / "stderrfile"
     stdoutfile = staging_subdir / "stdoutfile"
 
     # create in/out filepaths
-    infilepath = staging_subdir / f"in-{task_id}{ftype_to_subproc.value}"
-    outfilepath = staging_subdir / f"out-{task_id}{ftype_from_subproc.value}"
+    infilepath = staging_subdir / f"in-{in_msg.uuid}{ftype_to_subproc.value}"
+    outfilepath = staging_subdir / f"out-{in_msg.uuid}{ftype_from_subproc.value}"
 
     # insert in/out files into cmd
     cmd = cmd.replace("{{INFILE}}", str(infilepath))
     cmd = cmd.replace("{{OUTFILE}}", str(outfilepath))
 
     # write message for subproc
-    file_writer(in_msg, infilepath)
+    file_writer(in_msg.data, infilepath)
 
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
@@ -204,7 +203,7 @@ async def process_msg_task(
         raise
 
     # Successful Case: get message and move to debug dir
-    out_msg = file_reader(outfilepath)
+    out_msg_data = file_reader(outfilepath)
 
     # send
     LOGGER.info("Sending return message...")
@@ -213,7 +212,7 @@ async def process_msg_task(
     if not keep_debug_dir:
         shutil.rmtree(staging_subdir)  # rm -r
 
-    return out_msg
+    return out_msg_data
 
 
 def _all_task_errors_string(task_errors: List[BaseException]) -> str:
@@ -539,7 +538,7 @@ async def _consume_and_reply(
 
                     task = asyncio.create_task(
                         process_msg_task(
-                            in_msg.data,
+                            in_msg,
                             cmd,
                             task_timeout,
                             ftype_to_subproc,
