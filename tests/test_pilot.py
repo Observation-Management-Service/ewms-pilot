@@ -702,7 +702,7 @@ async def test_510__concurrent_load_multitasking_exceptions(
                 intermittent_sleep=TIMEOUT_INCOMING / 4
                 if not (
                     prefetch == 1
-                    and use_debug_dir
+                    and not use_debug_dir
                     and config.ENV.EWMS_PILOT_BROKER_CLIENT == "rabbitmq"
                 )
                 else 0,
