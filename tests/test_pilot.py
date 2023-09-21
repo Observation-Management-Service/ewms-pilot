@@ -73,7 +73,7 @@ def first_walk() -> OSWalkList:
 async def populate_queue(
     queue_incoming: str,
     msgs_to_subproc: list,
-    timeout_incoming: int,
+    intermittent_sleep: int,
 ) -> None:
     """Send messages to queue."""
     to_client_q = mq.Queue(
@@ -85,7 +85,7 @@ async def populate_queue(
     async with to_client_q.open_pub() as pub:
         for i, msg in enumerate(msgs_to_subproc):
             if i and i % 2 == 0:  # add some chaos -- make the queue not saturated
-                await asyncio.sleep(timeout_incoming / 4)
+                await asyncio.sleep(intermittent_sleep)
             else:
                 await asyncio.sleep(0)  # for consistency
             await pub.send(msg)
@@ -191,7 +191,7 @@ async def test_000__txt(
         populate_queue(
             queue_incoming,
             msgs_to_subproc,
-            timeout_incoming=TIMEOUT_INCOMING,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
             cmd="""python3 -c "
@@ -244,7 +244,7 @@ async def test_001__txt__str_filetype(
         populate_queue(
             queue_incoming,
             msgs_to_subproc,
-            timeout_incoming=TIMEOUT_INCOMING,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
             cmd="""python3 -c "
@@ -299,7 +299,7 @@ async def test_100__json(
         populate_queue(
             queue_incoming,
             msgs_to_subproc,
-            timeout_incoming=TIMEOUT_INCOMING,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
             cmd="""python3 -c "
@@ -364,7 +364,7 @@ async def test_200__pickle(
         populate_queue(
             queue_incoming,
             msgs_to_subproc,
-            timeout_incoming=TIMEOUT_INCOMING,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
             cmd="""python3 -c "
@@ -428,7 +428,7 @@ async def test_300__writer_reader(
         populate_queue(
             queue_incoming,
             msgs_to_subproc,
-            timeout_incoming=TIMEOUT_INCOMING,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
             cmd="""python3 -c "
@@ -490,7 +490,7 @@ async def test_400__exception(
             populate_queue(
                 queue_incoming,
                 msgs_to_subproc,
-                timeout_incoming=TIMEOUT_INCOMING,
+                intermittent_sleep=TIMEOUT_INCOMING / 4,
             ),
             consume_and_reply(
                 cmd="""python3 -c "raise ValueError('no good!')" """,
@@ -552,7 +552,7 @@ async def test_420__timeout(
             populate_queue(
                 queue_incoming,
                 msgs_to_subproc,
-                timeout_incoming=TIMEOUT_INCOMING,
+                intermittent_sleep=TIMEOUT_INCOMING / 4,
             ),
             consume_and_reply(
                 cmd="""python3 -c "import time; time.sleep(30)" """,
@@ -626,7 +626,7 @@ async def test_500__concurrent_load_multitasking(
         populate_queue(
             queue_incoming,
             msgs_to_subproc,
-            timeout_incoming=TIMEOUT_INCOMING,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
             cmd="""python3 -c "
@@ -698,7 +698,7 @@ async def test_510__concurrent_load_multitasking_exceptions(
             populate_queue(
                 queue_incoming,
                 msgs_to_subproc,
-                timeout_incoming=TIMEOUT_INCOMING,
+                intermittent_sleep=TIMEOUT_INCOMING / 4,
             ),
             consume_and_reply(
                 cmd="""python3 -c "
@@ -765,7 +765,7 @@ async def test_520__preload_multitasking(
     await populate_queue(
         queue_incoming,
         msgs_to_subproc,
-        timeout_incoming=TIMEOUT_INCOMING,
+        intermittent_sleep=TIMEOUT_INCOMING / 4,
     )
 
     await consume_and_reply(
@@ -827,7 +827,7 @@ async def test_530__preload_multitasking_exceptions(
     await populate_queue(
         queue_incoming,
         msgs_to_subproc,
-        timeout_incoming=TIMEOUT_INCOMING,
+        intermittent_sleep=TIMEOUT_INCOMING / 4,
     )
 
     with pytest.raises(
@@ -919,7 +919,7 @@ async def test_1000__rabbitmq_heartbeat_workaround(
             populate_queue(
                 queue_incoming,
                 msgs_to_subproc,
-                timeout_incoming=timeout_incoming,
+                intermittent_sleep=timeout_incoming / 4,
             ),
             consume_and_reply(
                 cmd="""python3 -c "
