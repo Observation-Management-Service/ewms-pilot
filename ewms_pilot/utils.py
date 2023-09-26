@@ -1,6 +1,7 @@
 """Common utilities."""
 
 
+import enum
 from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
 
@@ -11,6 +12,14 @@ from .config import ENV, LOGGER
 
 T = TypeVar("T")
 P = ParamSpec("P")
+
+
+class FileType(enum.Enum):
+    """Various file types/extensions."""
+
+    PKL = ".pkl"
+    TXT = ".txt"
+    JSON = ".json"
 
 
 def _is_chirp_enabled() -> bool:
