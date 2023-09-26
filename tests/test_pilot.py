@@ -952,7 +952,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
     # run producer & consumer concurrently
     with patch(
-        "ewms_pilot.pilot._REFRESH_INTERVAL",
+        "ewms_pilot.config.REFRESH_INTERVAL",
         refresh_interval_rabbitmq_heartbeat_interval,
     ), patch(
         "ewms_pilot.pilot.Housekeeping.RABBITMQ_HEARTBEAT_INTERVAL",

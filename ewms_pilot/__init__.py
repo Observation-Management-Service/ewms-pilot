@@ -2,7 +2,7 @@
 
 
 from .io import FileType
-from .pilot import consume_and_reply, main
+from .pilot import consume_and_reply
 
 __all__ = [
     "consume_and_reply",
@@ -23,7 +23,3 @@ version_info = (
     int(__version__.split(".")[2]),
     0,
 )
-
-# main
-if __name__ == "__main__":
-    main()
