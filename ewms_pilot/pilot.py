@@ -7,16 +7,17 @@ import shutil
 import sys
 import time
 from pathlib import Path
-from typing import Any, Callable, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Callable, List, Optional, Union
 
 import mqclient as mq
-from mqclient.broker_client_interface import Message
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from . import utils
 from .config import ENV, LOGGER
 from .io import FileType, UniversalFileInterface
 from .task import process_msg_task
+from .utils import all_task_errors_string
+from .wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
 
 # fmt:off
 if sys.version_info[1] < 10:
@@ -26,9 +27,6 @@ if sys.version_info[1] < 10:
 # fmt:on
 
 
-AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
-
-
 # if there's an error, have the cluster try again (probably a system error)
 _EXCEPT_ERRORS = False
 
@@ -36,13 +34,6 @@ _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
 
 _REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main loop
-
-
-def _all_task_errors_string(task_errors: List[BaseException]) -> str:
-    return (
-        f"{len(task_errors)} TASK(S) FAILED: "
-        f"{', '.join(repr(e) for e in task_errors)}"
-    )
 
 
 @utils.async_htchirping
@@ -130,7 +121,7 @@ async def consume_and_reply(
             multitasking,
         )
         if task_errors:
-            raise RuntimeError(_all_task_errors_string(task_errors))
+            raise RuntimeError(all_task_errors_string(task_errors))
     except Exception as e:
         if quarantine_time:
             msg = f"{e} (Quarantining for {quarantine_time} seconds)"
@@ -138,92 +129,6 @@ async def consume_and_reply(
             LOGGER.error(msg)
             await asyncio.sleep(quarantine_time)
         raise
-
-
-async def _wait_on_tasks_with_ack(
-    sub: mq.queue.ManualQueueSubResource,
-    pub: mq.queue.QueuePubResource,
-    tasks_msgs: AsyncioTaskMessages,
-    previous_task_errors: List[BaseException],
-    timeout: int,
-) -> Tuple[AsyncioTaskMessages, List[BaseException]]:
-    """Get finished tasks and ack/nack their messages.
-
-    Returns:
-        Tuple:
-            AsyncioTaskMessages: pending tasks and
-            List[BaseException]: failed tasks' exceptions (plus those in `previous_task_errors`)
-    """
-    pending: Set[asyncio.Task] = set(tasks_msgs.keys())  # type: ignore[type-arg]
-    if not pending:
-        return {}, previous_task_errors
-
-    async def handle_failed_task(task: asyncio.Task, exception: BaseException) -> None:  # type: ignore[type-arg]
-        previous_task_errors.append(exception)
-        LOGGER.error(
-            f"TASK FAILED ({repr(exception)}) -- attempting to nack original message..."
-        )
-        try:
-            await sub.nack(tasks_msgs[task])
-        except Exception as e:
-            # LOGGER.exception(e)
-            LOGGER.error(f"Could not nack: {repr(e)}")
-        LOGGER.error(_all_task_errors_string(previous_task_errors))
-
-    # wait for next task
-    LOGGER.debug("Waiting on tasks...")
-    done, pending = await asyncio.wait(
-        pending,
-        return_when=asyncio.FIRST_COMPLETED,
-        timeout=timeout,
-    )
-
-    # HANDLE FINISHED TASK(S)
-    # fyi, most likely one task in here, but 2+ could finish at same time
-    for task in done:
-        try:
-            result = await task
-        except Exception as e:
-            # FAILED TASK!
-            await handle_failed_task(task, e)
-            continue
-
-        # SUCCESSFUL TASK -> send result
-        try:
-            LOGGER.info("TASK FINISHED -- attempting to send result message...")
-            await pub.send(result)
-        except Exception as e:
-            # -> failed to send = FAILED TASK!
-            LOGGER.error(
-                f"Failed to send finished task's result: {repr(e)}"
-                f" -- task now considered as failed"
-            )
-            await handle_failed_task(task, e)
-            continue
-
-        # SUCCESSFUL TASK -> result sent -> ack original message
-        try:
-            LOGGER.info("Now, attempting to ack original message...")
-            await sub.ack(tasks_msgs[task])
-        except mq.broker_client_interface.AckException as e:
-            # -> result sent -> ack failed = that's okay!
-            LOGGER.error(
-                f"Could not ack ({repr(e)}) -- not counting as a failed task"
-                " since task's result was sent successfully -- "
-                "NOTE: outgoing queue may eventually get"
-                " duplicate result when original message is"
-                " re-delivered by broker to another pilot"
-                " & the new result is sent"
-            )
-
-    if done:
-        LOGGER.info(f"{len(tasks_msgs)-len(pending)} Tasks Finished")
-
-    return (
-        {t: msg for t, msg in tasks_msgs.items() if t in pending},
-        # this now also includes tasks that finished this round
-        previous_task_errors,
-    )
 
 
 def listener_loop_exit(
@@ -382,7 +287,7 @@ async def _consume_and_reply(
                     message_iterator = sub.iter_messages()
 
             # wait on finished task (or timeout)
-            pending, task_errors = await _wait_on_tasks_with_ack(
+            pending, task_errors = await wait_on_tasks_with_ack(
                 sub,
                 pub,
                 pending,
@@ -401,7 +306,7 @@ async def _consume_and_reply(
         while pending:
             await housekeeper.work(in_queue, sub, pub)
             # wait on finished task (or timeout)
-            pending, task_errors = await _wait_on_tasks_with_ack(
+            pending, task_errors = await wait_on_tasks_with_ack(
                 sub,
                 pub,
                 pending,
