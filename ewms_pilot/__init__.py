@@ -1,8 +1,8 @@
 """Init."""
 
 
+from .io import FileType
 from .pilot import consume_and_reply, main
-from .utils import FileType
 
 __all__ = [
     "consume_and_reply",

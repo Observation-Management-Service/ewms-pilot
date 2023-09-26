@@ -10,7 +10,7 @@ from typing import Any, Callable, Optional
 from mqclient.broker_client_interface import Message
 
 from .config import LOGGER
-from .utils import FileType
+from .io import FileType
 
 
 def get_last_line(fpath: Path) -> str:

@@ -3,8 +3,6 @@
 
 import argparse
 import asyncio
-import json
-import pickle
 import shutil
 import sys
 import time
@@ -17,8 +15,8 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from . import utils
 from .config import ENV, LOGGER
+from .io import FileType, UniversalFileInterface
 from .task import process_msg_task
-from .utils import FileType
 
 # fmt:off
 if sys.version_info[1] < 10:
@@ -38,65 +36,6 @@ _DEFAULT_TIMEOUT_INCOMING = 1  # second
 _DEFAULT_TIMEOUT_OUTGOING = 1  # second
 
 _REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main loop
-
-
-class UniversalFileInterface:
-    """Support reading and writing for any `FileType` file extension."""
-
-    @classmethod
-    def write(cls, in_msg: Any, fpath: Path) -> None:
-        """Write `stuff` to `fpath` per `fpath.suffix`."""
-        cls._write(in_msg, fpath)
-        LOGGER.info(f"File Written :: {fpath} ({fpath.stat().st_size} bytes)")
-
-    @classmethod
-    def _write(cls, in_msg: Any, fpath: Path) -> None:
-        LOGGER.info(f"Writing to file: {fpath}")
-        LOGGER.debug(in_msg)
-
-        # PKL
-        if fpath.suffix == FileType.PKL.value:
-            with open(fpath, "wb") as f:
-                pickle.dump(in_msg, f)
-        # TXT
-        elif fpath.suffix == FileType.TXT.value:
-            with open(fpath, "w") as f:
-                f.write(in_msg)
-        # JSON
-        elif fpath.suffix == FileType.JSON.value:
-            with open(fpath, "w") as f:
-                json.dump(in_msg, f)
-        # ???
-        else:
-            raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
-
-    @classmethod
-    def read(cls, fpath: Path) -> Any:
-        """Read and return contents of `fpath` per `fpath.suffix`."""
-        msg = cls._read(fpath)
-        LOGGER.info(f"File Read :: {fpath} ({fpath.stat().st_size} bytes)")
-        LOGGER.debug(msg)
-        return msg
-
-    @classmethod
-    def _read(cls, fpath: Path) -> Any:
-        LOGGER.info(f"Reading from file: {fpath}")
-
-        # PKL
-        if fpath.suffix == FileType.PKL.value:
-            with open(fpath, "rb") as f:
-                return pickle.load(f)
-        # TXT
-        elif fpath.suffix == FileType.TXT.value:
-            with open(fpath, "r") as f:
-                return f.read()
-        # JSON
-        elif fpath.suffix == FileType.JSON.value:
-            with open(fpath, "r") as f:
-                return json.load(f)
-        # ???
-        else:
-            raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
 
 
 def _all_task_errors_string(task_errors: List[BaseException]) -> str:
