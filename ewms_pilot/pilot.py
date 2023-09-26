@@ -5,7 +5,6 @@ import argparse
 import asyncio
 import shutil
 import sys
-import time
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
 
@@ -14,6 +13,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from . import utils
 from .config import ENV, LOGGER
+from .housekeeping import Housekeeping
 from .io import FileType, UniversalFileInterface
 from .task import process_msg_task
 from .utils import all_task_errors_string
@@ -144,39 +144,6 @@ def listener_loop_exit(
         LOGGER.info(f"Timed out waiting for incoming message: {msg_waittime_timeout=}")
         return True
     return False
-
-
-class Housekeeping:
-    """Manage and perform housekeeping."""
-
-    RABBITMQ_HEARTBEAT_INTERVAL = 5
-
-    def __init__(self) -> None:
-        self.prev_rabbitmq_heartbeat = 0.0
-
-    async def work(
-        self,
-        in_queue: mq.Queue,
-        sub: mq.queue.ManualQueueSubResource,
-        pub: mq.queue.QueuePubResource,
-    ) -> None:
-        """Do housekeeping."""
-        await asyncio.sleep(0)  # hand over control to other async tasks
-
-        # rabbitmq heartbeats
-        # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56
-        if in_queue._broker_client.NAME.lower() == "rabbitmq":
-            if (
-                time.time() - self.prev_rabbitmq_heartbeat
-                > self.RABBITMQ_HEARTBEAT_INTERVAL
-            ):
-                self.prev_rabbitmq_heartbeat = time.time()
-                for raw_q in [pub.pub, sub._sub]:
-                    if raw_q.connection:  # type: ignore[attr-defined, union-attr]
-                        LOGGER.info("sending heartbeat to RabbitMQ broker...")
-                        raw_q.connection.process_data_events()  # type: ignore[attr-defined, union-attr]
-
-        # TODO -- add other housekeeping
 
 
 async def _consume_and_reply(
