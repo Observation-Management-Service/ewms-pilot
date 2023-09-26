@@ -1,7 +1,8 @@
 """Init."""
 
 
-from .pilot import FileType, consume_and_reply, main
+from .pilot import consume_and_reply, main
+from .utils import FileType
 
 __all__ = [
     "consume_and_reply",

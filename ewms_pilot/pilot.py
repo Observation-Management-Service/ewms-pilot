@@ -17,7 +17,7 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from . import utils
 from .config import ENV, LOGGER
-from .tasks import process_msg_task
+from .task import process_msg_task
 from .utils import FileType
 
 # fmt:off
