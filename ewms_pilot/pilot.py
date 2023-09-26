@@ -9,7 +9,7 @@ from typing import Any, Callable, List, Optional, Union
 
 import mqclient as mq
 
-from . import utils
+from . import htchirp_tools
 from .config import (
     DEFAULT_TIMEOUT_INCOMING,
     DEFAULT_TIMEOUT_OUTGOING,
@@ -35,7 +35,7 @@ if sys.version_info[1] < 10:
 _EXCEPT_ERRORS = False
 
 
-@utils.async_htchirping
+@htchirp_tools.async_htchirping
 async def consume_and_reply(
     cmd: str,
     #
@@ -124,7 +124,7 @@ async def consume_and_reply(
     except Exception as e:
         if quarantine_time:
             msg = f"{e} (Quarantining for {quarantine_time} seconds)"
-            utils.chirp_status(msg)
+            htchirp_tools.chirp_status(msg)
             LOGGER.error(msg)
             await asyncio.sleep(quarantine_time)
         raise
@@ -228,7 +228,7 @@ async def _consume_and_reply(
                     msg_waittime_timeout = timeout_incoming
 
                     if total_msg_count == 1:
-                        utils.chirp_status("Tasking")
+                        htchirp_tools.chirp_status("Tasking")
 
                     task = asyncio.create_task(
                         process_msg_task(
@@ -282,7 +282,7 @@ async def _consume_and_reply(
 
     # log/chirp
     chirp_msg = f"Done Tasking: completed {total_msg_count} task(s)"
-    utils.chirp_status(chirp_msg)
+    htchirp_tools.chirp_status(chirp_msg)
     LOGGER.info(chirp_msg)
     # check if anything actually processed
     if not total_msg_count:

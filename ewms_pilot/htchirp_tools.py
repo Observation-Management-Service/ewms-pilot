@@ -1,24 +1,17 @@
-"""Common utilities."""
+"""Tools for communicating with HTChirp."""
 
 
 from functools import wraps
-from typing import Any, Callable, Coroutine, List, TypeVar
+from typing import Any, Callable, Coroutine, TypeVar
+
+from typing_extensions import ParamSpec
 
 import htchirp  # type: ignore[import]
-from typing_extensions import ParamSpec
 
 from .config import ENV, LOGGER
 
 T = TypeVar("T")
 P = ParamSpec("P")
-
-
-def all_task_errors_string(task_errors: List[BaseException]) -> str:
-    """Make a string from the multiple task exceptions."""
-    return (
-        f"{len(task_errors)} TASK(S) FAILED: "
-        f"{', '.join(repr(e) for e in task_errors)}"
-    )
 
 
 def _is_chirp_enabled() -> bool:
