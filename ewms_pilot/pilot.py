@@ -61,7 +61,7 @@ async def consume_and_reply(
     file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
     #
     debug_dir: Optional[Path] = None,
-    dump_subproc_output: bool = ENV.EWMS_PILOT_DUMP_SUBPROC_OUTPUT,
+    dump_task_output: bool = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT,
     #
     task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
@@ -116,7 +116,7 @@ async def consume_and_reply(
             #
             debug_dir if debug_dir else Path("./tmp"),
             bool(debug_dir),
-            dump_subproc_output,
+            dump_task_output,
             #
             task_timeout,
             multitasking,
@@ -165,7 +165,7 @@ async def _consume_and_reply(
     #
     staging_dir: Path,
     keep_debug_dir: bool,
-    dump_subproc_output: bool,
+    dump_task_output: bool,
     #
     task_timeout: Optional[int],
     multitasking: int,
@@ -244,7 +244,7 @@ async def _consume_and_reply(
                             file_reader,
                             staging_dir,
                             keep_debug_dir,
-                            dump_subproc_output,
+                            dump_task_output,
                         )
                     )
                     pending[task] = in_msg

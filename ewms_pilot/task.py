@@ -73,7 +73,7 @@ async def process_msg_task(
     #
     staging_dir: Path,
     keep_debug_dir: bool,
-    dump_subproc_output: bool,
+    dump_task_output: bool,
 ) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
 
@@ -120,7 +120,7 @@ async def process_msg_task(
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
         raise
     finally:
-        if dump_subproc_output:
+        if dump_task_output:
             _dump_binary_file(stdoutfile, sys.stdout)
             _dump_binary_file(stderrfile, sys.stderr)
 
