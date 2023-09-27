@@ -4,8 +4,9 @@
 import asyncio
 import shlex
 import shutil
+import sys
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, TextIO
 
 from mqclient.broker_client_interface import Message
 
@@ -47,6 +48,18 @@ def mv_or_rm_file(src: Path, dest: Optional[Path]) -> None:
         src.unlink()  # rm
 
 
+def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
+    try:
+        with open(fpath, "rb") as file:
+            while True:
+                chunk = file.read(4096)
+                if not chunk:
+                    break
+                stream.buffer.write(chunk)
+    except Exception as e:
+        LOGGER.error(f"Error dumping subprocess output ({stream.name}): {e}")
+
+
 async def process_msg_task(
     in_msg: Message,
     cmd: str,
@@ -60,6 +73,7 @@ async def process_msg_task(
     #
     staging_dir: Path,
     keep_debug_dir: bool,
+    dump_task_output: bool,
 ) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
 
@@ -102,10 +116,13 @@ async def process_msg_task(
         if proc.returncode:
             raise TaskSubprocessError(proc.returncode, stderrfile)
 
-    # Error Case: first, if there's a file move it to debug dir (if enabled)
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
         raise
+    finally:
+        if dump_task_output:
+            _dump_binary_file(stdoutfile, sys.stdout)
+            _dump_binary_file(stderrfile, sys.stderr)
 
     # Successful Case: get message and move to debug dir
     out_data = file_reader(outfilepath)

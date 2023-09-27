@@ -12,27 +12,27 @@ from .pilot import consume_and_reply
 
 
 def main() -> None:
-    """Start up EWMS Pilot subprocess to perform an MQ task."""
+    """Start up EWMS Pilot to do tasks, communicate via message passing."""
 
     parser = argparse.ArgumentParser(
-        description="Start up EWMS Pilot subprocess to perform an MQ task",
+        description="Start up EWMS Pilot task to perform an MQ task",
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
     parser.add_argument(
         "--cmd",  # alternatively we can go with a condor-like --executable and --arguments
         required=True,
-        help="the command to give the subprocess script",
+        help="the command to give the task script",
     )
     parser.add_argument(
         "--infile-type",
         type=FileType,
-        help="the file type (extension) to use for files written for the pilot's subprocess",
+        help="the file type (extension) of the input file for the pilot's task",
     )
     parser.add_argument(
         "--outfile-type",
         type=FileType,
-        help="the file type (exception) of the file to read from the pilot's subprocess",
+        help="the file type (extension) of the output file from the pilot's task",
     )
     parser.add_argument(
         "--multitasking",
@@ -107,7 +107,7 @@ def main() -> None:
         help="amount of time to sleep after error (useful for preventing blackhole scenarios on condor)",
     )
 
-    # logging args
+    # logging/debugging args
     parser.add_argument(
         "-l",
         "--log",
@@ -119,8 +119,12 @@ def main() -> None:
         default=ENV.EWMS_PILOT_LOG_THIRD_PARTY,
         help="the output logging level for third-party loggers",
     )
-
-    # testing/debugging args
+    parser.add_argument(
+        "--dump-task-output",
+        default=ENV.EWMS_PILOT_DUMP_TASK_OUTPUT,
+        action="store_true",
+        help="dump each task's stderr to stderr and stdout to stdout",
+    )
     parser.add_argument(
         "--debug-directory",
         default="",
