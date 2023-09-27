@@ -120,7 +120,7 @@ def main() -> None:
         help="the output logging level for third-party loggers",
     )
     parser.add_argument(
-        "--dump_subproc_output",
+        "--dump-subproc-output",
         default=ENV.EWMS_PILOT_DUMP_SUBPROC_OUTPUT,
         action="store_true",
         help="dump each subprocess's stderr to stderr and stdout to stdout",
