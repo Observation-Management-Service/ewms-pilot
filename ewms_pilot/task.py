@@ -57,7 +57,7 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
                     break
                 stream.buffer.write(chunk)
     except Exception as e:
-        LOGGER.error(f"Error dumping subprocess output: {e}")
+        LOGGER.error(f"Error dumping subprocess output ({stream.name}): {e}")
 
 
 async def process_msg_task(
@@ -116,10 +116,13 @@ async def process_msg_task(
         if proc.returncode:
             raise TaskSubprocessError(proc.returncode, stderrfile)
 
-    # Error Case: first, if there's a file move it to debug dir (if enabled)
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
         raise
+    finally:
+        if dump_subproc_output:
+            _dump_binary_file(stdoutfile, sys.stdout)
+            _dump_binary_file(stderrfile, sys.stderr)
 
     # Successful Case: get message and move to debug dir
     out_data = file_reader(outfilepath)
@@ -130,9 +133,5 @@ async def process_msg_task(
     # cleanup -- on success only
     if not keep_debug_dir:
         shutil.rmtree(staging_subdir)  # rm -r
-
-    if dump_subproc_output:
-        _dump_binary_file(stdoutfile, sys.stdout)
-        _dump_binary_file(stderrfile, sys.stderr)
 
     return out_data
