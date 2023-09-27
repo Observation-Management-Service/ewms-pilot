@@ -107,7 +107,7 @@ def main() -> None:
         help="amount of time to sleep after error (useful for preventing blackhole scenarios on condor)",
     )
 
-    # logging args
+    # logging/debugging args
     parser.add_argument(
         "-l",
         "--log",
@@ -119,8 +119,12 @@ def main() -> None:
         default=ENV.EWMS_PILOT_LOG_THIRD_PARTY,
         help="the output logging level for third-party loggers",
     )
-
-    # testing/debugging args
+    parser.add_argument(
+        "--dump_subproc_output",
+        default=ENV.EWMS_PILOT_DUMP_SUBPROC_OUTPUT,
+        action="store_true",
+        help="dump each subprocess's stderr to stderr and stdout to stdout",
+    )
     parser.add_argument(
         "--debug-directory",
         default="",

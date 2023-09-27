@@ -35,6 +35,7 @@ class EnvConfig:
     # logging
     EWMS_PILOT_LOG: str = "INFO"
     EWMS_PILOT_LOG_THIRD_PARTY: str = "WARNING"
+    EWMS_PILOT_DUMP_SUBPROC_OUTPUT: bool = False
 
     # chirp
     EWMS_PILOT_HTCHIRP: bool = False

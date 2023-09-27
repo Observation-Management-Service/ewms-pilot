@@ -73,6 +73,7 @@ async def process_msg_task(
     #
     staging_dir: Path,
     keep_debug_dir: bool,
+    dump_subproc_output: bool,
 ) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
 
@@ -130,7 +131,8 @@ async def process_msg_task(
     if not keep_debug_dir:
         shutil.rmtree(staging_subdir)  # rm -r
 
-    _dump_binary_file(stdoutfile, sys.stdout)
-    _dump_binary_file(stderrfile, sys.stderr)
+    if dump_subproc_output:
+        _dump_binary_file(stdoutfile, sys.stdout)
+        _dump_binary_file(stderrfile, sys.stderr)
 
     return out_data
