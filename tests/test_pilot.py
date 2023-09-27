@@ -952,10 +952,10 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
     # run producer & consumer concurrently
     with patch(
-        "ewms_pilot.config.REFRESH_INTERVAL",
+        "ewms_pilot.pilot.REFRESH_INTERVAL",  # patch at 'ewms_pilot.pilot' bc using from-import
         refresh_interval_rabbitmq_heartbeat_interval,
     ), patch(
-        "ewms_pilot.pilot.Housekeeping.RABBITMQ_HEARTBEAT_INTERVAL",
+        "ewms_pilot.housekeeping.Housekeeping.RABBITMQ_HEARTBEAT_INTERVAL",
         refresh_interval_rabbitmq_heartbeat_interval,
     ):
         if refresh_interval_rabbitmq_heartbeat_interval > TEST_1000_SLEEP:
