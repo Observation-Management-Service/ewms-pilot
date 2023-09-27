@@ -2,6 +2,42 @@
 
 <!--next-version-placeholder-->
 
+## v0.13.0 (2023-09-27)
+
+### Other
+
+* Split Off `htchirp_tools.py.py` ([`5d8375e`](https://github.com/Observation-Management-Service/ewms-pilot/commit/5d8375e592b0fe4dba67bbb627c9acf960669a07))
+* [split: restore `utils.py`] ([`7193f30`](https://github.com/Observation-Management-Service/ewms-pilot/commit/7193f308bbb5b634e3575b6d51518e39680860b0))
+* [split: add `htchirp.py`] ([`1c78a5c`](https://github.com/Observation-Management-Service/ewms-pilot/commit/1c78a5c8d28baeb09a367198ec3d447b65568c07))
+* [split: temp] ([`5ac2843`](https://github.com/Observation-Management-Service/ewms-pilot/commit/5ac28431efd2300a0be4d2f7e460023df2a6059a))
+* [split: make `htchirp.py`] ([`9152398`](https://github.com/Observation-Management-Service/ewms-pilot/commit/91523982f913dfd7e965145a087657a509efe58b))
+* Split Off `__main__.py` ([`e83771c`](https://github.com/Observation-Management-Service/ewms-pilot/commit/e83771c422e3a1a2e7eb473183567c5cf9a06f16))
+* [split: restore `pilot.py`] ([`22a6094`](https://github.com/Observation-Management-Service/ewms-pilot/commit/22a6094e6043845ff47ae50535ea11db43eb4ff7))
+* [split: add `__main__.py`] ([`a922844`](https://github.com/Observation-Management-Service/ewms-pilot/commit/a922844ff6b05bee6b22972f9fae03e62714a7a5))
+* [split: temp] ([`9561406`](https://github.com/Observation-Management-Service/ewms-pilot/commit/9561406160a7da0f6af1f65ca95b2bda9e5920f2))
+* [split: make `__main__.py`] ([`8082a41`](https://github.com/Observation-Management-Service/ewms-pilot/commit/8082a4169e97c09f7e3746ed347109d022808c81))
+* Split Off `housekeeping.py` ([`1a45a3f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/1a45a3f7f34148718b05bc93c50fa42e1ca83ae8))
+* [split: restore `pilot.py`] ([`960904c`](https://github.com/Observation-Management-Service/ewms-pilot/commit/960904c422417209d50ddee541ce58368096a33f))
+* [split: add `housekeeping.py`] ([`3d01199`](https://github.com/Observation-Management-Service/ewms-pilot/commit/3d011997ed8c76acaed0a7277b1357e72582230e))
+* [split: temp] ([`7c77763`](https://github.com/Observation-Management-Service/ewms-pilot/commit/7c7776370a151c9c3ac8e17e2a6a20d23483d2cd))
+* [split: make `housekeeping.py`] ([`8da00db`](https://github.com/Observation-Management-Service/ewms-pilot/commit/8da00dbec1f67cb6a715be9f4dc1d13044ef5363))
+* Split Off `wait_on_tasks.py` ([`0495d31`](https://github.com/Observation-Management-Service/ewms-pilot/commit/0495d31af4f67b1b00a2be5959b53ce96dafa229))
+* [split: restore `pilot.py`] ([`c7d033f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/c7d033f4315090b617d005375d4182bd86aa2b10))
+* [split: add `wait_on_tasks.py`] ([`1d42849`](https://github.com/Observation-Management-Service/ewms-pilot/commit/1d42849a25b8b1a551152af9779ae5e4534b9f1c))
+* [split: temp] ([`52f7c7c`](https://github.com/Observation-Management-Service/ewms-pilot/commit/52f7c7cdfbe7bca0c80cbe0f68522da936c1545b))
+* [split: make `wait_on_tasks.py`] ([`cc3b0ab`](https://github.com/Observation-Management-Service/ewms-pilot/commit/cc3b0ab5f62b6dd83c156898a07326871a9737cc))
+* Split Off `io.py` ([`0642c1e`](https://github.com/Observation-Management-Service/ewms-pilot/commit/0642c1e87e038ca3c4c7577237f7d45b974b78c4))
+* [split: restore `pilot.py`] ([`83456e6`](https://github.com/Observation-Management-Service/ewms-pilot/commit/83456e6f07f6a2c406e38dbdababc48fef7f9c5e))
+* [split: add `io.py`] ([`5876b8f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/5876b8ff6297fdea1f4875e113c8e81807bbe320))
+* [split: temp] ([`1ec4919`](https://github.com/Observation-Management-Service/ewms-pilot/commit/1ec4919567ca8137b2e1cfd05198b5ff09c19122))
+* [split: make `io.py`] ([`a2013bb`](https://github.com/Observation-Management-Service/ewms-pilot/commit/a2013bb63bae4cac6ef9a2484dcf63d3c95f90c3))
+* Split Off `task.py` - 2 ([`00333a0`](https://github.com/Observation-Management-Service/ewms-pilot/commit/00333a0e7d75008bfe6e1bdd93605377fde9b08e))
+* Split Off `task.py` ([`880663a`](https://github.com/Observation-Management-Service/ewms-pilot/commit/880663a51f68b6f47a58d09ade7cd4c2e00a54e6))
+* [split: restore `pilot.py`] ([`28105c7`](https://github.com/Observation-Management-Service/ewms-pilot/commit/28105c72c3ae0dc1826dd25c6781eb9acec336a9))
+* [split: add `task.py`] ([`4b71c5b`](https://github.com/Observation-Management-Service/ewms-pilot/commit/4b71c5bfa673d70c2daa12e4d6109b4b7135cb68))
+* [split: temp] ([`107d826`](https://github.com/Observation-Management-Service/ewms-pilot/commit/107d82649e402666d0b9f1c4cb2be1d187d1587e))
+* [split: make `task.py`] ([`b49b15e`](https://github.com/Observation-Management-Service/ewms-pilot/commit/b49b15e72d96edadab7b0ded1b24fe13f12f43b0))
+
 ## v0.12.4 (2023-09-21)
 
 ### Other
