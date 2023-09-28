@@ -104,10 +104,12 @@ async def consume_and_reply(
         timeout=timeout_outgoing,
     )
 
+    housekeeper = Housekeeping()
+
     try:
         # Init command
         if init_cmd:
-            # NOTE: don't do housekeeping
+            # TODO - call func that makes subprocess shell using asyncio-tasks w/ housekeeper.basic_housekeeping()
             pass
 
         # MQ tasks
@@ -129,6 +131,8 @@ async def consume_and_reply(
             #
             task_timeout,
             multitasking,
+            #
+            housekeeper,
         )
         if task_errors:
             raise RuntimeError(all_task_errors_string(task_errors))
@@ -180,6 +184,8 @@ async def _consume_and_reply(
     #
     task_timeout: Optional[int],
     multitasking: int,
+    #
+    housekeeper: Housekeeping,
 ) -> List[BaseException]:
     """Consume and reply loop.
 
@@ -187,8 +193,6 @@ async def _consume_and_reply(
     """
     pending: AsyncioTaskMessages = {}
     task_errors: List[BaseException] = []
-
-    housekeeper = Housekeeping()
 
     # timeouts
     if (
@@ -225,7 +229,7 @@ async def _consume_and_reply(
         while not listener_loop_exit(
             task_errors, msg_waittime_current, msg_waittime_timeout
         ):
-            await housekeeper.work(in_queue, sub, pub)
+            await housekeeper.queue_housekeeping(in_queue, sub, pub)
             #
             # get messages/tasks
             if len(pending) >= multitasking:
@@ -285,7 +289,7 @@ async def _consume_and_reply(
         if pending:
             LOGGER.debug("Waiting for remaining tasks to finish...")
         while pending:
-            await housekeeper.work(in_queue, sub, pub)
+            await housekeeper.queue_housekeeping(in_queue, sub, pub)
             # wait on finished task (or timeout)
             pending, task_errors = await wait_on_tasks_with_ack(
                 sub,
