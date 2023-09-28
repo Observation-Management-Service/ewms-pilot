@@ -46,6 +46,9 @@ async def consume_and_reply(
     ftype_to_subproc: Union[str, FileType],
     ftype_from_subproc: Union[str, FileType],
     #
+    #
+    init_cmd: str = "",
+    #
     # for mq
     broker_client: str = ENV.EWMS_PILOT_BROKER_CLIENT,
     broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
@@ -102,6 +105,12 @@ async def consume_and_reply(
     )
 
     try:
+        # Init command
+        if init_cmd:
+            # NOTE: don't do housekeeping
+            pass
+
+        # MQ tasks
         task_errors = await _consume_and_reply(
             cmd,
             in_queue,
@@ -123,6 +132,8 @@ async def consume_and_reply(
         )
         if task_errors:
             raise RuntimeError(all_task_errors_string(task_errors))
+
+    # ERROR -> Quarantine
     except Exception as e:
         if quarantine_time:
             msg = f"{e} (Quarantining for {quarantine_time} seconds)"
