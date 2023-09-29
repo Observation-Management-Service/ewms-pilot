@@ -16,7 +16,7 @@ from unittest.mock import patch
 import asyncstdlib as asl
 import mqclient as mq
 import pytest
-from ewms_pilot import FileType, config, consume_and_reply
+from ewms_pilot import FileType, PilotSubprocessError, config, consume_and_reply
 from ewms_pilot.config import ENV
 
 logging.getLogger().setLevel(logging.DEBUG)
@@ -123,11 +123,24 @@ def assert_debug_dir(
     ftype_to_subproc: FileType,
     n_tasks: int,
     files: List[str],
+    has_init_cmd_subdir: bool = False,
 ) -> None:
-    assert len(list(debug_dir.iterdir())) == n_tasks
+    if has_init_cmd_subdir:
+        assert len(list(debug_dir.iterdir())) == n_tasks + 1
+    else:
+        assert len(list(debug_dir.iterdir())) == n_tasks
+
     for path in debug_dir.iterdir():
         assert path.is_dir()
 
+        # init subdir
+        if has_init_cmd_subdir and path.name == "init":
+            assert sorted(p.name for p in path.iterdir()) == sorted(
+                ["stderrfile", "stdoutfile"]
+            )
+            continue
+
+        # task subdirs
         task_id = path.name
 
         # look for in/out files
@@ -889,6 +902,9 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     )
 
 
+########################################################################################
+
+
 TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
 
 
@@ -1001,3 +1017,148 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         first_walk,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
+
+
+########################################################################################
+
+
+@pytest.mark.usefixtures("unique_pwd")
+@pytest.mark.parametrize("use_debug_dir", [True, False])
+async def test_2000_init(
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: OSWalkList,
+    use_debug_dir: bool,
+) -> None:
+    """Test a normal init command."""
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
+        ),
+        consume_and_reply(
+            cmd="""python3 -c "
+output = open('{{INFILE}}').read().strip() * 2;
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            #
+            init_cmd="""python3 -c "
+with open('initoutput', 'w') as f:
+    print('writing hello world to a file...')
+    print('hello world!', f)
+" """,
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            ftype_to_subproc=FileType.TXT,
+            ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
+            # file_writer=UniversalFileInterface.write, # see other tests
+            # file_reader=UniversalFileInterface.read, # see other tests
+            debug_dir=debug_dir if use_debug_dir else None,
+        ),
+    )
+
+    # check init's output
+    with open("initoutput") as f:
+        assert f.read().strip() == "hello world!"
+
+    # check task stuff
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
+    if use_debug_dir:
+        assert_debug_dir(
+            debug_dir,
+            FileType.TXT,
+            len(msgs_outgoing_expected),
+            ["in", "out", "stderrfile", "stdoutfile"],
+            has_init_cmd_subdir=True,
+        )
+    # check for persisted files
+    assert_versus_os_walk(
+        first_walk,
+        [debug_dir if use_debug_dir else Path("./tmp")],
+    )
+
+
+async def test_2001_init__timeout_error(
+    queue_incoming: str,
+    queue_outgoing: str,
+) -> None:
+    """Test a init command with error."""
+
+    with pytest.raises(TimeoutError):
+        await consume_and_reply(
+            cmd="""python3 -c "
+output = open('{{INFILE}}').read().strip() * 2;
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            #
+            init_cmd="""python3 -c "
+import time
+with open('initoutput', 'w') as f:
+    print('writing hello world to a file...')
+    print('hello world!', f)
+time.sleep(5)
+" """,
+            init_timeout=2,
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            ftype_to_subproc=FileType.TXT,
+            ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
+            # file_writer=UniversalFileInterface.write, # see other tests
+            # file_reader=UniversalFileInterface.read, # see other tests
+            debug_dir=None,
+        )
+
+    # check init's output
+    with open("initoutput") as f:
+        assert f.read().strip() == "hello world!"
+
+
+async def test_2002_init__exception(
+    queue_incoming: str,
+    queue_outgoing: str,
+) -> None:
+    """Test a init command with error."""
+
+    with pytest.raises(
+        PilotSubprocessError,
+        match=r"'Subprocess completed with exit code 1: ValueError: no good!'",
+    ):
+        await consume_and_reply(
+            cmd="""python3 -c "
+output = open('{{INFILE}}').read().strip() * 2;
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            #
+            init_cmd="""python3 -c "
+with open('initoutput', 'w') as f:
+    print('writing hello world to a file...')
+    print('hello world!', f)
+raise ValueError('no good!')
+" """,
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            ftype_to_subproc=FileType.TXT,
+            ftype_from_subproc=FileType.TXT,
+            timeout_incoming=TIMEOUT_INCOMING,
+            # file_writer=UniversalFileInterface.write, # see other tests
+            # file_reader=UniversalFileInterface.read, # see other tests
+            debug_dir=None,
+        )
+
+    # check init's output
+    with open("initoutput") as f:
+        assert f.read().strip() == "hello world!"

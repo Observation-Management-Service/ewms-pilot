@@ -116,6 +116,7 @@ async def consume_and_reply(
                 init_timeout,
                 housekeeper,
                 staging_dir,
+                bool(debug_dir),
             )
 
         # MQ tasks
@@ -143,6 +144,10 @@ async def consume_and_reply(
         if task_errors:
             raise RuntimeError(all_task_errors_string(task_errors))
 
+        # cleanup
+        if not list(staging_dir.iterdir()):  # if empty
+            shutil.rmtree(staging_dir)  # rm -r
+
     # ERROR -> Quarantine
     except Exception as e:
         if quarantine_time:
@@ -158,16 +163,20 @@ async def run_init_command(
     init_timeout: Optional[int],
     housekeeper: Housekeeping,
     staging_dir: Path,
+    keep_debug_dir: bool,
 ) -> None:
     """Run the init command."""
     await housekeeper.basic_housekeeping()
+
+    staging_subdir = staging_dir / "init"
+    staging_subdir.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
         run_subproc(
             init_cmd,
             init_timeout,
-            staging_dir / "init-stdoutfile",
-            staging_dir / "init-stderrfile",
+            staging_subdir / "stdoutfile",
+            staging_subdir / "stderrfile",
             dump_output=True,
         )
     )
@@ -180,6 +189,10 @@ async def run_init_command(
             timeout=REFRESH_INTERVAL,
         )
         await housekeeper.basic_housekeeping()
+
+    # cleanup -- on success only
+    if not keep_debug_dir:
+        shutil.rmtree(staging_subdir)  # rm -r
 
 
 def listener_loop_exit(
@@ -343,9 +356,5 @@ async def _consume_and_reply(
     # check if anything actually processed
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
-
-    # cleanup
-    if not list(staging_dir.iterdir()):  # if empty
-        shutil.rmtree(staging_dir)  # rm -r
 
     return task_errors
