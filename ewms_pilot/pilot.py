@@ -87,24 +87,6 @@ async def consume_and_reply(
     if not isinstance(ftype_from_subproc, FileType):
         ftype_from_subproc = FileType(ftype_from_subproc)
 
-    in_queue = mq.Queue(
-        broker_client,
-        address=broker_address,
-        name=queue_incoming,
-        prefetch=prefetch,
-        auth_token=auth_token,
-        except_errors=_EXCEPT_ERRORS,
-        # timeout=timeout_incoming, # manually set below
-    )
-    out_queue = mq.Queue(
-        broker_client,
-        address=broker_address,
-        name=queue_outgoing,
-        auth_token=auth_token,
-        except_errors=_EXCEPT_ERRORS,
-        timeout=timeout_outgoing,
-    )
-
     housekeeper = Housekeeping()
     staging_dir = debug_dir if debug_dir else Path("./tmp")
 
@@ -118,6 +100,25 @@ async def consume_and_reply(
                 staging_dir,
                 bool(debug_dir),
             )
+
+        # connect queues
+        in_queue = mq.Queue(
+            broker_client,
+            address=broker_address,
+            name=queue_incoming,
+            prefetch=prefetch,
+            auth_token=auth_token,
+            except_errors=_EXCEPT_ERRORS,
+            # timeout=timeout_incoming, # manually set below
+        )
+        out_queue = mq.Queue(
+            broker_client,
+            address=broker_address,
+            name=queue_outgoing,
+            auth_token=auth_token,
+            except_errors=_EXCEPT_ERRORS,
+            timeout=timeout_outgoing,
+        )
 
         # MQ tasks
         task_errors = await _consume_and_reply(
