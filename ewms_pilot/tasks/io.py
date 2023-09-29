@@ -7,7 +7,7 @@ import pickle
 from pathlib import Path
 from typing import Any
 
-from .config import LOGGER
+from ..config import LOGGER
 
 
 class FileType(enum.Enum):

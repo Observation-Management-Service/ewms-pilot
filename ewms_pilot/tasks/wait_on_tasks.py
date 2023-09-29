@@ -7,8 +7,8 @@ from typing import Dict, List, Set, Tuple
 import mqclient as mq
 from mqclient.broker_client_interface import Message
 
-from .config import LOGGER
-from .utils import all_task_errors_string
+from ..config import LOGGER
+from ..utils.utils import all_task_errors_string
 
 AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
 

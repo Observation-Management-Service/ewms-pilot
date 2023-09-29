@@ -1,4 +1,4 @@
-"""Single task logic."""
+"""Logic for running a subprocess."""
 
 
 import asyncio
@@ -6,12 +6,9 @@ import shlex
 import shutil
 import sys
 from pathlib import Path
-from typing import Any, Callable, Optional, TextIO
+from typing import Optional, TextIO
 
-from mqclient.broker_client_interface import Message
-
-from .config import LOGGER
-from .io import FileType
+from ..config import LOGGER
 
 
 def get_last_line(fpath: Path) -> str:
@@ -60,39 +57,14 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
         LOGGER.error(f"Error dumping subprocess output ({stream.name}): {e}")
 
 
-async def process_msg_task(
-    in_msg: Message,
+async def run_subproc(
     cmd: str,
     task_timeout: Optional[int],
-    #
-    ftype_to_subproc: FileType,
-    ftype_from_subproc: FileType,
-    #
-    file_writer: Callable[[Any, Path], None],
-    file_reader: Callable[[Path], Any],
-    #
-    staging_dir: Path,
-    keep_debug_dir: bool,
-    dump_task_output: bool,
-) -> Any:
-    """Process the message's task in a subprocess using `cmd` & respond."""
-
-    # staging-dir logic
-    staging_subdir = staging_dir / str(in_msg.uuid)
-    staging_subdir.mkdir(parents=True, exist_ok=False)
-    stderrfile = staging_subdir / "stderrfile"
-    stdoutfile = staging_subdir / "stdoutfile"
-
-    # create in/out filepaths
-    infilepath = staging_subdir / f"in-{in_msg.uuid}{ftype_to_subproc.value}"
-    outfilepath = staging_subdir / f"out-{in_msg.uuid}{ftype_from_subproc.value}"
-
-    # insert in/out files into cmd
-    cmd = cmd.replace("{{INFILE}}", str(infilepath))
-    cmd = cmd.replace("{{OUTFILE}}", str(outfilepath))
-
-    # write message for subproc
-    file_writer(in_msg.data, infilepath)
+    stdoutfile: Path,
+    stderrfile: Path,
+    dump_output: bool,
+) -> None:
+    """Start a subprocess running `cmd`."""
 
     # call & check outputs
     LOGGER.info(f"Executing: {shlex.split(cmd)}")
@@ -120,18 +92,6 @@ async def process_msg_task(
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
         raise
     finally:
-        if dump_task_output:
+        if dump_output:
             _dump_binary_file(stdoutfile, sys.stdout)
             _dump_binary_file(stderrfile, sys.stderr)
-
-    # Successful Case: get message and move to debug dir
-    out_data = file_reader(outfilepath)
-
-    # send
-    LOGGER.info("Sending return message...")
-
-    # cleanup -- on success only
-    if not keep_debug_dir:
-        shutil.rmtree(staging_subdir)  # rm -r
-
-    return out_data
