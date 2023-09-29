@@ -20,7 +20,7 @@ def get_last_line(fpath: Path) -> str:
         return line.rstrip()  # remove trailing '\n'
 
 
-class TaskSubprocessError(Exception):
+class PilotSubprocessError(Exception):
     """Raised when the subprocess terminates in an error."""
 
     def __init__(self, return_code: int, stderrfile: Path):
@@ -86,7 +86,7 @@ async def run_subproc(
 
         # exception handling (immediately re-handled by 'except' below)
         if proc.returncode:
-            raise TaskSubprocessError(proc.returncode, stderrfile)
+            raise PilotSubprocessError(proc.returncode, stderrfile)
 
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
