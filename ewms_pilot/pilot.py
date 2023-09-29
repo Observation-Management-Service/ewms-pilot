@@ -183,13 +183,20 @@ async def run_init_command(
     )
     pending = set([task])
 
+    # wait with housekeeping
     while pending:
         _, pending = await asyncio.wait(
             pending,
-            return_when=asyncio.FIRST_COMPLETED,
+            return_when=asyncio.ALL_COMPLETED,
             timeout=REFRESH_INTERVAL,
         )
         await housekeeper.basic_housekeeping()
+
+    # see if the task failed
+    try:
+        await task
+    except:  # noqa: E722
+        raise
 
     # cleanup -- on success only
     if not keep_debug_dir:

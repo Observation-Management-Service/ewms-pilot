@@ -1050,7 +1050,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_cmd="""python3 -c "
 with open('initoutput', 'w') as f:
     print('writing hello world to a file...')
-    print('hello world!', f)
+    print('hello world!', file=f)
 " """,
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
@@ -1093,7 +1093,7 @@ async def test_2001_init__timeout_error(
 ) -> None:
     """Test a init command with error."""
 
-    with pytest.raises(TimeoutError):
+    with pytest.raises(asyncio.TimeoutError):
         await consume_and_reply(
             cmd="""python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
@@ -1103,7 +1103,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 import time
 with open('initoutput', 'w') as f:
     print('writing hello world to a file...')
-    print('hello world!', f)
+    print('hello world!', file=f)
 time.sleep(5)
 " """,
             init_timeout=2,
@@ -1143,7 +1143,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_cmd="""python3 -c "
 with open('initoutput', 'w') as f:
     print('writing hello world to a file...')
-    print('hello world!', f)
+    print('hello world!', file=f)
 raise ValueError('no good!')
 " """,
             # broker_client=,  # rely on env var
