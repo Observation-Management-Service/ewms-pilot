@@ -21,6 +21,7 @@ from .housekeeping import Housekeeping
 from .tasks.io import FileType, UniversalFileInterface
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
+from .utils.subproc import run_subproc
 from .utils.utils import all_task_errors_string
 
 # fmt:off
@@ -46,6 +47,8 @@ async def consume_and_reply(
     ftype_to_subproc: Union[str, FileType],
     ftype_from_subproc: Union[str, FileType],
     #
+    init_cmd: str = "",
+    #
     # for mq
     broker_client: str = ENV.EWMS_PILOT_BROKER_CLIENT,
     broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
@@ -63,6 +66,7 @@ async def consume_and_reply(
     debug_dir: Optional[Path] = None,
     dump_task_output: bool = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT,
     #
+    init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
     task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
     #
@@ -83,25 +87,40 @@ async def consume_and_reply(
     if not isinstance(ftype_from_subproc, FileType):
         ftype_from_subproc = FileType(ftype_from_subproc)
 
-    in_queue = mq.Queue(
-        broker_client,
-        address=broker_address,
-        name=queue_incoming,
-        prefetch=prefetch,
-        auth_token=auth_token,
-        except_errors=_EXCEPT_ERRORS,
-        # timeout=timeout_incoming, # manually set below
-    )
-    out_queue = mq.Queue(
-        broker_client,
-        address=broker_address,
-        name=queue_outgoing,
-        auth_token=auth_token,
-        except_errors=_EXCEPT_ERRORS,
-        timeout=timeout_outgoing,
-    )
+    housekeeper = Housekeeping()
+    staging_dir = debug_dir if debug_dir else Path("./tmp")
 
     try:
+        # Init command
+        if init_cmd:
+            await run_init_command(
+                init_cmd,
+                init_timeout,
+                housekeeper,
+                staging_dir,
+                bool(debug_dir),
+            )
+
+        # connect queues
+        in_queue = mq.Queue(
+            broker_client,
+            address=broker_address,
+            name=queue_incoming,
+            prefetch=prefetch,
+            auth_token=auth_token,
+            except_errors=_EXCEPT_ERRORS,
+            # timeout=timeout_incoming, # manually set below
+        )
+        out_queue = mq.Queue(
+            broker_client,
+            address=broker_address,
+            name=queue_outgoing,
+            auth_token=auth_token,
+            except_errors=_EXCEPT_ERRORS,
+            timeout=timeout_outgoing,
+        )
+
+        # MQ tasks
         task_errors = await _consume_and_reply(
             cmd,
             in_queue,
@@ -114,15 +133,23 @@ async def consume_and_reply(
             file_writer,
             file_reader,
             #
-            debug_dir if debug_dir else Path("./tmp"),
+            staging_dir,
             bool(debug_dir),
             dump_task_output,
             #
             task_timeout,
             multitasking,
+            #
+            housekeeper,
         )
         if task_errors:
             raise RuntimeError(all_task_errors_string(task_errors))
+
+        # cleanup
+        if not list(staging_dir.iterdir()):  # if empty
+            shutil.rmtree(staging_dir)  # rm -r
+
+    # ERROR -> Quarantine
     except Exception as e:
         if quarantine_time:
             msg = f"{e} (Quarantining for {quarantine_time} seconds)"
@@ -130,6 +157,50 @@ async def consume_and_reply(
             LOGGER.error(msg)
             await asyncio.sleep(quarantine_time)
         raise
+
+
+async def run_init_command(
+    init_cmd: str,
+    init_timeout: Optional[int],
+    housekeeper: Housekeeping,
+    staging_dir: Path,
+    keep_debug_dir: bool,
+) -> None:
+    """Run the init command."""
+    await housekeeper.basic_housekeeping()
+
+    staging_subdir = staging_dir / "init"
+    staging_subdir.mkdir(parents=True, exist_ok=False)
+
+    task = asyncio.create_task(
+        run_subproc(
+            init_cmd,
+            init_timeout,
+            staging_subdir / "stdoutfile",
+            staging_subdir / "stderrfile",
+            dump_output=True,
+        )
+    )
+    pending = set([task])
+
+    # wait with housekeeping
+    while pending:
+        _, pending = await asyncio.wait(
+            pending,
+            return_when=asyncio.ALL_COMPLETED,
+            timeout=REFRESH_INTERVAL,
+        )
+        await housekeeper.basic_housekeeping()
+
+    # see if the task failed
+    try:
+        await task
+    except:  # noqa: E722
+        raise
+
+    # cleanup -- on success only
+    if not keep_debug_dir:
+        shutil.rmtree(staging_subdir)  # rm -r
 
 
 def listener_loop_exit(
@@ -169,15 +240,17 @@ async def _consume_and_reply(
     #
     task_timeout: Optional[int],
     multitasking: int,
+    #
+    housekeeper: Housekeeping,
 ) -> List[BaseException]:
     """Consume and reply loop.
 
     Return errors of failed tasks.
     """
+    await housekeeper.basic_housekeeping()
+
     pending: AsyncioTaskMessages = {}
     task_errors: List[BaseException] = []
-
-    housekeeper = Housekeeping()
 
     # timeouts
     if (
@@ -214,7 +287,7 @@ async def _consume_and_reply(
         while not listener_loop_exit(
             task_errors, msg_waittime_current, msg_waittime_timeout
         ):
-            await housekeeper.work(in_queue, sub, pub)
+            await housekeeper.queue_housekeeping(in_queue, sub, pub)
             #
             # get messages/tasks
             if len(pending) >= multitasking:
@@ -274,7 +347,7 @@ async def _consume_and_reply(
         if pending:
             LOGGER.debug("Waiting for remaining tasks to finish...")
         while pending:
-            await housekeeper.work(in_queue, sub, pub)
+            await housekeeper.queue_housekeeping(in_queue, sub, pub)
             # wait on finished task (or timeout)
             pending, task_errors = await wait_on_tasks_with_ack(
                 sub,
@@ -291,9 +364,5 @@ async def _consume_and_reply(
     # check if anything actually processed
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
-
-    # cleanup
-    if not list(staging_dir.iterdir()):  # if empty
-        shutil.rmtree(staging_dir)  # rm -r
 
     return task_errors

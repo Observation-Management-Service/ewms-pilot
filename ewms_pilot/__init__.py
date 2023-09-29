@@ -3,10 +3,12 @@
 
 from .pilot import consume_and_reply
 from .tasks.io import FileType
+from .utils.subproc import PilotSubprocessError
 
 __all__ = [
     "consume_and_reply",
     "FileType",
+    "PilotSubprocessError",
 ]
 
 # version is a human-readable version number.

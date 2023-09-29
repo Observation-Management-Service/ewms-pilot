@@ -17,14 +17,22 @@ class Housekeeping:
     def __init__(self) -> None:
         self.prev_rabbitmq_heartbeat = 0.0
 
-    async def work(
+    async def basic_housekeeping(
+        self,
+    ) -> None:
+        """Do basic housekeeping."""
+        await asyncio.sleep(0)  # hand over control to other async tasks
+
+        # TODO -- add other housekeeping
+
+    async def queue_housekeeping(
         self,
         in_queue: mq.Queue,
         sub: mq.queue.ManualQueueSubResource,
         pub: mq.queue.QueuePubResource,
     ) -> None:
-        """Do housekeeping."""
-        await asyncio.sleep(0)  # hand over control to other async tasks
+        """Do housekeeping for queue + basic housekeeping."""
+        await self.basic_housekeeping()
 
         # rabbitmq heartbeats
         # TODO: replace when https://github.com/Observation-Management-Service/MQClient/issues/56

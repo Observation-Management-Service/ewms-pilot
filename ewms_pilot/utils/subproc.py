@@ -20,7 +20,7 @@ def get_last_line(fpath: Path) -> str:
         return line.rstrip()  # remove trailing '\n'
 
 
-class TaskSubprocessError(Exception):
+class PilotSubprocessError(Exception):
     """Raised when the subprocess terminates in an error."""
 
     def __init__(self, return_code: int, stderrfile: Path):
@@ -59,7 +59,7 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
 
 async def run_subproc(
     cmd: str,
-    task_timeout: Optional[int],
+    subproc_timeout: Optional[int],
     stdoutfile: Path,
     stderrfile: Path,
     dump_output: bool,
@@ -79,14 +79,14 @@ async def run_subproc(
             # await to finish
             await asyncio.wait_for(  # raises TimeoutError
                 proc.wait(),
-                timeout=task_timeout,
+                timeout=subproc_timeout,
             )
 
         LOGGER.info(f"Subprocess return code: {proc.returncode}")
 
         # exception handling (immediately re-handled by 'except' below)
         if proc.returncode:
-            raise TaskSubprocessError(proc.returncode, stderrfile)
+            raise PilotSubprocessError(proc.returncode, stderrfile)
 
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time

@@ -41,6 +41,7 @@ class EnvConfig:
     EWMS_PILOT_HTCHIRP: bool = False
 
     # meta
+    EWMS_PILOT_INIT_TIMEOUT: Optional[int] = None
     EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
     EWMS_PILOT_CONCURRENT_TASKS: int = 1
