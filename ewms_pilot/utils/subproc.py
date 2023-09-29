@@ -59,7 +59,7 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
 
 async def run_subproc(
     cmd: str,
-    task_timeout: Optional[int],
+    subproc_timeout: Optional[int],
     stdoutfile: Path,
     stderrfile: Path,
     dump_output: bool,
@@ -79,7 +79,7 @@ async def run_subproc(
             # await to finish
             await asyncio.wait_for(  # raises TimeoutError
                 proc.wait(),
-                timeout=task_timeout,
+                timeout=subproc_timeout,
             )
 
         LOGGER.info(f"Subprocess return code: {proc.returncode}")

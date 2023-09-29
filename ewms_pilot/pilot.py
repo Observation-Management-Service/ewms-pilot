@@ -111,7 +111,6 @@ async def consume_and_reply(
     try:
         # Init command
         if init_cmd:
-            # TODO - call func that makes subprocess shell using asyncio-tasks w/ housekeeper.basic_housekeeping()
             await run_init_command(
                 init_cmd,
                 init_timeout,
