@@ -8,7 +8,7 @@ import sys
 from pathlib import Path
 from typing import Optional, TextIO
 
-from .config import LOGGER
+from ..config import LOGGER
 
 
 def get_last_line(fpath: Path) -> str:

@@ -7,9 +7,9 @@ from typing import Any, Callable, Optional
 
 from mqclient.broker_client_interface import Message
 
-from .config import LOGGER
+from ..config import LOGGER
+from ..utils.subproc import run_subproc
 from .io import FileType
-from .subproc import run_subproc
 
 
 async def process_msg_task(

@@ -7,8 +7,8 @@ import asyncio
 from wipac_dev_tools import argparse_tools, logging_tools
 
 from .config import DEFAULT_TIMEOUT_INCOMING, DEFAULT_TIMEOUT_OUTGOING, ENV, LOGGER
-from .io import FileType
 from .pilot import consume_and_reply
+from .tasks.io import FileType
 
 
 def main() -> None:

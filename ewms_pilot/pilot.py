@@ -18,10 +18,10 @@ from .config import (
     REFRESH_INTERVAL,
 )
 from .housekeeping import Housekeeping
-from .io import FileType, UniversalFileInterface
-from .task import process_msg_task
-from .utils import all_task_errors_string
-from .wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
+from .tasks.io import FileType, UniversalFileInterface
+from .tasks.task import process_msg_task
+from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
+from .utils.utils import all_task_errors_string
 
 # fmt:off
 if sys.version_info[1] < 10:
