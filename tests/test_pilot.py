@@ -1134,7 +1134,7 @@ async def test_2002_init__exception(
 
     with pytest.raises(
         PilotSubprocessError,
-        match=r"'Subprocess completed with exit code 1: ValueError: no good!'",
+        match=re.escape("Subprocess completed with exit code 1: ValueError: no good!"),
     ):
         await consume_and_reply(
             cmd="""python3 -c "
