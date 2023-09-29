@@ -2,6 +2,18 @@
 
 <!--next-version-placeholder-->
 
+## v0.14.1 (2023-09-29)
+
+### Other
+
+* Finish Restructuring Directories ([`1bbd1d6`](https://github.com/Observation-Management-Service/ewms-pilot/commit/1bbd1d6b9c55dd8e7cc8fd0ab75cdbc37eb9e301))
+* Restructure Directories ([`034ff46`](https://github.com/Observation-Management-Service/ewms-pilot/commit/034ff46963dd45bafb4e31c1694cfc1f69418a7f))
+* Split Off `subproc.py` ([`6da47b3`](https://github.com/Observation-Management-Service/ewms-pilot/commit/6da47b33b784c4a81668e73dc0d7aff466dee1e8))
+* [split: restore `task.py`] ([`d0a2229`](https://github.com/Observation-Management-Service/ewms-pilot/commit/d0a22290ab5ab22b8535947280fdf49acb08f0ca))
+* [split: add `subproc.py`] ([`8ef66b7`](https://github.com/Observation-Management-Service/ewms-pilot/commit/8ef66b77f45c1e9a3a552dfb1399a84965df56c9))
+* [split: temp] ([`cf4422a`](https://github.com/Observation-Management-Service/ewms-pilot/commit/cf4422a23b961f6bdff8e053c9c351b250aa9ca5))
+* [split: make `subproc.py`] ([`c2240c8`](https://github.com/Observation-Management-Service/ewms-pilot/commit/c2240c877de2e147b1a07b1870504015238e8e57))
+
 ## v0.14.0 (2023-09-27)
 
 
