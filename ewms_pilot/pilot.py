@@ -21,6 +21,7 @@ from .housekeeping import Housekeeping
 from .tasks.io import FileType, UniversalFileInterface
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
+from .utils.subproc import run_subproc
 from .utils.utils import all_task_errors_string
 
 # fmt:off
@@ -66,6 +67,7 @@ async def consume_and_reply(
     debug_dir: Optional[Path] = None,
     dump_task_output: bool = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT,
     #
+    init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
     task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
     #
@@ -105,12 +107,18 @@ async def consume_and_reply(
     )
 
     housekeeper = Housekeeping()
+    staging_dir = debug_dir if debug_dir else Path("./tmp")
 
     try:
         # Init command
         if init_cmd:
             # TODO - call func that makes subprocess shell using asyncio-tasks w/ housekeeper.basic_housekeeping()
-            pass
+            await run_init_command(
+                init_cmd,
+                init_timeout,
+                housekeeper,
+                staging_dir,
+            )
 
         # MQ tasks
         task_errors = await _consume_and_reply(
@@ -125,7 +133,7 @@ async def consume_and_reply(
             file_writer,
             file_reader,
             #
-            debug_dir if debug_dir else Path("./tmp"),
+            staging_dir,
             bool(debug_dir),
             dump_task_output,
             #
@@ -145,6 +153,35 @@ async def consume_and_reply(
             LOGGER.error(msg)
             await asyncio.sleep(quarantine_time)
         raise
+
+
+async def run_init_command(
+    init_cmd: str,
+    init_timeout: Optional[int],
+    housekeeper: Housekeeping,
+    staging_dir: Path,
+) -> None:
+    """Run the init command."""
+    await housekeeper.basic_housekeeping()
+
+    task = asyncio.create_task(
+        run_subproc(
+            init_cmd,
+            init_timeout,
+            staging_dir / "init-stdoutfile",
+            staging_dir / "init-stderrfile",
+            dump_output=True,
+        )
+    )
+    pending = set([task])
+
+    while pending:
+        _, pending = await asyncio.wait(
+            pending,
+            return_when=asyncio.FIRST_COMPLETED,
+            timeout=REFRESH_INTERVAL,
+        )
+        await housekeeper.basic_housekeeping()
 
 
 def listener_loop_exit(
@@ -191,6 +228,8 @@ async def _consume_and_reply(
 
     Return errors of failed tasks.
     """
+    await housekeeper.basic_housekeeping()
+
     pending: AsyncioTaskMessages = {}
     task_errors: List[BaseException] = []
 
