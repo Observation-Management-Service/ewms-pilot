@@ -47,7 +47,6 @@ async def consume_and_reply(
     ftype_to_subproc: Union[str, FileType],
     ftype_from_subproc: Union[str, FileType],
     #
-    #
     init_cmd: str = "",
     #
     # for mq

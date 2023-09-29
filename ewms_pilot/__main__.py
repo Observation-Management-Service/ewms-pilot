@@ -22,17 +22,24 @@ def main() -> None:
     parser.add_argument(
         "--cmd",  # alternatively we can go with a condor-like --executable and --arguments
         required=True,
-        help="the command to give the task script",
+        help="the command to run for each task",
     )
     parser.add_argument(
         "--infile-type",
         type=FileType,
+        required=True,
         help="the file type (extension) of the input file for the pilot's task",
     )
     parser.add_argument(
         "--outfile-type",
         type=FileType,
+        required=True,
         help="the file type (extension) of the output file from the pilot's task",
+    )
+    parser.add_argument(
+        "--init-cmd",  # alternatively we can go with a condor-like --executable and --arguments
+        default="",
+        help="the init command run once before processing any tasks",
     )
     parser.add_argument(
         "--multitasking",
@@ -94,6 +101,14 @@ def main() -> None:
         type=int,
         help="timeout (seconds) for messages FROM pilot",
     )
+
+    # meta timeouts
+    parser.add_argument(
+        "--init-timeout",
+        default=ENV.EWMS_PILOT_INIT_TIMEOUT,
+        type=int,
+        help="timeout (seconds) for the init command",
+    )
     parser.add_argument(
         "--task-timeout",
         default=ENV.EWMS_PILOT_TASK_TIMEOUT,
@@ -149,23 +164,34 @@ def main() -> None:
     asyncio.run(
         consume_and_reply(
             cmd=args.cmd,
-            broker_client=args.broker_client,
+            #
+            queue_incoming=args.queue_incoming,
+            queue_outgoing=args.queue_outgoing,
+            #
             ftype_to_subproc=args.infile_type,
             ftype_from_subproc=args.outfile_type,
             #
+            init_cmd=args.init_cmd,
+            #
+            broker_client=args.broker_client,
             broker_address=args.broker,
             auth_token=args.auth_token,
-            queue_incoming=args.queue_incoming,
-            queue_outgoing=args.queue_outgoing,
+            #
             prefetch=args.prefetch,
+            #
             timeout_wait_for_first_message=args.timeout_wait_for_first_message,
             timeout_incoming=args.timeout_incoming,
             timeout_outgoing=args.timeout_outgoing,
+            #
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
+            #
             debug_dir=args.debug_directory,
+            #
+            init_timeout=args.init_timeout,
             task_timeout=args.task_timeout,
             quarantine_time=args.quarantine_time,
+            #
             multitasking=args.multitasking,
         )
     )
