@@ -1069,6 +1069,7 @@ with open('initoutput', 'w') as f:
     # check init's output
     with open("initoutput") as f:
         assert f.read().strip() == "hello world!"
+    Path("initoutput").unlink()  # remove so the other checks work
 
     # check task stuff
     await assert_results(queue_outgoing, msgs_outgoing_expected)
