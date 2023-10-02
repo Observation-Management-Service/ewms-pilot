@@ -134,7 +134,7 @@ def assert_debug_dir(
         assert path.is_dir()
 
         # init subdir
-        if has_init_cmd_subdir and path.name == "init":
+        if has_init_cmd_subdir and path.name.startswith("init"):
             assert sorted(p.name for p in path.iterdir()) == sorted(
                 ["stderrfile", "stdoutfile"]
             )
@@ -146,14 +146,14 @@ def assert_debug_dir(
         # look for in/out files
         for subpath in path.iterdir():
             assert subpath.is_file()
-        these_files = list(files)  # copies
-        if "in" in these_files:
-            these_files.remove("in")
-            these_files.append(f"in-{task_id}{ftype_to_subproc.value}")
-        if "out" in these_files:
-            these_files.remove("out")
-            these_files.append(f"out-{task_id}{ftype_to_subproc.value}")
-        assert sorted(p.name for p in path.iterdir()) == sorted(these_files)
+        expected_files = list(files)  # copies
+        if "in" in expected_files:
+            expected_files.remove("in")
+            expected_files.append(f"in-{task_id}{ftype_to_subproc.value}")
+        if "out" in expected_files:
+            expected_files.remove("out")
+            expected_files.append(f"out-{task_id}{ftype_to_subproc.value}")
+        assert sorted(p.name for p in path.iterdir()) == sorted(expected_files)
 
 
 def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> List[str]:
