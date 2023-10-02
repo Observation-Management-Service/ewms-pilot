@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.15.1 (2023-10-02)
+
+### Other
+
+* Permit Multiple Init Directories ([#53](https://github.com/Observation-Management-Service/ewms-pilot/issues/53)) ([`f8b857c`](https://github.com/Observation-Management-Service/ewms-pilot/commit/f8b857c84adb5f969e0a8dfcb5f8e948fc0afb90))
+
 ## v0.15.0 (2023-09-29)
 
 
