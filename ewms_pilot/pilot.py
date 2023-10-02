@@ -4,6 +4,7 @@
 import asyncio
 import shutil
 import sys
+import uuid
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
 
@@ -169,7 +170,7 @@ async def run_init_command(
     """Run the init command."""
     await housekeeper.basic_housekeeping()
 
-    staging_subdir = staging_dir / "init"
+    staging_subdir = staging_dir / f"init-{uuid.uuid4().hex}"
     staging_subdir.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
