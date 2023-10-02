@@ -8,7 +8,7 @@ certifi==2023.7.22
     # via
     #   pulsar-client
     #   requests
-charset-normalizer==3.2.0
+charset-normalizer==3.3.0
     # via requests
 htchirp==2.0
     # via ewms-pilot (setup.py)
