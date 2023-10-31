@@ -21,11 +21,12 @@ class HTChirpAttr(enum.Enum):
     HTChirpEWMSPilotStarted = enum.auto()
     HTChirpEWMSPilotStatus = enum.auto()
 
-    HTChirpEWMSPilotTotalTasks = enum.auto()
-    HTChirpEWMSPilotDone = enum.auto()
+    HTChirpEWMSPilotTasksTotal = enum.auto()
+    HTChirpEWMSPilotTasksFailed = enum.auto()
+    HTChirpEWMSPilotTasksSuccess = enum.auto()
 
     HTChirpEWMSPilotSucess = enum.auto()
-    HTChirpEWMSPilotError = enum.auto()
+    HTChirpEWMSPilotFailed = enum.auto()
 
 
 def set_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
@@ -69,7 +70,27 @@ def chirp_new_total(total: int) -> None:
 
     with htchirp.HTChirp() as c:
         LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTotalTasks, total)
+        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksTotal, total)
+
+
+def chirp_new_success_total(total: int) -> None:
+    """Send a Condor Chirp signalling a new total of succeeded task(s)."""
+    if not _is_chirp_enabled():
+        return
+
+    with htchirp.HTChirp() as c:
+        LOGGER.info(f"chirping as '{c.whoami()}'")
+        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotSucess, total)
+
+
+def chirp_new_failed_total(total: int) -> None:
+    """Send a Condor Chirp signalling a new total of failed task(s)."""
+    if not _is_chirp_enabled():
+        return
+
+    with htchirp.HTChirp() as c:
+        LOGGER.info(f"chirping as '{c.whoami()}'")
+        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotFailed, total)
 
 
 def _initial_chirp() -> None:
@@ -101,7 +122,7 @@ def error_chirp(exception: Exception) -> None:
         LOGGER.info(f"chirping as '{c.whoami()}'")
         set_job_attr(
             c,
-            HTChirpAttr.HTChirpEWMSPilotError,
+            HTChirpAttr.HTChirpEWMSPilotFailed,
             f"{type(exception).__name__}: {exception}",
         )
 

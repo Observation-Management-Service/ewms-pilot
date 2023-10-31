@@ -339,6 +339,10 @@ async def _consume_and_reply(
                 previous_task_errors=task_errors,
                 timeout=REFRESH_INTERVAL,
             )
+            htchirp_tools.chirp_new_failed_total(len(task_errors))
+            htchirp_tools.chirp_new_success_total(
+                total_msg_count - len(pending) - len(task_errors)
+            )
 
         LOGGER.info("Done listening for messages")
 
@@ -357,6 +361,10 @@ async def _consume_and_reply(
                 pending,
                 previous_task_errors=task_errors,
                 timeout=REFRESH_INTERVAL,
+            )
+            htchirp_tools.chirp_new_failed_total(len(task_errors))
+            htchirp_tools.chirp_new_success_total(
+                total_msg_count - len(pending) - len(task_errors)
             )
 
     # log/chirp
