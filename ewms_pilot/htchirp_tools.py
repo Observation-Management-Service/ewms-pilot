@@ -18,7 +18,7 @@ class HTChirpAttr(enum.Enum):
     """Organized list of attributes for chirping."""
 
     # pylint:disable=invalid-name
-    HTChirpEWMSPilotProcessing = enum.auto()
+    HTChirpEWMSPilotStarted = enum.auto()
     HTChirpEWMSPilotStatus = enum.auto()
 
     HTChirpEWMSPilotTotalTasks = enum.auto()
@@ -54,11 +54,12 @@ def chirp_status(status_message: str) -> None:
     if not _is_chirp_enabled():
         return
 
+    if not status_message:
+        return
+
     with htchirp.HTChirp() as c:
         LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotProcessing, True)
-        if status_message:
-            set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStatus, status_message)
+        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStatus, status_message)
 
 
 def chirp_new_total(total: int) -> None:
@@ -73,7 +74,12 @@ def chirp_new_total(total: int) -> None:
 
 def _initial_chirp() -> None:
     """Send a Condor Chirp signalling that processing has started."""
-    chirp_status("")
+    if not _is_chirp_enabled():
+        return
+
+    with htchirp.HTChirp() as c:
+        LOGGER.info(f"chirping as '{c.whoami()}'")
+        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStarted, True)
 
 
 def _final_chirp(error: bool = False) -> None:
