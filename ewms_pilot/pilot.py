@@ -306,6 +306,7 @@ async def _consume_and_reply(
 
                     if total_msg_count == 1:
                         htchirp_tools.chirp_status("Tasking")
+                    htchirp_tools.chirp_new_total(total_msg_count)
 
                     task = asyncio.create_task(
                         process_msg_task(
