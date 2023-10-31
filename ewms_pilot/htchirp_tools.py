@@ -1,17 +1,36 @@
 """Tools for communicating with HTChirp."""
 
 
+import enum
 from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
 
-from typing_extensions import ParamSpec
-
 import htchirp  # type: ignore[import]
+from typing_extensions import ParamSpec
 
 from .config import ENV, LOGGER
 
 T = TypeVar("T")
 P = ParamSpec("P")
+
+
+class HTChirpAttr(enum.Enum):
+    """Organized list of attributes for chirping."""
+
+    # pylint:disable=invalid-name
+    HTChirpEWMSPilotProcessing = enum.auto()
+    HTChirpEWMSPilotStatus = enum.auto()
+    HTChirpEWMSPilotSucess = enum.auto()
+    HTChirpEWMSPilotError = enum.auto()
+
+
+def set_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
+    """explain."""
+    if isinstance(value, str):
+        value = f'"{value}"'
+    else:
+        value = str(value)
+    ctx.set_job_attr(attr.name, value)
 
 
 def _is_chirp_enabled() -> bool:
@@ -33,10 +52,9 @@ def chirp_status(status_message: str) -> None:
 
     with htchirp.HTChirp() as c:
         LOGGER.info(f"chirping as '{c.whoami()}'")
-        c.set_job_attr("EWMSPilotProcessing", "True")
+        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotProcessing, True)
         if status_message:
-            c.set_job_attr("EWMSPilotStatus", status_message)
-            c.ulog(status_message)
+            set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStatus, status_message)
 
 
 def _initial_chirp() -> None:
@@ -51,7 +69,7 @@ def _final_chirp(error: bool = False) -> None:
 
     with htchirp.HTChirp() as c:
         LOGGER.info(f"chirping as '{c.whoami()}'")
-        c.set_job_attr("EWMSPilotSucess", str(not error))
+        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotSucess, not error)
 
 
 def error_chirp(exception: Exception) -> None:
@@ -61,9 +79,11 @@ def error_chirp(exception: Exception) -> None:
 
     with htchirp.HTChirp() as c:
         LOGGER.info(f"chirping as '{c.whoami()}'")
-        exception_str = f"{type(exception).__name__}: {exception}"
-        c.set_job_attr("EWMSPilotError", exception_str)
-        c.ulog(exception_str)
+        set_job_attr(
+            c,
+            HTChirpAttr.HTChirpEWMSPilotError,
+            f"{type(exception).__name__}: {exception}",
+        )
 
 
 def async_htchirping(
