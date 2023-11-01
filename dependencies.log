@@ -10,7 +10,7 @@ certifi==2023.7.22
 charset-normalizer==3.3.2
 htchirp==2.0
 idna==3.4
-oms-mqclient==2.4.8
+oms-mqclient==2.4.9
 requests==2.31.0
 typing_extensions==4.8.0
 urllib3==2.0.7
@@ -20,7 +20,7 @@ wipac-dev-tools==1.7.1
 ########################################################################
 ewms-pilot
 ├── htchirp [required: Any, installed: 2.0]
-└── oms-mqclient [required: Any, installed: 2.4.8]
+└── oms-mqclient [required: Any, installed: 2.4.9]
     └── wipac-dev-tools [required: Any, installed: 1.7.1]
         ├── requests [required: Any, installed: 2.31.0]
         │   ├── certifi [required: >=2017.4.17, installed: 2023.7.22]
