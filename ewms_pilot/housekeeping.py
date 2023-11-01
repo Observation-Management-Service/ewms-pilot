@@ -4,9 +4,10 @@
 import asyncio
 import time
 from functools import wraps
-from typing import Any, Callable, Coroutine, ParamSpec, TypeVar
+from typing import Any, Callable, Coroutine, TypeVar
 
 import mqclient as mq
+from typing_extensions import ParamSpec
 
 from . import htchirp_tools
 from .config import LOGGER
