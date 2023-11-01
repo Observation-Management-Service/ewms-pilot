@@ -6,7 +6,15 @@ import time
 
 import mqclient as mq
 
+from . import htchirp_tools
 from .config import LOGGER
+
+
+class Chirper:
+    """Chirp with state."""
+
+    def __init__(self) -> None:
+        pass
 
 
 class Housekeeping:
@@ -16,6 +24,7 @@ class Housekeeping:
 
     def __init__(self) -> None:
         self.prev_rabbitmq_heartbeat = 0.0
+        self.chirper = Chirper()
 
     async def basic_housekeeping(
         self,
@@ -48,3 +57,18 @@ class Housekeeping:
                         raw_q.connection.process_data_events()  # type: ignore[attr-defined, union-attr]
 
         # TODO -- add other housekeeping
+
+    async def message_recieved(self, total_msg_count: int) -> None:
+        """explain."""
+        await self.basic_housekeeping()
+
+        if total_msg_count == 1:
+            htchirp_tools.chirp_status("Tasking")
+        htchirp_tools.chirp_new_total(total_msg_count)
+
+    async def new_messages_done(self, n_success: int, n_failed: int) -> None:
+        """explain."""
+        await self.basic_housekeeping()
+
+        htchirp_tools.chirp_new_failed_total(n_failed)
+        htchirp_tools.chirp_new_success_total(n_success)

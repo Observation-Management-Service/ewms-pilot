@@ -21,6 +21,8 @@ class HTChirpAttr(enum.Enum):
     HTChirpEWMSPilotStarted = enum.auto()
     HTChirpEWMSPilotStatus = enum.auto()
 
+    HTChirpEWMSPilotRuntime = enum.auto()
+
     HTChirpEWMSPilotTasksTotal = enum.auto()
     HTChirpEWMSPilotTasksFailed = enum.auto()
     HTChirpEWMSPilotTasksSuccess = enum.auto()
