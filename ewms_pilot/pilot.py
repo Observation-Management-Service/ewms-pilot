@@ -168,7 +168,7 @@ async def run_init_command(
     keep_debug_dir: bool,
 ) -> None:
     """Run the init command."""
-    await housekeeper.basic_housekeeping()
+    await housekeeper.running_init_command()
 
     staging_subdir = staging_dir / f"init-{uuid.uuid4().hex}"
     staging_subdir.mkdir(parents=True, exist_ok=False)
@@ -202,6 +202,8 @@ async def run_init_command(
     # cleanup -- on success only
     if not keep_debug_dir:
         shutil.rmtree(staging_subdir)  # rm -r
+
+    await housekeeper.finished_init_command()
 
 
 def listener_loop_exit(
@@ -280,6 +282,7 @@ async def _consume_and_reply(
     async with out_queue.open_pub() as pub, in_queue.open_sub_manual_acking() as sub:
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
         message_iterator = sub.iter_messages()
+        await housekeeper.in_listener_loop()
         #
         # "listener loop" -- get messages and do tasks
         # intermittently halting to process housekeeping things
@@ -304,8 +307,7 @@ async def _consume_and_reply(
                     # after the first message, set the timeout to the "normal" amount
                     msg_waittime_timeout = timeout_incoming
 
-                    if total_msg_count == 1:
-                        htchirp_tools.chirp_status("Tasking")
+                    await housekeeper.message_recieved(total_msg_count)
 
                     task = asyncio.create_task(
                         process_msg_task(
@@ -338,8 +340,13 @@ async def _consume_and_reply(
                 previous_task_errors=task_errors,
                 timeout=REFRESH_INTERVAL,
             )
+            await housekeeper.new_messages_done(
+                total_msg_count - len(pending) - len(task_errors),
+                len(task_errors),
+            )
 
         LOGGER.info("Done listening for messages")
+        await housekeeper.exited_listener_loop()
 
         #
         # "clean up loop" -- wait for remaining tasks
@@ -347,6 +354,7 @@ async def _consume_and_reply(
         #
         if pending:
             LOGGER.debug("Waiting for remaining tasks to finish...")
+            await housekeeper.waiting_for_remaining_tasks()
         while pending:
             await housekeeper.queue_housekeeping(in_queue, sub, pub)
             # wait on finished task (or timeout)
@@ -357,11 +365,14 @@ async def _consume_and_reply(
                 previous_task_errors=task_errors,
                 timeout=REFRESH_INTERVAL,
             )
+            await housekeeper.new_messages_done(
+                total_msg_count - len(pending) - len(task_errors),
+                len(task_errors),
+            )
 
     # log/chirp
-    chirp_msg = f"Done Tasking: completed {total_msg_count} task(s)"
-    htchirp_tools.chirp_status(chirp_msg)
-    LOGGER.info(chirp_msg)
+    await housekeeper.done_tasking()
+    LOGGER.info(f"Done Tasking: completed {total_msg_count} task(s)")
     # check if anything actually processed
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
