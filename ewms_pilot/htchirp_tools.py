@@ -2,6 +2,7 @@
 
 
 import enum
+import time
 from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
 
@@ -21,8 +22,6 @@ class HTChirpAttr(enum.Enum):
     HTChirpEWMSPilotStarted = enum.auto()
     HTChirpEWMSPilotStatus = enum.auto()
 
-    HTChirpEWMSPilotRuntime = enum.auto()
-
     HTChirpEWMSPilotTasksTotal = enum.auto()
     HTChirpEWMSPilotTasksFailed = enum.auto()
     HTChirpEWMSPilotTasksSuccess = enum.auto()
@@ -38,6 +37,7 @@ def set_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
     else:
         value = str(value)
     ctx.set_job_attr(attr.name, value)
+    ctx.set_job_attr(f"{attr.name}_Timestamp", int(time.time()))
 
 
 def _is_chirp_enabled() -> bool:
