@@ -30,9 +30,23 @@ class Housekeeping:
         self,
     ) -> None:
         """Do basic housekeeping."""
-        await asyncio.sleep(0)  # hand over control to other async tasks
+        # hand over control to other async tasks -- needed if using pkg as an import
+        await asyncio.sleep(0)
 
-        # TODO -- add other housekeeping
+    async def running_init_command(self) -> None:
+        """explain."""
+        await self.basic_housekeeping()
+        htchirp_tools.chirp_status("Running init command")
+
+    async def finished_init_command(self) -> None:
+        """explain."""
+        await self.basic_housekeeping()
+        htchirp_tools.chirp_status("Finished init command")
+
+    async def in_listener_loop(self) -> None:
+        """explain."""
+        await self.basic_housekeeping()
+        htchirp_tools.chirp_status("Listening for incoming tasks")
 
     async def queue_housekeeping(
         self,
@@ -58,6 +72,11 @@ class Housekeeping:
 
         # TODO -- add other housekeeping
 
+    async def exited_listener_loop(self) -> None:
+        """explain."""
+        await self.basic_housekeeping()
+        htchirp_tools.chirp_status("Done listening for incoming tasks")
+
     async def message_recieved(self, total_msg_count: int) -> None:
         """explain."""
         await self.basic_housekeeping()
@@ -72,3 +91,13 @@ class Housekeeping:
 
         htchirp_tools.chirp_new_failed_total(n_failed)
         htchirp_tools.chirp_new_success_total(n_success)
+
+    async def waiting_for_remaining_tasks(self) -> None:
+        """explain."""
+        await self.basic_housekeeping()
+        htchirp_tools.chirp_status("Waiting for remaining tasks")
+
+    async def done_tasking(self) -> None:
+        """explain."""
+        await self.basic_housekeeping()
+        htchirp_tools.chirp_status("Done with all tasks")

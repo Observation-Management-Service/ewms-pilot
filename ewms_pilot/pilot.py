@@ -372,9 +372,7 @@ async def _consume_and_reply(
 
     # log/chirp
     await housekeeper.done_tasking()
-    chirp_msg = f"Done Tasking: completed {total_msg_count} task(s)"
-    htchirp_tools.chirp_status(chirp_msg)
-    LOGGER.info(chirp_msg)
+    LOGGER.info(f"Done Tasking: completed {total_msg_count} task(s)")
     # check if anything actually processed
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
