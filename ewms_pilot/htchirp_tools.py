@@ -37,7 +37,7 @@ def set_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
     else:
         value = str(value)
     ctx.set_job_attr(attr.name, value)
-    ctx.set_job_attr(f"{attr.name}_Timestamp", int(time.time()))
+    ctx.set_job_attr(f"{attr.name}_Timestamp", str(int(time.time())))
 
 
 def _is_chirp_enabled() -> bool:
