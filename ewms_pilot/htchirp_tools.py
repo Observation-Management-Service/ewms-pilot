@@ -26,8 +26,7 @@ class HTChirpAttr(enum.Enum):
     HTChirpEWMSPilotTasksFailed = enum.auto()
     HTChirpEWMSPilotTasksSuccess = enum.auto()
 
-    HTChirpEWMSPilotSucess = enum.auto()
-    HTChirpEWMSPilotFailed = enum.auto()
+    HTChirpEWMSPilotError = enum.auto()
 
 
 def set_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
@@ -82,7 +81,7 @@ def chirp_new_success_total(total: int) -> None:
 
     with htchirp.HTChirp() as c:
         LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotSucess, total)
+        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksSuccess, total)
 
 
 def chirp_new_failed_total(total: int) -> None:
@@ -92,7 +91,7 @@ def chirp_new_failed_total(total: int) -> None:
 
     with htchirp.HTChirp() as c:
         LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotFailed, total)
+        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksFailed, total)
 
 
 def _initial_chirp() -> None:
@@ -124,26 +123,24 @@ def error_chirp(exception: Exception) -> None:
         LOGGER.info(f"chirping as '{c.whoami()}'")
         set_job_attr(
             c,
-            HTChirpAttr.HTChirpEWMSPilotFailed,
+            HTChirpAttr.HTChirpEWMSPilotError,
             f"{type(exception).__name__}: {exception}",
         )
 
 
-def async_htchirping(
+def async_htchirp_error_wrapper(
     func: Callable[P, Coroutine[Any, Any, T]]
 ) -> Callable[P, Coroutine[Any, Any, T]]:
-    """Send Condor Chirps at start, end, and if needed, final error."""
+    """Send Condor Chirp of any raised non-excepted exception."""
 
     @wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         try:
             _initial_chirp()
             ret = await func(*args, **kwargs)
-            _final_chirp()
             return ret
         except Exception as e:
             error_chirp(e)
-            _final_chirp(error=True)
             raise
 
     return wrapper
