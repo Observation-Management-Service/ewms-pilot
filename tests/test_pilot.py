@@ -685,6 +685,11 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
+@pytest.mark.flaky(  # https://pypi.org/project/pytest-retry/
+    retries=3,
+    delay=1,
+    condition=config.ENV.EWMS_PILOT_BROKER_CLIENT == "rabbitmq",
+)
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
