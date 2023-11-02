@@ -556,10 +556,14 @@ async def test_420__timeout(
     # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
+    task_timeout = 2
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 TASK(S) FAILED: TimeoutError()")
+        RuntimeError,
+        match=re.escape(
+            f"1 TASK(S) FAILED: TimeoutError('subprocess timed out after {task_timeout}s')"
+        ),
     ):
         await asyncio.gather(
             populate_queue(
@@ -580,7 +584,7 @@ async def test_420__timeout(
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
-                task_timeout=2,
+                task_timeout=task_timeout,
             ),
         )
 
@@ -1093,8 +1097,12 @@ async def test_2001_init__timeout_error(
     queue_outgoing: str,
 ) -> None:
     """Test a init command with error."""
+    init_timeout = 2
 
-    with pytest.raises(asyncio.TimeoutError):
+    with pytest.raises(
+        TimeoutError,
+        match=re.escape(f"subprocess timed out after {init_timeout}s"),
+    ):
         await consume_and_reply(
             cmd="""python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
@@ -1107,7 +1115,7 @@ with open('initoutput', 'w') as f:
     print('hello world!', file=f)
 time.sleep(5)
 " """,
-            init_timeout=2,
+            init_timeout=init_timeout,
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
