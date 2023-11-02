@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.16.1 (2023-11-02)
+
+### Other
+
+* HTChirp Attr Updates ([#55](https://github.com/Observation-Management-Service/ewms-pilot/issues/55)) ([`998e4b4`](https://github.com/Observation-Management-Service/ewms-pilot/commit/998e4b40b7d285e7fa56a8cd8080478f4ac6ad9c))
+
 ## v0.16.0 (2023-11-01)
 
 
