@@ -77,10 +77,13 @@ async def run_subproc(
                 stderr=stderrf,
             )
             # await to finish
-            await asyncio.wait_for(  # raises TimeoutError
-                proc.wait(),
-                timeout=subproc_timeout,
-            )
+            try:
+                await asyncio.wait_for(  # raises TimeoutError
+                    proc.wait(),
+                    timeout=subproc_timeout,
+                )
+            except TimeoutError:
+                raise TimeoutError(f"subprocess timed out after {subproc_timeout}s")
 
         LOGGER.info(f"Subprocess return code: {proc.returncode}")
 
