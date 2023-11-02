@@ -556,10 +556,14 @@ async def test_420__timeout(
     # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
+    task_timeout = 2
 
     # run producer & consumer concurrently
     with pytest.raises(
-        RuntimeError, match=re.escape("1 TASK(S) FAILED: TimeoutError()")
+        RuntimeError,
+        match=re.escape(
+            f"1 TASK(S) FAILED: TimeoutError('subprocess timed out after {task_timeout}s')"
+        ),
     ):
         await asyncio.gather(
             populate_queue(
@@ -580,7 +584,7 @@ async def test_420__timeout(
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
-                task_timeout=2,
+                task_timeout=task_timeout,
             ),
         )
 
