@@ -26,18 +26,21 @@ class HTChirpAttr(enum.Enum):
     HTChirpEWMSPilotTasksFailed = enum.auto()
     HTChirpEWMSPilotTasksSuccess = enum.auto()
 
-    HTChirpEWMSPilotSucess = enum.auto()
-    HTChirpEWMSPilotFailed = enum.auto()
+    HTChirpEWMSPilotError = enum.auto()
 
 
-def set_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
-    """explain."""
-    if isinstance(value, str):
-        value = f'"{value}"'
-    else:
-        value = str(value)
-    ctx.set_job_attr(attr.name, value)
-    ctx.set_job_attr(f"{attr.name}_Timestamp", str(int(time.time())))
+def chirp_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
+    """Set the job attr along with an additional attr with a timestamp."""
+
+    def _set_job_attr(_name: str, _val: Any) -> None:
+        LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_name} = {_val}")
+        if isinstance(_val, str):
+            ctx.set_job_attr(_name, f'"{_val}"')
+        else:
+            ctx.set_job_attr(_name, str(_val))
+
+    _set_job_attr(attr.name, value)
+    _set_job_attr(f"{attr.name}_Timestamp", int(time.time()))
 
 
 def _is_chirp_enabled() -> bool:
@@ -61,8 +64,7 @@ def chirp_status(status_message: str) -> None:
         return
 
     with htchirp.HTChirp() as c:
-        LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStatus, status_message)
+        chirp_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStatus, status_message)
 
 
 def chirp_new_total(total: int) -> None:
@@ -71,8 +73,7 @@ def chirp_new_total(total: int) -> None:
         return
 
     with htchirp.HTChirp() as c:
-        LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksTotal, total)
+        chirp_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksTotal, total)
 
 
 def chirp_new_success_total(total: int) -> None:
@@ -81,8 +82,7 @@ def chirp_new_success_total(total: int) -> None:
         return
 
     with htchirp.HTChirp() as c:
-        LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotSucess, total)
+        chirp_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksSuccess, total)
 
 
 def chirp_new_failed_total(total: int) -> None:
@@ -91,28 +91,16 @@ def chirp_new_failed_total(total: int) -> None:
         return
 
     with htchirp.HTChirp() as c:
-        LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotFailed, total)
+        chirp_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksFailed, total)
 
 
-def _initial_chirp() -> None:
+def initial_chirp() -> None:
     """Send a Condor Chirp signalling that processing has started."""
     if not _is_chirp_enabled():
         return
 
     with htchirp.HTChirp() as c:
-        LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStarted, True)
-
-
-def _final_chirp(error: bool = False) -> None:
-    """Send a Condor Chirp signalling that processing has started."""
-    if not _is_chirp_enabled():
-        return
-
-    with htchirp.HTChirp() as c:
-        LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotSucess, not error)
+        chirp_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStarted, True)
 
 
 def error_chirp(exception: Exception) -> None:
@@ -121,29 +109,25 @@ def error_chirp(exception: Exception) -> None:
         return
 
     with htchirp.HTChirp() as c:
-        LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(
+        chirp_job_attr(
             c,
-            HTChirpAttr.HTChirpEWMSPilotFailed,
+            HTChirpAttr.HTChirpEWMSPilotError,
             f"{type(exception).__name__}: {exception}",
         )
 
 
-def async_htchirping(
+def async_htchirp_error_wrapper(
     func: Callable[P, Coroutine[Any, Any, T]]
 ) -> Callable[P, Coroutine[Any, Any, T]]:
-    """Send Condor Chirps at start, end, and if needed, final error."""
+    """Send Condor Chirp of any raised non-excepted exception."""
 
     @wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         try:
-            _initial_chirp()
             ret = await func(*args, **kwargs)
-            _final_chirp()
             return ret
         except Exception as e:
             error_chirp(e)
-            _final_chirp(error=True)
             raise
 
     return wrapper
