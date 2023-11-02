@@ -94,7 +94,7 @@ def chirp_new_failed_total(total: int) -> None:
         set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksFailed, total)
 
 
-def _initial_chirp() -> None:
+def initial_chirp() -> None:
     """Send a Condor Chirp signalling that processing has started."""
     if not _is_chirp_enabled():
         return
@@ -126,7 +126,6 @@ def async_htchirp_error_wrapper(
     @wraps(func)
     async def wrapper(*args: P.args, **kwargs: P.kwargs) -> T:
         try:
-            _initial_chirp()
             ret = await func(*args, **kwargs)
             return ret
         except Exception as e:

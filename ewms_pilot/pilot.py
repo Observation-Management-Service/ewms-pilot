@@ -79,6 +79,7 @@ async def consume_and_reply(
         `timeout_wait_for_first_message`: if None, use 'timeout_incoming'
     """
     LOGGER.info("Making MQClient queue connections...")
+    htchirp_tools.initial_chirp()
 
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
@@ -122,7 +123,7 @@ async def consume_and_reply(
         )
 
         # MQ tasks
-        task_errors = await _consume_and_reply(
+        await _consume_and_reply(
             cmd,
             in_queue,
             out_queue,
@@ -143,8 +144,6 @@ async def consume_and_reply(
             #
             housekeeper,
         )
-        if task_errors:
-            raise RuntimeError(all_task_errors_string(task_errors))
 
         # cleanup
         if not list(staging_dir.iterdir()):  # if empty
@@ -152,14 +151,16 @@ async def consume_and_reply(
 
     # ERROR -> Quarantine
     except Exception as e:
+        LOGGER.exception(e)
         if quarantine_time:
-            msg = f"{e} (Quarantining for {quarantine_time} seconds)"
+            msg = f"Quarantining for {quarantine_time} seconds"
             htchirp_tools.chirp_status(msg)
-            LOGGER.error(msg)
+            LOGGER.warning(msg)
             await asyncio.sleep(quarantine_time)
         raise
 
 
+@htchirp_tools.async_htchirp_error_wrapper
 async def run_init_command(
     init_cmd: str,
     init_timeout: Optional[int],
@@ -221,6 +222,7 @@ def listener_loop_exit(
     return False
 
 
+@htchirp_tools.async_htchirp_error_wrapper
 async def _consume_and_reply(
     cmd: str,
     #
@@ -245,10 +247,10 @@ async def _consume_and_reply(
     multitasking: int,
     #
     housekeeper: Housekeeping,
-) -> List[BaseException]:
+) -> None:
     """Consume and reply loop.
 
-    Return errors of failed tasks.
+    Raise an aggregated `RuntimeError` for errors of failed tasks.
     """
     await housekeeper.basic_housekeeping()
 
@@ -377,4 +379,6 @@ async def _consume_and_reply(
     if not total_msg_count:
         LOGGER.warning("No Messages Were Received.")
 
-    return task_errors
+    # done
+    if task_errors:
+        raise RuntimeError(all_task_errors_string(task_errors))
