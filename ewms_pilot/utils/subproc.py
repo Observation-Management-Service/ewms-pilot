@@ -82,7 +82,8 @@ async def run_subproc(
                     proc.wait(),
                     timeout=subproc_timeout,
                 )
-            except TimeoutError as e:
+            except (TimeoutError, asyncio.exceptions.TimeoutError) as e:
+                # < 3.11 -> asyncio.exceptions.TimeoutError
                 raise TimeoutError(
                     f"subprocess timed out after {subproc_timeout}s"
                 ) from e
