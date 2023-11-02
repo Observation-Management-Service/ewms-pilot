@@ -1097,8 +1097,12 @@ async def test_2001_init__timeout_error(
     queue_outgoing: str,
 ) -> None:
     """Test a init command with error."""
+    init_timeout = 2
 
-    with pytest.raises(asyncio.TimeoutError):
+    with pytest.raises(
+        TimeoutError,
+        match=re.escape(f"subprocess timed out after {init_timeout}s"),
+    ):
         await consume_and_reply(
             cmd="""python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
@@ -1111,7 +1115,7 @@ with open('initoutput', 'w') as f:
     print('hello world!', file=f)
 time.sleep(5)
 " """,
-            init_timeout=2,
+            init_timeout=init_timeout,
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
