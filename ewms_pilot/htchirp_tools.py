@@ -104,16 +104,6 @@ def _initial_chirp() -> None:
         set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStarted, True)
 
 
-def _final_chirp(error: bool = False) -> None:
-    """Send a Condor Chirp signalling that processing has started."""
-    if not _is_chirp_enabled():
-        return
-
-    with htchirp.HTChirp() as c:
-        LOGGER.info(f"chirping as '{c.whoami()}'")
-        set_job_attr(c, HTChirpAttr.HTChirpEWMSPilotSucess, not error)
-
-
 def error_chirp(exception: Exception) -> None:
     """Send a Condor Chirp signalling that processing ran into an error."""
     if not _is_chirp_enabled():

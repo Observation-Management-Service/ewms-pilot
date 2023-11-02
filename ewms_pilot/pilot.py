@@ -37,7 +37,7 @@ if sys.version_info[1] < 10:
 _EXCEPT_ERRORS = False
 
 
-@htchirp_tools.async_htchirping
+@htchirp_tools.async_htchirp_error_wrapper
 async def consume_and_reply(
     cmd: str,
     #
