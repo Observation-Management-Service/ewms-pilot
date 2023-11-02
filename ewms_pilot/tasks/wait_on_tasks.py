@@ -57,6 +57,7 @@ async def wait_on_tasks_with_ack(
         try:
             result = await task
         except Exception as e:
+            LOGGER.exception(e)
             # FAILED TASK!
             await handle_failed_task(task, e)
             continue

@@ -197,7 +197,8 @@ async def run_init_command(
     # see if the task failed
     try:
         await task
-    except:  # noqa: E722
+    except Exception as e:
+        LOGGER.exception(e)
         raise
 
     # cleanup -- on success only
