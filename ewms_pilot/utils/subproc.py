@@ -82,8 +82,10 @@ async def run_subproc(
                     proc.wait(),
                     timeout=subproc_timeout,
                 )
-            except TimeoutError:
-                raise TimeoutError(f"subprocess timed out after {subproc_timeout}s")
+            except TimeoutError as e:
+                raise TimeoutError(
+                    f"subprocess timed out after {subproc_timeout}s"
+                ) from e
 
         LOGGER.info(f"Subprocess return code: {proc.returncode}")
 
