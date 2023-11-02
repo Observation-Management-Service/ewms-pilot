@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v0.16.2 (2023-11-02)
+
+### Other
+
+* Bump Python Min to 3.9 & Update Tests ([#58](https://github.com/Observation-Management-Service/ewms-pilot/issues/58)) ([`806e8ed`](https://github.com/Observation-Management-Service/ewms-pilot/commit/806e8ed371ac1cb5cc5daffdae9c6a0fc6c912e9))
+* Add More Info for a Subprocess `TimeoutError` - 2 ([#57](https://github.com/Observation-Management-Service/ewms-pilot/issues/57)) ([`c9fc397`](https://github.com/Observation-Management-Service/ewms-pilot/commit/c9fc39706a973c1f42d53e2d1a694d5bbde490aa))
+* Add More Info for a Subprocess `TimeoutError` ([#56](https://github.com/Observation-Management-Service/ewms-pilot/issues/56)) ([`469ecf6`](https://github.com/Observation-Management-Service/ewms-pilot/commit/469ecf6c11c87b170ed4d7d36f91d9fabf03e1ba))
+
 ## v0.16.1 (2023-11-02)
 
 ### Other
