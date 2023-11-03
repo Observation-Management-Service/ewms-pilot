@@ -43,6 +43,7 @@ class EnvConfig:
     # meta
     EWMS_PILOT_INIT_TIMEOUT: Optional[int] = None
     EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None
+    EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: bool = True
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
     EWMS_PILOT_CONCURRENT_TASKS: int = 1
     EWMS_PILOT_PREFETCH: int = 1  # off by default -- prefetch is an optimization
@@ -66,6 +67,16 @@ class EnvConfig:
                 " defaulting to '1'."
             )
             object.__setattr__(self, "EWMS_PILOT_CONCURRENT_TASKS", 1)  # b/c frozen
+
+        if (
+            self.EWMS_PILOT_QUARANTINE_TIME
+            and not self.EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR
+        ):
+            raise RuntimeError(
+                f"Cannot define 'EWMS_PILOT_QUARANTINE_TIME' while "
+                f"'EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR' is "
+                f"'{self.EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR}'"
+            )
 
 
 ENV = from_environment_as_dataclass(EnvConfig)
