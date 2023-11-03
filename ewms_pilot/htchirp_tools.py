@@ -3,6 +3,7 @@
 
 import enum
 import time
+import traceback
 from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
 
@@ -27,6 +28,7 @@ class HTChirpAttr(enum.Enum):
     HTChirpEWMSPilotTasksSuccess = enum.auto()
 
     HTChirpEWMSPilotError = enum.auto()
+    HTChirpEWMSPilotErrorTraceback = enum.auto()
 
 
 def chirp_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
@@ -114,6 +116,11 @@ def error_chirp(exception: Exception) -> None:
             HTChirpAttr.HTChirpEWMSPilotError,
             f"{type(exception).__name__}: {exception}",
         )
+        chirp_job_attr(
+            c,
+            HTChirpAttr.HTChirpEWMSPilotErrorTraceback,
+            "".join(traceback.format_exception(exception)),
+        )
 
 
 def async_htchirp_error_wrapper(
@@ -127,7 +134,9 @@ def async_htchirp_error_wrapper(
             ret = await func(*args, **kwargs)
             return ret
         except Exception as e:
-            error_chirp(e)
+            error_chirp(
+                e,
+            )
             raise
 
     return wrapper
