@@ -2,6 +2,14 @@
 
 <!--next-version-placeholder-->
 
+## v0.16.3 (2023-11-03)
+
+### Other
+
+* CI Testing: Handle Occasional Pulsar Connection Issues - 2 ([`4bc6b40`](https://github.com/Observation-Management-Service/ewms-pilot/commit/4bc6b40a1c27eb35b7155cd6edd4f71982450e44))
+* CI Testing: Handle Occasional Pulsar Connection Issues ([#60](https://github.com/Observation-Management-Service/ewms-pilot/issues/60)) ([`60fa378`](https://github.com/Observation-Management-Service/ewms-pilot/commit/60fa378f079fe680ab382ae873d061d730a96445))
+* HTChirp: Add `HTChirpEWMSPilotErrorTraceback` ([#59](https://github.com/Observation-Management-Service/ewms-pilot/issues/59)) ([`5aaeae2`](https://github.com/Observation-Management-Service/ewms-pilot/commit/5aaeae202b63305e0e9bbf2f86bbf0c2e6ae4d04))
+
 ## v0.16.2 (2023-11-02)
 
 ### Other
