@@ -157,7 +157,14 @@ jobs:
           pip install --upgrade pip wheel setuptools pytest
           export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker_client }}
           pip install .[test,${{ matrix.broker_client }}]
-          python -m pytest -vvv tests -n 32
+
+          if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
+            # occasionally has connection errors
+            python -m pytest -vvv tests -n 32 --retries 2 --retry-delay 5
+          else
+            python -m pytest -vvv tests -n 32
+          fi
+
       - name: broker output
         if: always()
         run: |
