@@ -125,6 +125,7 @@ def error_chirp(exception: Exception) -> None:
                 "".join(traceback.format_exception(exception)),
             )
         else:  # backwards compatibility
+            # grabbed this from `logging.Logger._log()`
             if isinstance(exception, BaseException):
                 exc_info = (type(exception), exception, exception.__traceback__)
             else:
@@ -132,7 +133,7 @@ def error_chirp(exception: Exception) -> None:
             chirp_job_attr(
                 c,
                 HTChirpAttr.HTChirpEWMSPilotErrorTraceback,
-                "".join(traceback.format_exception(**exc_info)),
+                "".join(traceback.format_exception(*exc_info)),
             )
 
 
