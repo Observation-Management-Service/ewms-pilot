@@ -2,6 +2,7 @@
 
 
 import enum
+import sys
 import time
 import traceback
 from functools import wraps
@@ -116,11 +117,23 @@ def error_chirp(exception: Exception) -> None:
             HTChirpAttr.HTChirpEWMSPilotError,
             f"{type(exception).__name__}: {exception}",
         )
-        chirp_job_attr(
-            c,
-            HTChirpAttr.HTChirpEWMSPilotErrorTraceback,
-            "".join(traceback.format_exception(exception)),
-        )
+
+        if sys.version_info >= (3, 10):
+            chirp_job_attr(
+                c,
+                HTChirpAttr.HTChirpEWMSPilotErrorTraceback,
+                "".join(traceback.format_exception(exception)),
+            )
+        else:  # backwards compatibility
+            if isinstance(exception, BaseException):
+                exc_info = (type(exception), exception, exception.__traceback__)
+            else:
+                exc_info = sys.exc_info()
+            chirp_job_attr(
+                c,
+                HTChirpAttr.HTChirpEWMSPilotErrorTraceback,
+                "".join(traceback.format_exception(**exc_info)),
+            )
 
 
 def async_htchirp_error_wrapper(
@@ -134,9 +147,7 @@ def async_htchirp_error_wrapper(
             ret = await func(*args, **kwargs)
             return ret
         except Exception as e:
-            error_chirp(
-                e,
-            )
+            error_chirp(e)
             raise
 
     return wrapper
