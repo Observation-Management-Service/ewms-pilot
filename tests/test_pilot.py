@@ -16,6 +16,7 @@ from unittest.mock import patch
 import asyncstdlib as asl
 import mqclient as mq
 import pytest
+
 from ewms_pilot import FileType, PilotSubprocessError, config, consume_and_reply
 from ewms_pilot.config import ENV
 
