@@ -114,3 +114,4 @@ class Housekeeping:
     async def done_tasking(self) -> None:
         """Update status for chirp."""
         htchirp_tools.chirp_status("Done with all tasks")
+        await asyncio.sleep(5)  # at end: wait for chirp to be processed before teardown

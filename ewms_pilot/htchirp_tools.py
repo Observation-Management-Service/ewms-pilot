@@ -33,17 +33,24 @@ class HTChirpAttr(enum.Enum):
 
 
 def chirp_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
-    """Set the job attr along with an additional attr with a timestamp."""
+    """Set the job attr along with an additional attr with a timestamp.
+
+    If there's an exception chirping, log it and silently continue.
+    """
 
     def _set_job_attr(_name: str, _val: Any) -> None:
         LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_name} = {_val}")
-        if isinstance(_val, str):
-            ctx.set_job_attr(_name, f'"{_val}"')
-        else:
+        if isinstance(_val, (int, float, bool)):  # (non-str) built-in types
             ctx.set_job_attr(_name, str(_val))
+        else:
+            ctx.set_job_attr(_name, f'"{str(_val)}"')
 
-    _set_job_attr(attr.name, value)
-    _set_job_attr(f"{attr.name}_Timestamp", int(time.time()))
+    try:
+        _set_job_attr(attr.name, value)
+        _set_job_attr(f"{attr.name}_Timestamp", int(time.time()))
+    except Exception as e:
+        LOGGER.error("chirping failed")
+        LOGGER.exception(e)
 
 
 def _is_chirp_enabled() -> bool:
