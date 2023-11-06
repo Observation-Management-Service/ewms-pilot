@@ -2,6 +2,13 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.0 (2023-11-06)
+
+### Other
+
+* HTChirp: Improved Error Handling - 2 ([`de704ca`](https://github.com/Observation-Management-Service/ewms-pilot/commit/de704ca547ff9336a10602429a4606453d077c88))
+* HTChirp: improved error handling ([`363a38f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/363a38fe3197e403d632323650df58bced143969))
+
 ## v0.16.3 (2023-11-03)
 
 ### Other
