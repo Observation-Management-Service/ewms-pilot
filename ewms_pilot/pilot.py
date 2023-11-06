@@ -214,7 +214,7 @@ def listener_loop_exit(
     msg_waittime_timeout: float,
 ) -> bool:
     """Essentially a big IF condition -- but now with logging!"""
-    if task_errors:
+    if task_errors and ENV.EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR:
         LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
         return True
     if current_msg_waittime > msg_waittime_timeout:
