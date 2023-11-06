@@ -10,7 +10,7 @@ import mqclient as mq
 from typing_extensions import ParamSpec
 
 from . import htchirp_tools
-from .config import LOGGER
+from .config import ENV, LOGGER
 
 T = TypeVar("T")
 P = ParamSpec("P")
@@ -114,4 +114,6 @@ class Housekeeping:
     async def done_tasking(self) -> None:
         """Update status for chirp."""
         htchirp_tools.chirp_status("Done with all tasks")
-        await asyncio.sleep(5)  # at end: wait for chirp to be processed before teardown
+        if ENV.EWMS_PILOT_HTCHIRP:
+            # at end: wait for chirp to be processed before teardown
+            await asyncio.sleep(5)
