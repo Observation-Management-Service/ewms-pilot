@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.1 (2023-11-07)
+
+### Other
+
+* HTChirp: Fix Condor Type Usage ([`7723254`](https://github.com/Observation-Management-Service/ewms-pilot/commit/77232544387740a6425ea77524f78b14a8fa9a41))
+
 ## v0.17.0 (2023-11-06)
 
 ### Other
