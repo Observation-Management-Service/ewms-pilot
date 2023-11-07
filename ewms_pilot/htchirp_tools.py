@@ -5,6 +5,7 @@ import enum
 import sys
 import time
 import traceback
+import urllib
 from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
 
@@ -40,10 +41,18 @@ def chirp_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
 
     def _set_job_attr(_name: str, _val: Any) -> None:
         LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_name} = {_val}")
-        if isinstance(_val, (int, float, bool)):  # (non-str) built-in types
+        # condor has built-in types (see below for strs)
+        if isinstance(_val, (int, float)):
+            # https://htcondor.readthedocs.io/en/latest/classads/classad-mechanism.html#composing-literals
             ctx.set_job_attr(_name, str(_val))
         else:
-            ctx.set_job_attr(_name, f'"{str(_val)}"')
+            str_val = str(_val)
+            # condor can't handle multiple lines (nor spaces)
+            if "\n" in str_val:
+                ctx.set_job_attr(_name, f'"{urllib.parse.quote(str_val)}"')
+            # condor can't handle spaces
+            else:
+                ctx.set_job_attr(_name, f'"{str_val}"')
 
     try:
         _set_job_attr(attr.name, value)
