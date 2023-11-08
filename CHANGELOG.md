@@ -2,6 +2,18 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.2 (2023-11-08)
+
+### Other
+
+* HTChirp: Reduce Number of Connections - 2 ([`6c9a977`](https://github.com/Observation-Management-Service/ewms-pilot/commit/6c9a977b765fa602e360664405c1aa56943233c0))
+* <bot> update dependencies*.log files(s) ([`e7bbb66`](https://github.com/Observation-Management-Service/ewms-pilot/commit/e7bbb66fd0ee1ae936acacec7f224f5fe86dc7b9))
+* <bot> update setup.cfg ([`0c236dd`](https://github.com/Observation-Management-Service/ewms-pilot/commit/0c236ddc20185f2c133995a8e84e9076f900400b))
+* HTChirp: Update Dependencies - 2 ([`68955be`](https://github.com/Observation-Management-Service/ewms-pilot/commit/68955be294fd012a2fa99ad3414b959719b24e09))
+* HTChirp: Update Dependencies ([`1361d26`](https://github.com/Observation-Management-Service/ewms-pilot/commit/1361d26491974b3490313dd76bc63917bbdeb49f))
+* HTChirp: Reduce Number of Connections ([`4732e97`](https://github.com/Observation-Management-Service/ewms-pilot/commit/4732e9753b074e2bebfe595f2bc7c95c1e917d29))
+* HTChirp: Use `classad.quote()` ([`9a99e29`](https://github.com/Observation-Management-Service/ewms-pilot/commit/9a99e29fd4ccf20eae1b5bb396e2df5bc9cae3c5))
+
 ## v0.17.1 (2023-11-07)
 
 ### Other
