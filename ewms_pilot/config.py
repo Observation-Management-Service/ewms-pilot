@@ -39,6 +39,7 @@ class EnvConfig:
 
     # chirp
     EWMS_PILOT_HTCHIRP: bool = False
+    EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL: float = 60.0
 
     # meta
     EWMS_PILOT_INIT_TIMEOUT: Optional[int] = None

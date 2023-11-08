@@ -33,35 +33,14 @@ class HTChirpAttr(enum.Enum):
     HTChirpEWMSPilotErrorTraceback = enum.auto()
 
 
-def chirp_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
-    """Set the job attr along with an additional attr with a timestamp."""
-
-    def _set_job_attr(_name: str, _val: Any) -> None:
-        LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_name} = {_val}")
-        # condor has built-in types (see below for strs)
-        if isinstance(_val, (int, float)):
-            # https://htcondor.readthedocs.io/en/latest/classads/classad-mechanism.html#composing-literals
-            ctx.set_job_attr(_name, str(_val))
-        else:
-            ctx.set_job_attr(_name, classad.quote(str(_val)))
-
-    _set_job_attr(attr.name, value)
-    _set_job_attr(f"{attr.name}_Timestamp", int(time.time()))
-
-
-def _reset_conn_on_exception(func: Callable[P, None]) -> Callable[P, None]:
-    """Suppress any exception, then log it and reset the chirp connection."""
-
-    @wraps(func)
-    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
-        try:
-            func(*args, **kwargs)
-        except Exception as e:
-            LOGGER.error("chirping failed")
-            LOGGER.exception(e)
-            args[0]._reset_conn()  # type: ignore[attr-defined]
-
-    return wrapper
+def _set_job_attr(ctx: htchirp.HTChirp, _name: str, _val: Any) -> None:
+    LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_name} = {_val}")
+    # condor has built-in types (see below for strs)
+    if isinstance(_val, (int, float)):
+        # https://htcondor.readthedocs.io/en/latest/classads/classad-mechanism.html#composing-literals
+        ctx.set_job_attr(_name, str(_val))
+    else:
+        ctx.set_job_attr(_name, classad.quote(str(_val)))
 
 
 class Chirper:
@@ -69,6 +48,8 @@ class Chirper:
 
     def __init__(self) -> None:
         self._conn = None
+        self._backlog: dict[HTChirpAttr, Any] = {}
+        self._last_backlog_time = 0.0
 
     def _get_conn(self) -> htchirp.HTChirp:
         """Get chirp object, (re)establishing the connection if needed."""
@@ -98,7 +79,28 @@ class Chirper:
         finally:
             self._conn = None
 
-    @_reset_conn_on_exception
+    def _chirp_backlog(self, is_rate_limited: bool = False) -> None:
+        """Set all job attrs, each w/ an additional attr -- a timestamp."""
+        if is_rate_limited and (
+            time.time() - self._last_backlog_time
+            < ENV.EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL
+        ):
+            return
+
+        try:
+            conn = self._get_conn()
+            for bl_attr, bl_value in list(self._backlog.items()):
+                _set_job_attr(conn, bl_attr.name, bl_value)
+                # NOTE - the timestamp is when the chirp is sent, not when the attr was put into backlog
+                _set_job_attr(conn, f"{bl_attr.name}_Timestamp", int(time.time()))
+                self._backlog.pop(bl_attr)  # wait to remove until success
+        except Exception as e:
+            LOGGER.error("chirping failed")
+            LOGGER.exception(e)
+            self._reset_conn()
+        else:
+            self._last_backlog_time = time.time()  # wait to set until all success
+
     def chirp_status(self, status_message: str) -> None:
         """Invoke HTChirp, AKA send a status message to Condor."""
         if not ENV.EWMS_PILOT_HTCHIRP:
@@ -107,89 +109,70 @@ class Chirper:
         if not status_message:
             return
 
-        chirp_job_attr(
-            self._get_conn(),
-            HTChirpAttr.HTChirpEWMSPilotStatus,
-            status_message,
-        )
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotStatus] = status_message
+        self._chirp_backlog()
 
-    @_reset_conn_on_exception
     def chirp_new_total(self, total: int) -> None:
-        """Send a Condor Chirp signalling a new total of tasks handled."""
+        """Send a Condor Chirp signalling a new total of tasks handled.
+
+        This chirp is enqueued (rate limited) and sent every X seconds.
+        """
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
-        chirp_job_attr(
-            self._get_conn(),
-            HTChirpAttr.HTChirpEWMSPilotTasksTotal,
-            total,
-        )
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksTotal] = total
+        self._chirp_backlog(is_rate_limited=True)
 
-    @_reset_conn_on_exception
     def chirp_new_success_total(self, total: int) -> None:
-        """Send a Condor Chirp signalling a new total of succeeded task(s)."""
+        """Send a Condor Chirp signalling a new total of succeeded task(s).
+
+        This chirp is enqueued (rate limited) and sent every X seconds.
+        """
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
-        chirp_job_attr(
-            self._get_conn(),
-            HTChirpAttr.HTChirpEWMSPilotTasksSuccess,
-            total,
-        )
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksSuccess] = total
+        self._chirp_backlog(is_rate_limited=True)
 
-    @_reset_conn_on_exception
     def chirp_new_failed_total(self, total: int) -> None:
-        """Send a Condor Chirp signalling a new total of failed task(s)."""
+        """Send a Condor Chirp signalling a new total of failed task(s).
+
+        This chirp is enqueued (rate limited) and sent every X seconds.
+        """
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
-        chirp_job_attr(
-            self._get_conn(),
-            HTChirpAttr.HTChirpEWMSPilotTasksFailed,
-            total,
-        )
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksFailed] = total
+        self._chirp_backlog(is_rate_limited=True)
 
-    @_reset_conn_on_exception
     def initial_chirp(self) -> None:
         """Send a Condor Chirp signalling that processing has started."""
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
-        chirp_job_attr(
-            self._get_conn(),
-            HTChirpAttr.HTChirpEWMSPilotStarted,
-            True,
-        )
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotStarted] = True
+        self._chirp_backlog()
 
-    @_reset_conn_on_exception
     def error_chirp(self, exception: Exception) -> None:
         """Send a Condor Chirp signalling that processing ran into an error."""
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
-        chirp_job_attr(
-            self._get_conn(),
-            HTChirpAttr.HTChirpEWMSPilotError,
-            f"{type(exception).__name__}: {exception}",
-        )
+        str_error = f"{type(exception).__name__}: {exception}"
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotError] = str_error
 
         if sys.version_info >= (3, 10):
-            chirp_job_attr(
-                self._get_conn(),
-                HTChirpAttr.HTChirpEWMSPilotErrorTraceback,
-                "".join(traceback.format_exception(exception)),
-            )
+            str_traceback = "".join(traceback.format_exception(exception))
         else:  # backwards compatibility
             # grabbed this from `logging.Logger._log()`
             if isinstance(exception, BaseException):
                 exc_info = (type(exception), exception, exception.__traceback__)
             else:
                 exc_info = sys.exc_info()
-            chirp_job_attr(
-                self._get_conn(),
-                HTChirpAttr.HTChirpEWMSPilotErrorTraceback,
-                "".join(traceback.format_exception(*exc_info)),
-            )
+            str_traceback = "".join(traceback.format_exception(*exc_info))
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotErrorTraceback] = str_traceback
+
+        self._chirp_backlog()
 
 
 def async_htchirp_error_wrapper(
