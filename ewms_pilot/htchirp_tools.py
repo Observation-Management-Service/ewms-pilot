@@ -5,11 +5,11 @@ import enum
 import sys
 import time
 import traceback
-import urllib
 from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
 
 import htchirp  # type: ignore[import]
+from htcondor import classad  # type: ignore[import]
 from typing_extensions import ParamSpec
 
 from .config import ENV, LOGGER
@@ -46,13 +46,7 @@ def chirp_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
             # https://htcondor.readthedocs.io/en/latest/classads/classad-mechanism.html#composing-literals
             ctx.set_job_attr(_name, str(_val))
         else:
-            str_val = str(_val)
-            # condor can't handle multiple lines (nor spaces)
-            if "\n" in str_val:
-                ctx.set_job_attr(_name, f'"{urllib.parse.quote(str_val)}"')
-            # condor can't handle spaces
-            else:
-                ctx.set_job_attr(_name, f'"{str_val}"')
+            ctx.set_job_attr(_name, classad.quote(str(_val)))
 
     try:
         _set_job_attr(attr.name, value)
