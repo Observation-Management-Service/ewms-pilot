@@ -205,8 +205,7 @@ def async_htchirp_error_wrapper(
         except Exception as e:
             chirper = Chirper()
             chirper.error_chirp(e)
-            raise
-        finally:
             chirper.close()
+            raise
 
     return wrapper
