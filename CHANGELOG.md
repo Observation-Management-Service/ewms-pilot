@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.3 (2023-11-08)
+
+### Other
+
+* HTChirp: Rate Limit Very Frequently Updated Attrs ([#62](https://github.com/Observation-Management-Service/ewms-pilot/issues/62)) ([`d9501b5`](https://github.com/Observation-Management-Service/ewms-pilot/commit/d9501b5860cc30762ff3550f3c2cb8dadcdd3ae2))
+
 ## v0.17.2 (2023-11-08)
 
 ### Other
