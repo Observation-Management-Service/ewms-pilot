@@ -34,10 +34,7 @@ class HTChirpAttr(enum.Enum):
 
 
 def chirp_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
-    """Set the job attr along with an additional attr with a timestamp.
-
-    If there's an exception chirping, log it and silently continue.
-    """
+    """Set the job attr along with an additional attr with a timestamp."""
 
     def _set_job_attr(_name: str, _val: Any) -> None:
         LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_name} = {_val}")
@@ -48,89 +45,137 @@ def chirp_job_attr(ctx: htchirp.HTChirp, attr: HTChirpAttr, value: Any) -> None:
         else:
             ctx.set_job_attr(_name, classad.quote(str(_val)))
 
-    try:
-        _set_job_attr(attr.name, value)
-        _set_job_attr(f"{attr.name}_Timestamp", int(time.time()))
-    except Exception as e:
-        LOGGER.error("chirping failed")
-        LOGGER.exception(e)
+    _set_job_attr(attr.name, value)
+    _set_job_attr(f"{attr.name}_Timestamp", int(time.time()))
 
 
-def _is_chirp_enabled() -> bool:
-    if not ENV.EWMS_PILOT_HTCHIRP:
-        return False
+def _reset_conn_on_exception(func: Callable[P, None]) -> Callable[P, None]:
+    """Suppress any exception, then log it and reset the chirp connection."""
 
-    try:  # check if ".chirp.config" is present / provided a host and port
-        htchirp.HTChirp()
-    except ValueError:
-        return False
+    @wraps(func)
+    def wrapper(*args: P.args, **kwargs: P.kwargs) -> None:
+        try:
+            func(*args, **kwargs)
+        except Exception as e:
+            LOGGER.error("chirping failed")
+            LOGGER.exception(e)
+            args[0]._reset_conn()  # type: ignore[attr-defined]
 
-    return True
-
-
-def chirp_status(status_message: str) -> None:
-    """Invoke HTChirp, AKA send a status message to Condor."""
-    if not _is_chirp_enabled():
-        return
-
-    if not status_message:
-        return
-
-    with htchirp.HTChirp() as c:
-        chirp_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStatus, status_message)
+    return wrapper
 
 
-def chirp_new_total(total: int) -> None:
-    """Send a Condor Chirp signalling a new total of tasks handled."""
-    if not _is_chirp_enabled():
-        return
+class Chirper:
+    """Handle htchirp connection(s) and sending."""
 
-    with htchirp.HTChirp() as c:
-        chirp_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksTotal, total)
+    def __init__(self) -> None:
+        self._conn = None
 
+    def _get_conn(self) -> htchirp.HTChirp:
+        """Get chirp object, (re)establishing the connection if needed."""
+        if self._conn:
+            return self._conn
 
-def chirp_new_success_total(total: int) -> None:
-    """Send a Condor Chirp signalling a new total of succeeded task(s)."""
-    if not _is_chirp_enabled():
-        return
+        try:  # checks if ".chirp.config" is present / provided a host and port
+            self._conn = htchirp.HTChirp()
+            self._conn.__enter__()  # type: ignore[attr-defined]
+            return self._conn
+        except Exception as e:
+            LOGGER.error(f"HTChirp not available ({type(e).__name__}: {e})")
+            raise
 
-    with htchirp.HTChirp() as c:
-        chirp_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksSuccess, total)
+    def _reset_conn(self) -> None:
+        self.close()
 
+    def close(self, *args: Any) -> None:
+        """Close the connection with the Chirp server."""
+        if not self._conn:
+            return
+        try:
+            self._conn.__exit__(*args)
+        except Exception as e:
+            LOGGER.error("chirping exit failed")
+            LOGGER.exception(e)
+        finally:
+            self._conn = None
 
-def chirp_new_failed_total(total: int) -> None:
-    """Send a Condor Chirp signalling a new total of failed task(s)."""
-    if not _is_chirp_enabled():
-        return
+    @_reset_conn_on_exception
+    def chirp_status(self, status_message: str) -> None:
+        """Invoke HTChirp, AKA send a status message to Condor."""
+        if not ENV.EWMS_PILOT_HTCHIRP:
+            return
 
-    with htchirp.HTChirp() as c:
-        chirp_job_attr(c, HTChirpAttr.HTChirpEWMSPilotTasksFailed, total)
+        if not status_message:
+            return
 
-
-def initial_chirp() -> None:
-    """Send a Condor Chirp signalling that processing has started."""
-    if not _is_chirp_enabled():
-        return
-
-    with htchirp.HTChirp() as c:
-        chirp_job_attr(c, HTChirpAttr.HTChirpEWMSPilotStarted, True)
-
-
-def error_chirp(exception: Exception) -> None:
-    """Send a Condor Chirp signalling that processing ran into an error."""
-    if not _is_chirp_enabled():
-        return
-
-    with htchirp.HTChirp() as c:
         chirp_job_attr(
-            c,
+            self._get_conn(),
+            HTChirpAttr.HTChirpEWMSPilotStatus,
+            status_message,
+        )
+
+    @_reset_conn_on_exception
+    def chirp_new_total(self, total: int) -> None:
+        """Send a Condor Chirp signalling a new total of tasks handled."""
+        if not ENV.EWMS_PILOT_HTCHIRP:
+            return
+
+        chirp_job_attr(
+            self._get_conn(),
+            HTChirpAttr.HTChirpEWMSPilotTasksTotal,
+            total,
+        )
+
+    @_reset_conn_on_exception
+    def chirp_new_success_total(self, total: int) -> None:
+        """Send a Condor Chirp signalling a new total of succeeded task(s)."""
+        if not ENV.EWMS_PILOT_HTCHIRP:
+            return
+
+        chirp_job_attr(
+            self._get_conn(),
+            HTChirpAttr.HTChirpEWMSPilotTasksSuccess,
+            total,
+        )
+
+    @_reset_conn_on_exception
+    def chirp_new_failed_total(self, total: int) -> None:
+        """Send a Condor Chirp signalling a new total of failed task(s)."""
+        if not ENV.EWMS_PILOT_HTCHIRP:
+            return
+
+        chirp_job_attr(
+            self._get_conn(),
+            HTChirpAttr.HTChirpEWMSPilotTasksFailed,
+            total,
+        )
+
+    @_reset_conn_on_exception
+    def initial_chirp(self) -> None:
+        """Send a Condor Chirp signalling that processing has started."""
+        if not ENV.EWMS_PILOT_HTCHIRP:
+            return
+
+        chirp_job_attr(
+            self._get_conn(),
+            HTChirpAttr.HTChirpEWMSPilotStarted,
+            True,
+        )
+
+    @_reset_conn_on_exception
+    def error_chirp(self, exception: Exception) -> None:
+        """Send a Condor Chirp signalling that processing ran into an error."""
+        if not ENV.EWMS_PILOT_HTCHIRP:
+            return
+
+        chirp_job_attr(
+            self._get_conn(),
             HTChirpAttr.HTChirpEWMSPilotError,
             f"{type(exception).__name__}: {exception}",
         )
 
         if sys.version_info >= (3, 10):
             chirp_job_attr(
-                c,
+                self._get_conn(),
                 HTChirpAttr.HTChirpEWMSPilotErrorTraceback,
                 "".join(traceback.format_exception(exception)),
             )
@@ -141,7 +186,7 @@ def error_chirp(exception: Exception) -> None:
             else:
                 exc_info = sys.exc_info()
             chirp_job_attr(
-                c,
+                self._get_conn(),
                 HTChirpAttr.HTChirpEWMSPilotErrorTraceback,
                 "".join(traceback.format_exception(*exc_info)),
             )
@@ -158,7 +203,10 @@ def async_htchirp_error_wrapper(
             ret = await func(*args, **kwargs)
             return ret
         except Exception as e:
-            error_chirp(e)
+            chirper = Chirper()
+            chirper.error_chirp(e)
             raise
+        finally:
+            chirper.close()
 
     return wrapper

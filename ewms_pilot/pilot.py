@@ -79,7 +79,8 @@ async def consume_and_reply(
         `timeout_wait_for_first_message`: if None, use 'timeout_incoming'
     """
     LOGGER.info("Making MQClient queue connections...")
-    htchirp_tools.initial_chirp()
+    chirper = htchirp_tools.Chirper()
+    chirper.initial_chirp()
 
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
@@ -89,7 +90,7 @@ async def consume_and_reply(
     if not isinstance(ftype_from_subproc, FileType):
         ftype_from_subproc = FileType(ftype_from_subproc)
 
-    housekeeper = Housekeeping()
+    housekeeper = Housekeeping(chirper)
     staging_dir = debug_dir if debug_dir else Path("./tmp")
 
     try:
@@ -154,10 +155,12 @@ async def consume_and_reply(
         LOGGER.exception(e)
         if quarantine_time:
             msg = f"Quarantining for {quarantine_time} seconds"
-            htchirp_tools.chirp_status(msg)
+            chirper.chirp_status(msg)
             LOGGER.warning(msg)
             await asyncio.sleep(quarantine_time)
         raise
+    finally:
+        chirper.close()
 
 
 @htchirp_tools.async_htchirp_error_wrapper

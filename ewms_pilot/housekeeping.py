@@ -35,11 +35,12 @@ class Housekeeping:
 
     RABBITMQ_HEARTBEAT_INTERVAL = 5
 
-    def __init__(self) -> None:
+    def __init__(self, chirper: htchirp_tools.Chirper) -> None:
         self.prev_rabbitmq_heartbeat = 0.0
-        htchirp_tools.chirp_new_total(0)
-        htchirp_tools.chirp_new_failed_total(0)
-        htchirp_tools.chirp_new_success_total(0)
+        self.chirper = chirper
+        self.chirper.chirp_new_total(0)
+        self.chirper.chirp_new_failed_total(0)
+        self.chirper.chirp_new_success_total(0)
 
     async def basic_housekeeping(
         self,
@@ -51,17 +52,17 @@ class Housekeeping:
     @with_basic_housekeeping
     async def running_init_command(self) -> None:
         """Update status for chirp."""
-        htchirp_tools.chirp_status("Running init command")
+        self.chirper.chirp_status("Running init command")
 
     @with_basic_housekeeping
     async def finished_init_command(self) -> None:
         """Update status for chirp."""
-        htchirp_tools.chirp_status("Finished init command")
+        self.chirper.chirp_status("Finished init command")
 
     @with_basic_housekeeping
     async def in_listener_loop(self) -> None:
         """Update status for chirp."""
-        htchirp_tools.chirp_status("Listening for incoming tasks")
+        self.chirper.chirp_status("Listening for incoming tasks")
 
     @with_basic_housekeeping
     async def queue_housekeeping(
@@ -90,30 +91,30 @@ class Housekeeping:
     @with_basic_housekeeping
     async def exited_listener_loop(self) -> None:
         """Update status for chirp."""
-        htchirp_tools.chirp_status("Done listening for incoming tasks")
+        self.chirper.chirp_status("Done listening for incoming tasks")
 
     @with_basic_housekeeping
     async def message_recieved(self, total_msg_count: int) -> None:
         """Update message count for chirp."""
         if total_msg_count == 1:
-            htchirp_tools.chirp_status("Tasking")
-        htchirp_tools.chirp_new_total(total_msg_count)
+            self.chirper.chirp_status("Tasking")
+        self.chirper.chirp_new_total(total_msg_count)
 
     @with_basic_housekeeping
     async def new_messages_done(self, n_success: int, n_failed: int) -> None:
         """Update done counts for chirp."""
-        htchirp_tools.chirp_new_failed_total(n_failed)
-        htchirp_tools.chirp_new_success_total(n_success)
+        self.chirper.chirp_new_failed_total(n_failed)
+        self.chirper.chirp_new_success_total(n_success)
 
     @with_basic_housekeeping
     async def waiting_for_remaining_tasks(self) -> None:
         """Update status for chirp."""
-        htchirp_tools.chirp_status("Waiting for remaining tasks")
+        self.chirper.chirp_status("Waiting for remaining tasks")
 
     @with_basic_housekeeping
     async def done_tasking(self) -> None:
         """Update status for chirp."""
-        htchirp_tools.chirp_status("Done with all tasks")
+        self.chirper.chirp_status("Done with all tasks")
         if ENV.EWMS_PILOT_HTCHIRP:
             # at end: wait for chirp to be processed before teardown
             await asyncio.sleep(5)
