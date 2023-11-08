@@ -12,6 +12,7 @@ charset-normalizer==3.3.2
 ed25519==1.5
 execnet==2.0.2
 htchirp==2.0
+htcondor==23.1.0
 idna==3.4
 iniconfig==2.0.0
 nats-py==2.6.0
@@ -35,6 +36,7 @@ wipac-dev-tools==1.7.1
 asyncstdlib==3.10.9
 ewms-pilot
 ├── htchirp [required: Any, installed: 2.0]
+├── htcondor [required: Any, installed: 23.1.0]
 └── oms-mqclient [required: Any, installed: 2.4.9]
     └── wipac-dev-tools [required: Any, installed: 1.7.1]
         ├── requests [required: Any, installed: 2.31.0]
