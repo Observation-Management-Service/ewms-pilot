@@ -137,6 +137,10 @@ class Chirper:
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
+        if not total:
+            # total can only increase -> can be inferred total=0 if attr is absent
+            return
+
         self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksTotal] = total
         self._chirp_backlog(is_rate_limited=True)
 
@@ -148,6 +152,10 @@ class Chirper:
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
+        if not total:
+            # total can only increase -> can be inferred total=0 if attr is absent
+            return
+
         self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksSuccess] = total
         self._chirp_backlog(is_rate_limited=True)
 
@@ -157,6 +165,10 @@ class Chirper:
         This chirp is enqueued (rate limited) and sent every X seconds.
         """
         if not ENV.EWMS_PILOT_HTCHIRP:
+            return
+
+        if not total:
+            # total can only increase -> can be inferred total=0 if attr is absent
             return
 
         self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksFailed] = total

@@ -38,9 +38,6 @@ class Housekeeping:
     def __init__(self, chirper: htchirp_tools.Chirper) -> None:
         self.prev_rabbitmq_heartbeat = 0.0
         self.chirper = chirper
-        self.chirper.chirp_new_total(0)
-        self.chirper.chirp_new_failed_total(0)
-        self.chirper.chirp_new_success_total(0)
 
     async def basic_housekeeping(
         self,
