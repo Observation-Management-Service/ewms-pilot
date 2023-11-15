@@ -120,7 +120,6 @@ class Chirper:
             return
 
         self._backlog[HTChirpAttr.HTChirpEWMSPilotStatus] = status.name
-        # TODO - ts for specific status
         self._chirp_backlog()
 
     def chirp_new_total(self, total: int) -> None:
