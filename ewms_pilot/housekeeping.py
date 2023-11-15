@@ -48,17 +48,17 @@ class Housekeeping:
 
     @with_basic_housekeeping
     async def running_init_command(self) -> None:
-        """Update status for chirp."""
+        """Basic housekeeping + status chirping (if needed)."""
         self.chirper.chirp_status(htchirp_tools.PilotStatus.RunningInitCommand)
 
     @with_basic_housekeeping
     async def finished_init_command(self) -> None:
-        """Update status for chirp."""
+        """Basic housekeeping + status chirping (if needed)."""
         pass
 
     @with_basic_housekeeping
     async def in_listener_loop(self) -> None:
-        """Update status for chirp."""
+        """Basic housekeeping + status chirping (if needed)."""
         self.chirper.chirp_status(htchirp_tools.PilotStatus.AwaitingFirstMessage)
 
     @with_basic_housekeeping
@@ -87,7 +87,7 @@ class Housekeeping:
 
     @with_basic_housekeeping
     async def exited_listener_loop(self) -> None:
-        """Update status for chirp."""
+        """Basic housekeeping + status chirping (if needed)."""
         pass
 
     @with_basic_housekeeping
@@ -105,10 +105,10 @@ class Housekeeping:
 
     @with_basic_housekeeping
     async def pending_remaining_tasks(self) -> None:
-        """Update status for chirp."""
+        """Basic housekeeping + status chirping (if needed)."""
         self.chirper.chirp_status(htchirp_tools.PilotStatus.PendingRemainingTasks)
 
     @with_basic_housekeeping
     async def done_tasking(self) -> None:
-        """Update status for chirp."""
+        """Basic housekeeping + status chirping (if needed)."""
         pass
