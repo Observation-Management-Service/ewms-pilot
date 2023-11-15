@@ -57,7 +57,7 @@ class Housekeeping:
         pass
 
     @with_basic_housekeeping
-    async def in_listener_loop(self) -> None:
+    async def entered_listener_loop(self) -> None:
         """Basic housekeeping + status chirping (if needed)."""
         self.chirper.chirp_status(htchirp_tools.PilotStatus.AwaitingFirstMessage)
 

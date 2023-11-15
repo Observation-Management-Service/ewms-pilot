@@ -293,7 +293,7 @@ async def _consume_and_reply(
     async with out_queue.open_pub() as pub, in_queue.open_sub_manual_acking() as sub:
         LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
         message_iterator = sub.iter_messages()
-        await housekeeper.in_listener_loop()
+        await housekeeper.entered_listener_loop()
         #
         # "listener loop" -- get messages and do tasks
         # intermittently halting to process housekeeping things
