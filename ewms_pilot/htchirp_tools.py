@@ -36,6 +36,7 @@ class HTChirpAttr(enum.Enum):
     """Organized list of attributes for chirping."""
 
     # pylint:disable=invalid-name
+    HTChirpEWMSPilotStartedTimestamp = enum.auto()
     HTChirpEWMSPilotStatus = enum.auto()
 
     HTChirpEWMSPilotTasksTotal = enum.auto()
@@ -104,8 +105,9 @@ class Chirper:
             conn = self._get_conn()
             for bl_attr, bl_value in list(self._backlog.items()):
                 _set_job_attr(conn, bl_attr.name, bl_value)
-                # NOTE - the timestamp is when the chirp is sent, not when the attr was put into backlog
-                _set_job_attr(conn, f"{bl_attr.name}_Timestamp", int(time.time()))
+                if not bl_attr.name.endswith("Timestamp"):
+                    # NOTE - the timestamp is when the chirp is sent, not when the attr was put into backlog
+                    _set_job_attr(conn, f"{bl_attr.name}_Timestamp", int(time.time()))
                 self._backlog.pop(bl_attr)  # wait to remove until success
         except Exception as e:
             LOGGER.error("chirping failed")
@@ -118,6 +120,11 @@ class Chirper:
         """Invoke HTChirp, AKA send a status message to Condor."""
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
+
+        if status == PilotStatus.Started:
+            self._backlog[HTChirpAttr.HTChirpEWMSPilotStartedTimestamp] = int(
+                time.time()
+            )
 
         self._backlog[HTChirpAttr.HTChirpEWMSPilotStatus] = status.name
         self._chirp_backlog()
