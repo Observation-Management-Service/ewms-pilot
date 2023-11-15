@@ -18,11 +18,27 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
+class PilotStatus(enum.Enum):
+    """A simple listing of statuses, useful for reporting & aggregation."""
+
+    # pylint:disable=invalid-name
+    Started = enum.auto()
+    RunningInitCommand = enum.auto()
+    AwaitingFirstMessage = enum.auto()
+    Tasking = enum.auto()
+    PendingRemainingTasks = enum.auto()
+
+    FatalError = enum.auto()
+    Done = enum.auto()
+
+
 class HTChirpAttr(enum.Enum):
     """Organized list of attributes for chirping."""
 
     # pylint:disable=invalid-name
-    HTChirpEWMSPilotStarted = enum.auto()
+    HTChirpEWMSPilotLastUpdatedTimestamp = enum.auto()  # always overwritten
+
+    HTChirpEWMSPilotStartedTimestamp = enum.auto()
     HTChirpEWMSPilotStatus = enum.auto()
 
     HTChirpEWMSPilotTasksTotal = enum.auto()
@@ -80,19 +96,22 @@ class Chirper:
             self._conn = None
 
     def _chirp_backlog(self, is_rate_limited: bool = False) -> None:
-        """Set all job attrs, each w/ an additional attr -- a timestamp."""
+        """Set all job attrs plus an additional attr -- a timestamp."""
         if is_rate_limited and (
             time.time() - self._last_backlog_time
             < ENV.EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL
         ):
             return
 
+        now = int(time.time())
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotLastUpdatedTimestamp] = now
+        if len(self._backlog) == 1:
+            return  # nothing to chirp
+
         try:
             conn = self._get_conn()
             for bl_attr, bl_value in list(self._backlog.items()):
                 _set_job_attr(conn, bl_attr.name, bl_value)
-                # NOTE - the timestamp is when the chirp is sent, not when the attr was put into backlog
-                _set_job_attr(conn, f"{bl_attr.name}_Timestamp", int(time.time()))
                 self._backlog.pop(bl_attr)  # wait to remove until success
         except Exception as e:
             LOGGER.error("chirping failed")
@@ -101,15 +120,17 @@ class Chirper:
         else:
             self._last_backlog_time = time.time()  # wait to set until all success
 
-    def chirp_status(self, status_message: str) -> None:
+    def chirp_status(self, status: PilotStatus) -> None:
         """Invoke HTChirp, AKA send a status message to Condor."""
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
-        if not status_message:
-            return
+        if status == PilotStatus.Started:
+            self._backlog[HTChirpAttr.HTChirpEWMSPilotStartedTimestamp] = int(
+                time.time()
+            )
 
-        self._backlog[HTChirpAttr.HTChirpEWMSPilotStatus] = status_message
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotStatus] = status.name
         self._chirp_backlog()
 
     def chirp_new_total(self, total: int) -> None:
@@ -118,6 +139,10 @@ class Chirper:
         This chirp is enqueued (rate limited) and sent every X seconds.
         """
         if not ENV.EWMS_PILOT_HTCHIRP:
+            return
+
+        if not total:
+            # total can only increase -> can be inferred total=0 if attr is absent
             return
 
         self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksTotal] = total
@@ -131,6 +156,10 @@ class Chirper:
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
+        if not total:
+            # total can only increase -> can be inferred total=0 if attr is absent
+            return
+
         self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksSuccess] = total
         self._chirp_backlog(is_rate_limited=True)
 
@@ -142,16 +171,16 @@ class Chirper:
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
+        if not total:
+            # total can only increase -> can be inferred total=0 if attr is absent
+            return
+
         self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksFailed] = total
         self._chirp_backlog(is_rate_limited=True)
 
     def initial_chirp(self) -> None:
         """Send a Condor Chirp signalling that processing has started."""
-        if not ENV.EWMS_PILOT_HTCHIRP:
-            return
-
-        self._backlog[HTChirpAttr.HTChirpEWMSPilotStarted] = True
-        self._chirp_backlog()
+        self.chirp_status(PilotStatus.Started)
 
     def error_chirp(self, exception: Exception) -> None:
         """Send a Condor Chirp signalling that processing ran into an error."""
