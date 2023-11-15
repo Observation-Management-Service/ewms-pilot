@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.4 (2023-11-15)
+
+### Other
+
+* HTChirp: Use Enums for Status ([#63](https://github.com/Observation-Management-Service/ewms-pilot/issues/63)) ([`5c61231`](https://github.com/Observation-Management-Service/ewms-pilot/commit/5c61231aa10e4b4dcc62279b3ba669a025d38f86))
+
 ## v0.17.3 (2023-11-08)
 
 ### Other
