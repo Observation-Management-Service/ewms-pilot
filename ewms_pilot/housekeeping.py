@@ -10,7 +10,7 @@ import mqclient as mq
 from typing_extensions import ParamSpec
 
 from . import htchirp_tools
-from .config import ENV, LOGGER
+from .config import LOGGER
 
 T = TypeVar("T")
 P = ParamSpec("P")
