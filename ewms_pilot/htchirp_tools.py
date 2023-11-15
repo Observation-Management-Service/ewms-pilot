@@ -107,6 +107,7 @@ class Chirper:
                 _set_job_attr(conn, bl_attr.name, bl_value)
                 if not bl_attr.name.endswith("Timestamp"):
                     # NOTE - the timestamp is when the chirp is sent, not when the attr was put into backlog
+                    # NOTE - if overhead is too high, append ts to front of string
                     _set_job_attr(conn, f"{bl_attr.name}_Timestamp", int(time.time()))
                 self._backlog.pop(bl_attr)  # wait to remove until success
         except Exception as e:
