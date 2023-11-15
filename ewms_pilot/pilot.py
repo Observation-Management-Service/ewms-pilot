@@ -153,14 +153,19 @@ async def consume_and_reply(
     # ERROR -> Quarantine
     except Exception as e:
         LOGGER.exception(e)
+        chirper.chirp_status(htchirp_tools.PilotStatus.FatalError)
         if quarantine_time:
-            msg = f"Quarantining for {quarantine_time} seconds"
-            chirper.chirp_status(msg)
-            LOGGER.warning(msg)
+            LOGGER.warning(f"Quarantining for {quarantine_time} seconds")
             await asyncio.sleep(quarantine_time)
         raise
+    else:
+        chirper.chirp_status(htchirp_tools.PilotStatus.Done)
     finally:
         chirper.close()
+
+    if ENV.EWMS_PILOT_HTCHIRP:
+        # at end: wait for chirp to be processed before teardown
+        await asyncio.sleep(5)
 
 
 @htchirp_tools.async_htchirp_error_wrapper
@@ -360,7 +365,7 @@ async def _consume_and_reply(
         #
         if pending:
             LOGGER.debug("Waiting for remaining tasks to finish...")
-            await housekeeper.waiting_for_remaining_tasks()
+            await housekeeper.pending_remaining_tasks()
         while pending:
             await housekeeper.queue_housekeeping(in_queue, sub, pub)
             # wait on finished task (or timeout)

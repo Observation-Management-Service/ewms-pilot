@@ -18,11 +18,24 @@ T = TypeVar("T")
 P = ParamSpec("P")
 
 
+class PilotStatus(enum.Enum):
+    """A simple listing of statuses, useful for reporting & aggregation."""
+
+    # pylint:disable=invalid-name
+    Started = enum.auto()
+    RunningInitCommand = enum.auto()
+    AwaitingFirstMessage = enum.auto()
+    Tasking = enum.auto()
+    PendingRemainingTasks = enum.auto()
+
+    FatalError = enum.auto()
+    Done = enum.auto()
+
+
 class HTChirpAttr(enum.Enum):
     """Organized list of attributes for chirping."""
 
     # pylint:disable=invalid-name
-    HTChirpEWMSPilotStarted = enum.auto()
     HTChirpEWMSPilotStatus = enum.auto()
 
     HTChirpEWMSPilotTasksTotal = enum.auto()
@@ -101,15 +114,13 @@ class Chirper:
         else:
             self._last_backlog_time = time.time()  # wait to set until all success
 
-    def chirp_status(self, status_message: str) -> None:
+    def chirp_status(self, status: PilotStatus) -> None:
         """Invoke HTChirp, AKA send a status message to Condor."""
         if not ENV.EWMS_PILOT_HTCHIRP:
             return
 
-        if not status_message:
-            return
-
-        self._backlog[HTChirpAttr.HTChirpEWMSPilotStatus] = status_message
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotStatus] = status.name
+        # TODO - ts for specific status
         self._chirp_backlog()
 
     def chirp_new_total(self, total: int) -> None:
@@ -147,11 +158,7 @@ class Chirper:
 
     def initial_chirp(self) -> None:
         """Send a Condor Chirp signalling that processing has started."""
-        if not ENV.EWMS_PILOT_HTCHIRP:
-            return
-
-        self._backlog[HTChirpAttr.HTChirpEWMSPilotStarted] = True
-        self._chirp_backlog()
+        self.chirp_status(PilotStatus.Started)
 
     def error_chirp(self, exception: Exception) -> None:
         """Send a Condor Chirp signalling that processing ran into an error."""

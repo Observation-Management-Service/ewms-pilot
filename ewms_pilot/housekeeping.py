@@ -52,17 +52,17 @@ class Housekeeping:
     @with_basic_housekeeping
     async def running_init_command(self) -> None:
         """Update status for chirp."""
-        self.chirper.chirp_status("Running init command")
+        self.chirper.chirp_status(htchirp_tools.PilotStatus.RunningInitCommand)
 
     @with_basic_housekeeping
     async def finished_init_command(self) -> None:
         """Update status for chirp."""
-        self.chirper.chirp_status("Finished init command")
+        pass
 
     @with_basic_housekeeping
     async def in_listener_loop(self) -> None:
         """Update status for chirp."""
-        self.chirper.chirp_status("Listening for incoming tasks")
+        self.chirper.chirp_status(htchirp_tools.PilotStatus.AwaitingFirstMessage)
 
     @with_basic_housekeeping
     async def queue_housekeeping(
@@ -91,13 +91,13 @@ class Housekeeping:
     @with_basic_housekeeping
     async def exited_listener_loop(self) -> None:
         """Update status for chirp."""
-        self.chirper.chirp_status("Done listening for incoming tasks")
+        pass
 
     @with_basic_housekeeping
     async def message_recieved(self, total_msg_count: int) -> None:
         """Update message count for chirp."""
         if total_msg_count == 1:
-            self.chirper.chirp_status("Tasking")
+            self.chirper.chirp_status(htchirp_tools.PilotStatus.Tasking)
         self.chirper.chirp_new_total(total_msg_count)
 
     @with_basic_housekeeping
@@ -107,14 +107,11 @@ class Housekeeping:
         self.chirper.chirp_new_success_total(n_success)
 
     @with_basic_housekeeping
-    async def waiting_for_remaining_tasks(self) -> None:
+    async def pending_remaining_tasks(self) -> None:
         """Update status for chirp."""
-        self.chirper.chirp_status("Waiting for remaining tasks")
+        self.chirper.chirp_status(htchirp_tools.PilotStatus.PendingRemainingTasks)
 
     @with_basic_housekeeping
     async def done_tasking(self) -> None:
         """Update status for chirp."""
-        self.chirper.chirp_status("Done with all tasks")
-        if ENV.EWMS_PILOT_HTCHIRP:
-            # at end: wait for chirp to be processed before teardown
-            await asyncio.sleep(5)
+        pass
