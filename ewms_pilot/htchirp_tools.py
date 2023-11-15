@@ -36,6 +36,8 @@ class HTChirpAttr(enum.Enum):
     """Organized list of attributes for chirping."""
 
     # pylint:disable=invalid-name
+    HTChirpEWMSPilotLastUpdatedTimestamp = enum.auto()  # always overwritten
+
     HTChirpEWMSPilotStartedTimestamp = enum.auto()
     HTChirpEWMSPilotStatus = enum.auto()
 
@@ -94,21 +96,22 @@ class Chirper:
             self._conn = None
 
     def _chirp_backlog(self, is_rate_limited: bool = False) -> None:
-        """Set all job attrs, each w/ an additional attr -- a timestamp."""
+        """Set all job attrs plus an additional attr -- a timestamp."""
         if is_rate_limited and (
             time.time() - self._last_backlog_time
             < ENV.EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL
         ):
             return
 
+        now = int(time.time())
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotLastUpdatedTimestamp] = now
+        if len(self._backlog) == 1:
+            return  # nothing to chirp
+
         try:
             conn = self._get_conn()
             for bl_attr, bl_value in list(self._backlog.items()):
                 _set_job_attr(conn, bl_attr.name, bl_value)
-                if not bl_attr.name.endswith("Timestamp"):
-                    # NOTE - the timestamp is when the chirp is sent, not when the attr was put into backlog
-                    # NOTE - if overhead is too high, append ts to front of string
-                    _set_job_attr(conn, f"{bl_attr.name}_Timestamp", int(time.time()))
                 self._backlog.pop(bl_attr)  # wait to remove until success
         except Exception as e:
             LOGGER.error("chirping failed")
