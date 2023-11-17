@@ -95,8 +95,11 @@ class Chirper:
         finally:
             self._conn = None
 
-    def _chirp_backlog(self, is_rate_limited: bool = False) -> None:
+    def chirp_backlog(self, is_rate_limited: bool = False) -> None:
         """Set all job attrs plus an additional attr -- a timestamp."""
+        if not ENV.EWMS_PILOT_HTCHIRP:
+            return
+
         if is_rate_limited and (
             time.time() - self._last_backlog_time
             < ENV.EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL
@@ -122,61 +125,49 @@ class Chirper:
 
     def chirp_status(self, status: PilotStatus) -> None:
         """Invoke HTChirp, AKA send a status message to Condor."""
-        if not ENV.EWMS_PILOT_HTCHIRP:
-            return
-
         if status == PilotStatus.Started:
             self._backlog[HTChirpAttr.HTChirpEWMSPilotStartedTimestamp] = int(
                 time.time()
             )
 
         self._backlog[HTChirpAttr.HTChirpEWMSPilotStatus] = status.name
-        self._chirp_backlog()
+        self.chirp_backlog()
 
     def chirp_new_total(self, total: int) -> None:
         """Send a Condor Chirp signalling a new total of tasks handled.
 
         This chirp is enqueued (rate limited) and sent every X seconds.
         """
-        if not ENV.EWMS_PILOT_HTCHIRP:
-            return
-
         if not total:
             # total can only increase -> can be inferred total=0 if attr is absent
             return
 
         self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksTotal] = total
-        self._chirp_backlog(is_rate_limited=True)
+        self.chirp_backlog(is_rate_limited=True)
 
     def chirp_new_success_total(self, total: int) -> None:
         """Send a Condor Chirp signalling a new total of succeeded task(s).
 
         This chirp is enqueued (rate limited) and sent every X seconds.
         """
-        if not ENV.EWMS_PILOT_HTCHIRP:
-            return
-
         if not total:
             # total can only increase -> can be inferred total=0 if attr is absent
             return
 
         self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksSuccess] = total
-        self._chirp_backlog(is_rate_limited=True)
+        self.chirp_backlog(is_rate_limited=True)
 
     def chirp_new_failed_total(self, total: int) -> None:
         """Send a Condor Chirp signalling a new total of failed task(s).
 
         This chirp is enqueued (rate limited) and sent every X seconds.
         """
-        if not ENV.EWMS_PILOT_HTCHIRP:
-            return
-
         if not total:
             # total can only increase -> can be inferred total=0 if attr is absent
             return
 
         self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksFailed] = total
-        self._chirp_backlog(is_rate_limited=True)
+        self.chirp_backlog(is_rate_limited=True)
 
     def initial_chirp(self) -> None:
         """Send a Condor Chirp signalling that processing has started."""
@@ -184,9 +175,6 @@ class Chirper:
 
     def error_chirp(self, exception: Exception) -> None:
         """Send a Condor Chirp signalling that processing ran into an error."""
-        if not ENV.EWMS_PILOT_HTCHIRP:
-            return
-
         str_error = f"{type(exception).__name__}: {exception}"
         self._backlog[HTChirpAttr.HTChirpEWMSPilotError] = str_error
 
@@ -201,7 +189,7 @@ class Chirper:
             str_traceback = "".join(traceback.format_exception(*exc_info))
         self._backlog[HTChirpAttr.HTChirpEWMSPilotErrorTraceback] = str_traceback
 
-        self._chirp_backlog()
+        self.chirp_backlog()
 
 
 def async_htchirp_error_wrapper(
