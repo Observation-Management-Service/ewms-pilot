@@ -99,6 +99,9 @@ class Chirper:
     async def chirp_backlog_until_done(self, total_time: int, sleep: int) -> float:
         """Call `chirp_backlog()` until backlog is all sent successfully.
 
+        Total time may take a little bit longer than `total_time`,
+        depending on the `sleep` value and the runtime of `chirp_backlog()`.
+
         Return the amount of time leftover from `total_time`.
         """
         if not ENV.EWMS_PILOT_HTCHIRP:
@@ -125,11 +128,14 @@ class Chirper:
         ):
             return
 
+        # set HTChirpEWMSPilotLastUpdatedTimestamp & verify backlog
+        self._backlog.pop(HTChirpAttr.HTChirpEWMSPilotLastUpdatedTimestamp, None)
+        if not self._backlog:
+            return  # nothing to chirp
         now = int(time.time())
         self._backlog[HTChirpAttr.HTChirpEWMSPilotLastUpdatedTimestamp] = now
-        if len(self._backlog) == 1:
-            return  # nothing to chirp
 
+        # chirp it all
         try:
             conn = self._get_conn()
             for bl_attr, bl_value in list(self._backlog.items()):
