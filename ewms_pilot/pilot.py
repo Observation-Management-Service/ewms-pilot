@@ -4,6 +4,7 @@
 import asyncio
 import shutil
 import sys
+import time
 import uuid
 from pathlib import Path
 from typing import Any, Callable, List, Optional, Union
@@ -156,7 +157,10 @@ async def consume_and_reply(
         chirper.chirp_status(htchirp_tools.PilotStatus.FatalError)
         if quarantine_time:
             LOGGER.warning(f"Quarantining for {quarantine_time} seconds")
-            await asyncio.sleep(quarantine_time)
+            start = time.time()
+            while time.time() - start < quarantine_time:
+                await asyncio.sleep(5)
+                chirper.chirp_backlog()
         raise
     else:
         chirper.chirp_status(htchirp_tools.PilotStatus.Done)
