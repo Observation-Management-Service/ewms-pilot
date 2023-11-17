@@ -1,6 +1,7 @@
 """Tools for communicating with HTChirp."""
 
 
+import asyncio
 import enum
 import sys
 import time
@@ -94,6 +95,24 @@ class Chirper:
             LOGGER.exception(e)
         finally:
             self._conn = None
+
+    async def chirp_backlog_until_done(self, total_time: int, sleep: int) -> float:
+        """Call `chirp_backlog()` until backlog is all sent successfully.
+
+        Return the amount of time leftover from `total_time`.
+        """
+        if not ENV.EWMS_PILOT_HTCHIRP:
+            return total_time
+
+        start = time.time()
+
+        while True:
+            self.chirp_backlog()
+            if (not self._backlog) or (time.time() - start >= total_time):
+                break
+            await asyncio.sleep(sleep)
+
+        return max(0.0, total_time - (time.time() - start))  # remainder
 
     def chirp_backlog(self, is_rate_limited: bool = False) -> None:
         """Set all job attrs plus an additional attr -- a timestamp."""

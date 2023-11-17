@@ -157,19 +157,15 @@ async def consume_and_reply(
         chirper.chirp_status(htchirp_tools.PilotStatus.FatalError)
         if quarantine_time:
             LOGGER.warning(f"Quarantining for {quarantine_time} seconds")
-            start = time.time()
-            while time.time() - start < quarantine_time:
-                await asyncio.sleep(5)
-                chirper.chirp_backlog()
+            # do chirps ASAP during quarantine
+            time_left = await chirper.chirp_backlog_until_done(quarantine_time, 5)
+            await asyncio.sleep(time_left)
         raise
     else:
         chirper.chirp_status(htchirp_tools.PilotStatus.Done)
     finally:
+        await chirper.chirp_backlog_until_done(10, 2)  # always clear the backlog
         chirper.close()
-
-    if ENV.EWMS_PILOT_HTCHIRP:
-        # at end: wait for chirp to be processed before teardown
-        await asyncio.sleep(5)
 
 
 @htchirp_tools.async_htchirp_error_wrapper
