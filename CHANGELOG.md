@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.5 (2023-11-17)
+
+### Other
+
+* HTChirp: Send Backlog at End ([#64](https://github.com/Observation-Management-Service/ewms-pilot/issues/64)) ([`f6c860d`](https://github.com/Observation-Management-Service/ewms-pilot/commit/f6c860d8d5744a9ac6a8b846057294488379564e))
+
 ## v0.17.4 (2023-11-15)
 
 ### Other
