@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.6 (2023-11-30)
+
+### Other
+
+* Refactor to `EWMS_PILOT_CL_LOG` and `EWMS_PILOT_CL_LOG_THIRD_PARTY` ([#65](https://github.com/Observation-Management-Service/ewms-pilot/issues/65)) ([`633474f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/633474f80ac77e5df8aeb2a5984084ebb3540150))
+
 ## v0.17.5 (2023-11-17)
 
 ### Other
