@@ -33,8 +33,8 @@ class EnvConfig:
     EWMS_PILOT_BROKER_AUTH_TOKEN: str = ""
 
     # logging
-    EWMS_PILOT_LOG: str = "INFO"
-    EWMS_PILOT_LOG_THIRD_PARTY: str = "WARNING"
+    EWMS_PILOT_CL_LOG: str = "INFO"  # only used when running via command line
+    EWMS_PILOT_CL_LOG_THIRD_PARTY: str = "WARNING"  # ^^^
     EWMS_PILOT_DUMP_TASK_OUTPUT: bool = False
 
     # chirp

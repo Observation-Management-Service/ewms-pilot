@@ -126,12 +126,12 @@ def main() -> None:
     parser.add_argument(
         "-l",
         "--log",
-        default=ENV.EWMS_PILOT_LOG,
+        default=ENV.EWMS_PILOT_CL_LOG,
         help="the output logging level (for first-party loggers)",
     )
     parser.add_argument(
         "--log-third-party",
-        default=ENV.EWMS_PILOT_LOG_THIRD_PARTY,
+        default=ENV.EWMS_PILOT_CL_LOG_THIRD_PARTY,
         help="the output logging level for third-party loggers",
     )
     parser.add_argument(
