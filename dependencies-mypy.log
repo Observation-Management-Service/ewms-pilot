@@ -17,7 +17,7 @@ idna==3.6
 iniconfig==2.0.0
 nats-py==2.6.0
 nkeys==0.1.0
-oms-mqclient==2.4.9
+oms-mqclient==2.4.10
 packaging==23.2
 pika==1.3.2
 pluggy==1.3.0
@@ -37,7 +37,7 @@ asyncstdlib==3.10.9
 ewms-pilot
 ├── htchirp [required: Any, installed: 3.0]
 ├── htcondor [required: Any, installed: 23.2.0]
-└── oms-mqclient [required: Any, installed: 2.4.9]
+└── oms-mqclient [required: Any, installed: 2.4.10]
     └── wipac-dev-tools [required: Any, installed: 1.8.2]
         ├── requests [required: Any, installed: 2.31.0]
         │   ├── certifi [required: >=2017.4.17, installed: 2023.11.17]
