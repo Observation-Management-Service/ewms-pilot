@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.17.7 (2023-12-01)
+
+### Other
+
+* Bump `mqclient` ([#66](https://github.com/Observation-Management-Service/ewms-pilot/issues/66)) ([`9211545`](https://github.com/Observation-Management-Service/ewms-pilot/commit/9211545aac88aae95306c454fef449706d6b9dde))
+
 ## v0.17.6 (2023-11-30)
 
 ### Other
