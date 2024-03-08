@@ -9,8 +9,8 @@ import traceback
 from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
 
-import htchirp  # type: ignore[import]
-from htcondor import classad  # type: ignore[import]
+import htchirp  # type: ignore[import-untyped]
+from htcondor import classad  # type: ignore[import-untyped]
 from typing_extensions import ParamSpec
 
 from .config import ENV, LOGGER
@@ -50,14 +50,17 @@ class HTChirpAttr(enum.Enum):
     HTChirpEWMSPilotErrorTraceback = enum.auto()
 
 
-def _set_job_attr(ctx: htchirp.HTChirp, _name: str, _val: Any) -> None:
-    LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_name} = {_val}")
+def _chirp(ctx: htchirp.HTChirp, _attr: HTChirpAttr, _val: Any) -> None:
+    LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_attr.value} = {_val}")
     # condor has built-in types (see below for strs)
-    if isinstance(_val, (int, float)):
-        # https://htcondor.readthedocs.io/en/latest/classads/classad-mechanism.html#composing-literals
-        ctx.set_job_attr(_name, str(_val))
+    if ENV.EWMS_PILOT_HTCHIRP_VIA_JOB_EVENT_LOG:
+        ctx.ulog(f"{_attr.value}: {_val}")
     else:
-        ctx.set_job_attr(_name, classad.quote(str(_val)))
+        if isinstance(_val, (int, float)):
+            # https://htcondor.readthedocs.io/en/latest/classads/classad-mechanism.html#composing-literals
+            ctx.set_job_attr(_attr.value, str(_val))
+        else:
+            ctx.set_job_attr(_attr.value, classad.quote(str(_val)))
 
 
 class Chirper:
@@ -139,7 +142,7 @@ class Chirper:
         try:
             conn = self._get_conn()
             for bl_attr, bl_value in list(self._backlog.items()):
-                _set_job_attr(conn, bl_attr.name, bl_value)
+                _chirp(conn, bl_attr, bl_value)
                 self._backlog.pop(bl_attr)  # wait to remove until success
         except Exception as e:
             LOGGER.error("chirping failed")
