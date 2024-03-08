@@ -6,7 +6,7 @@
 import dataclasses as dc
 import logging
 import os
-from typing import Optional
+from typing import Literal, Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -40,7 +40,7 @@ class EnvConfig:
 
     # chirp
     EWMS_PILOT_HTCHIRP: bool = False
-    EWMS_PILOT_HTCHIRP_VIA_JOB_EVENT_LOG: bool = False
+    EWMS_PILOT_HTCHIRP_DEST: Literal["JOB_EVENT_LOG", "JOB_ATTR"] = "JOB_ATTR"
     EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL: float = 60.0
 
     # meta
