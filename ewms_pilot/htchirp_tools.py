@@ -57,9 +57,9 @@ def _chirp(ctx: htchirp.HTChirp, _attr: HTChirpEWMSPilotAttr, _val: Any) -> None
     """Chirp to either a job attr (default) or the job event log."""
     LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_attr.name} = {_val}")
 
-    if ENV.EWMS_PILOT_HTCHIRP_VIA_JOB_EVENT_LOG:
+    if ENV.EWMS_PILOT_HTCHIRP_DEST == "JOB_EVENT_LOG":
         ctx.ulog(f"{HTCHIRP_ATTR_PREFIX}{_attr.name}: {_val}")
-    else:
+    elif ENV.EWMS_PILOT_HTCHIRP_DEST == "JOB_ATTR":
         # condor has built-in types (see below for strs)
         if isinstance(_val, (int, float)):
             # https://htcondor.readthedocs.io/en/latest/classads/classad-mechanism.html#composing-literals
@@ -68,6 +68,10 @@ def _chirp(ctx: htchirp.HTChirp, _attr: HTChirpEWMSPilotAttr, _val: Any) -> None
             ctx.set_job_attr(
                 f"{HTCHIRP_ATTR_PREFIX}{_attr.name}", classad.quote(str(_val))
             )
+    else:
+        raise ValueError(
+            f"Invalid EWMS_PILOT_HTCHIRP_DEST: {ENV.EWMS_PILOT_HTCHIRP_DEST}"
+        )
 
 
 class Chirper:
