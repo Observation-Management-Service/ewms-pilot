@@ -6,7 +6,7 @@
 import dataclasses as dc
 import logging
 import os
-from typing import Literal, Optional
+from typing import Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
 
