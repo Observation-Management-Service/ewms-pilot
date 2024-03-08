@@ -51,16 +51,18 @@ class HTChirpEWMSPilotAttr(enum.Enum):
 
 
 def _chirp(ctx: htchirp.HTChirp, _attr: HTChirpEWMSPilotAttr, _val: Any) -> None:
-    LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_attr.value} = {_val}")
-    # condor has built-in types (see below for strs)
+    """Chirp to either a job attr (default) or the job event log."""
+    LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_attr.name} = {_val}")
+
     if ENV.EWMS_PILOT_HTCHIRP_VIA_JOB_EVENT_LOG:
-        ctx.ulog(f"HTChirpEWMSPilot{_attr.value}: {_val}")
+        ctx.ulog(f"HTChirpEWMSPilot{_attr.name}: {_val}")
     else:
+        # condor has built-in types (see below for strs)
         if isinstance(_val, (int, float)):
             # https://htcondor.readthedocs.io/en/latest/classads/classad-mechanism.html#composing-literals
-            ctx.set_job_attr(f"HTChirpEWMSPilot{_attr.value}", str(_val))
+            ctx.set_job_attr(f"HTChirpEWMSPilot{_attr.name}", str(_val))
         else:
-            ctx.set_job_attr(f"HTChirpEWMSPilot{_attr.value}", classad.quote(str(_val)))
+            ctx.set_job_attr(f"HTChirpEWMSPilot{_attr.name}", classad.quote(str(_val)))
 
 
 class Chirper:
