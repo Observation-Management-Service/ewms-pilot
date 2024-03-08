@@ -40,7 +40,7 @@ class EnvConfig:
 
     # chirp
     EWMS_PILOT_HTCHIRP: bool = False
-    EWMS_PILOT_HTCHIRP_DEST: Literal["JOB_EVENT_LOG", "JOB_ATTR"] = "JOB_ATTR"
+    EWMS_PILOT_HTCHIRP_DEST: str = "JOB_ATTR"  # ["JOB_EVENT_LOG", "JOB_ATTR"]
     EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL: float = 60.0
 
     # meta
@@ -79,6 +79,11 @@ class EnvConfig:
                 f"Cannot define 'EWMS_PILOT_QUARANTINE_TIME' while "
                 f"'EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR' is "
                 f"'{self.EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR}'"
+            )
+
+        if self.EWMS_PILOT_HTCHIRP_DEST not in ["JOB_EVENT_LOG", "JOB_ATTR"]:
+            raise RuntimeError(
+                f"Invalid EWMS_PILOT_HTCHIRP_DEST: {self.EWMS_PILOT_HTCHIRP_DEST}"
             )
 
 
