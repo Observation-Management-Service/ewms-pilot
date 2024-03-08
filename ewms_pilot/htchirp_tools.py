@@ -33,6 +33,9 @@ class PilotStatus(enum.Enum):
     Done = enum.auto()
 
 
+HTCHIRP_ATTR_PREFIX = "HTChirpEWMSPilot"
+
+
 class HTChirpEWMSPilotAttr(enum.Enum):
     """Organized list of attributes for chirping."""
 
@@ -55,14 +58,16 @@ def _chirp(ctx: htchirp.HTChirp, _attr: HTChirpEWMSPilotAttr, _val: Any) -> None
     LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_attr.name} = {_val}")
 
     if ENV.EWMS_PILOT_HTCHIRP_VIA_JOB_EVENT_LOG:
-        ctx.ulog(f"HTChirpEWMSPilot{_attr.name}: {_val}")
+        ctx.ulog(f"{HTCHIRP_ATTR_PREFIX}{_attr.name}: {_val}")
     else:
         # condor has built-in types (see below for strs)
         if isinstance(_val, (int, float)):
             # https://htcondor.readthedocs.io/en/latest/classads/classad-mechanism.html#composing-literals
-            ctx.set_job_attr(f"HTChirpEWMSPilot{_attr.name}", str(_val))
+            ctx.set_job_attr(f"{HTCHIRP_ATTR_PREFIX}{_attr.name}", str(_val))
         else:
-            ctx.set_job_attr(f"HTChirpEWMSPilot{_attr.name}", classad.quote(str(_val)))
+            ctx.set_job_attr(
+                f"{HTCHIRP_ATTR_PREFIX}{_attr.name}", classad.quote(str(_val))
+            )
 
 
 class Chirper:
