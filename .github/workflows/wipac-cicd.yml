@@ -140,10 +140,13 @@ jobs:
           echo "--------------------------------------------------------------"
           echo "running examples..."
 
-          pip install --upgrade pip wheel setuptools pytest
           export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker_client }}
-          pip install .[test,${{ matrix.broker_client }}]
-          python examples/example.py
+
+          docker build --tag local/prealpha ./Dockerfile_${{ matrix.broker_client }}_prealpha
+          docker run --network="host" --rm -i \
+              $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+              local/prealpha
+
       - name: broker output
         if: always()
         run: |
