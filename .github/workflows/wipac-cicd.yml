@@ -141,7 +141,8 @@ jobs:
           echo "running examples..."
 
           export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker_client }}
-
+          ls
+          ls ${{ github.workspace }}
           docker build --tag local/prealpha ${{ github.workspace }}/Dockerfile_${{ matrix.broker_client }}_prealpha
           docker run --network="host" --rm -i \
               $(env | grep '^EWMS_' | awk '$0="--env "$0') \
