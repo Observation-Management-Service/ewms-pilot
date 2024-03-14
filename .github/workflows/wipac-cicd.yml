@@ -159,15 +159,17 @@ jobs:
 
           out=$(python -c '
           import mqclient as mq
-          import os
+          import os, asyncio
           queue = mq.Queue(
               os.environ["EWMS_PILOT_BROKER_CLIENT"],
               address=os.environ["EWMS_PILOT_BROKER_ADDRESS"],
               name="b345",
           )
-          async with queue.open_sub() as sub:
-              async for msg in sub:
-                  print(msg)
+          async def go():
+            async with queue.open_sub() as sub:
+                async for msg in sub:
+                    print(msg)
+          asyncio.run(go())
           ')
           echo "$out"
 
