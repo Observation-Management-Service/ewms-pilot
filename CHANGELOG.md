@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.18.1 (2024-03-14)
+
+### Other
+
+* Use `EWMS_PILOT_HTCHIRP_DEST` ([#69](https://github.com/Observation-Management-Service/ewms-pilot/issues/69)) ([`4394c45`](https://github.com/Observation-Management-Service/ewms-pilot/commit/4394c45cdc35328d1f870efdb47808ad50ee708d))
+
 ## v0.18.0 (2024-03-08)
 
 
