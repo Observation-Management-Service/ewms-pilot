@@ -16,6 +16,11 @@ env:
 
 jobs:
 
+  #############################################################################
+  # PACKAGING & LINTERS
+  #############################################################################
+
+
   py-versions:
     runs-on: ubuntu-latest
     outputs:
@@ -65,6 +70,38 @@ jobs:
         uses: WIPACrepo/wipac-dev-py-setup-action@v2.8
         with:
           base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Management Service"
+
+
+  ############################################################################
+  # TESTS & EXAMPLES
+  #############################################################################
+
+
+  test-build-singularity:
+    runs-on: ubuntu-latest
+    env:
+      DOCKER_IMAGE_NAME: pilot-test/example
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          cache-to: type=gha,mode=min
+          file: Dockerfile_example
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:local
+      - uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.2.5
+      - name: build singularity image
+        run: |
+          sudo singularity build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:local
+          ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
+      - name: run singularity container
+        run: |
+          singularity run $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
+            ls
 
   examples:
     runs-on: ubuntu-latest
@@ -182,9 +219,15 @@ jobs:
         run: |
           docker logs "${{ matrix.broker_client }}" || true
 
+
+  #############################################################################
+  # GITHUB & PYPI RELEASE
+  #############################################################################
+
+
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-    needs: [flake8, mypy, py-setup, py-versions, examples, tests]
+    needs: [flake8, mypy, py-setup, py-versions, test-build-singularity, examples, tests]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
