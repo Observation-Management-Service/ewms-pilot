@@ -77,10 +77,8 @@ jobs:
   #############################################################################
 
 
-  test-build-singularity:
+  test-build-docker:
     runs-on: ubuntu-latest
-    env:
-      DOCKER_IMAGE_NAME: pilot-test/example
     steps:
       - uses: actions/checkout@v3
       - uses: docker/setup-buildx-action@v2
@@ -91,6 +89,21 @@ jobs:
           cache-to: type=gha,mode=min
           file: Dockerfile_example
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
+
+  test-build-singularity:
+    needs: test-build-docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: docker/setup-buildx-action@v2
+      - uses: docker/build-push-action@v3
+        with:
+          context: .
+          cache-from: type=gha
+          # cache-to: type=gha,mode=min
+          file: Dockerfile_example
+          tags: ${{ env.DOCKER_IMAGE_NAME }}:local
+          load: true
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.2.5
@@ -118,7 +131,7 @@ jobs:
           path: MQClient
       - uses: actions/setup-python@v4
         with:
-          python-version: '3.10'
+          python-version: '3.11'
       - name: run
         run: |
           set -x
@@ -156,6 +169,7 @@ jobs:
               async for msg in sub:
                   print(msg)
           ')
+          echo "$out"
 
           if [ -z "$out" ]; then
             echo "no messages"
@@ -244,7 +258,16 @@ jobs:
 
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
-    needs: [flake8, mypy, py-setup, py-versions, test-build-singularity, examples, tests]
+    needs: [
+      flake8,
+      mypy,
+      py-setup,
+      py-versions,
+      test-build-docker,
+      test-build-singularity,
+      examples,
+      tests
+    ]
     runs-on: ubuntu-latest
     concurrency: release
     steps:
