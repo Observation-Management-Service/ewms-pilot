@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.18.2 (2024-03-14)
+
+### Other
+
+* <bot> update dependencies*.log files(s) ([`b81931b`](https://github.com/Observation-Management-Service/ewms-pilot/commit/b81931b80d709b38c163583819338eb781f0ca60))
+
 ## v0.18.1 (2024-03-14)
 
 ### Other
