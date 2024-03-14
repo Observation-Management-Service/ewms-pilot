@@ -10,7 +10,7 @@ certifi==2024.2.2
 charset-normalizer==3.3.2
 ed25519==1.5
 htchirp==3.0
-htcondor==23.4.0
+htcondor==23.5.2
 idna==3.6
 nats-py==2.7.2
 nkeys==0.1.0
@@ -26,7 +26,7 @@ wipac-dev-tools==1.9.1
 ########################################################################
 ewms-pilot
 ├── htchirp [required: Any, installed: 3.0]
-├── htcondor [required: Any, installed: 23.4.0]
+├── htcondor [required: Any, installed: 23.5.2]
 └── oms-mqclient [required: Any, installed: 2.4.10]
     └── wipac-dev-tools [required: Any, installed: 1.9.1]
         ├── requests [required: Any, installed: 2.31.0]
@@ -44,4 +44,4 @@ pipdeptree==2.16.1
 pulsar-client==3.1.0
 └── certifi [required: Any, installed: 2024.2.2]
 setuptools==65.5.1
-wheel==0.42.0
+wheel==0.43.0
