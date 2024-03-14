@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.18.3 (2024-03-14)
+
+### Other
+
+* Update Example Script & Add Dockerfile for CVMFS ([#71](https://github.com/Observation-Management-Service/ewms-pilot/issues/71)) ([`b8806d9`](https://github.com/Observation-Management-Service/ewms-pilot/commit/b8806d939ca82351a6cde9495106a08e52719e39))
+
 ## v0.18.2 (2024-03-14)
 
 ### Other
