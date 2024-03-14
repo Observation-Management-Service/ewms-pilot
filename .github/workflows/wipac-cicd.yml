@@ -99,7 +99,7 @@ jobs:
           pip install --upgrade pip wheel setuptools pytest
           export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker_client }}
           pip install .[test,${{ matrix.broker_client }}]
-          python examples/do_task.py
+          python examples/do_task.py --queue-incoming a012 --queue-outgoing b345
       - name: broker output
         if: always()
         run: |
