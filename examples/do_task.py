@@ -7,7 +7,6 @@ See https://github.com/Observation-Management-Service/ewms-workflow-management-s
 import argparse
 import asyncio
 import logging
-import os
 from pathlib import Path
 
 from ewms_pilot import FileType, consume_and_reply
@@ -56,9 +55,6 @@ if __name__ == "__main__":
         help="the name of the outgoing queue",
     )
     args = parser.parse_args()
-
-    if not os.getenv("EWMS_PILOT_BROKER_AUTH_TOKEN"):
-        raise RuntimeError("EWMS_PILOT_BROKER_AUTH_TOKEN must be given")
 
     asyncio.run(
         main(
