@@ -27,14 +27,14 @@ jobs:
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - id: versions
         uses: WIPACrepo/wipac-dev-py-versions-action@v2.1
 
   flake8:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
       - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
@@ -46,7 +46,7 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.py3 }}
@@ -61,7 +61,7 @@ jobs:
           github.actor != 'dependabot[bot]' &&
           github.ref_type == 'branch'
         name: checkout (only for non-dependabot non-default branches)
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
       - if: |
@@ -81,28 +81,28 @@ jobs:
   test-build-docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
         with:
           context: .
+          file: Dockerfile_example
           cache-from: type=gha
           cache-to: type=gha,mode=min
-          file: Dockerfile_example
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
 
   test-build-singularity:
     needs: test-build-docker
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
-      - uses: docker/setup-buildx-action@v2
-      - uses: docker/build-push-action@v3
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v5
         with:
           context: .
+          file: Dockerfile_example
           cache-from: type=gha
           # cache-to: type=gha,mode=min
-          file: Dockerfile_example
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
           load: true
       - uses: eWaterCycle/setup-apptainer@v2
@@ -124,9 +124,9 @@ jobs:
       matrix:
         broker_client: [pulsar, rabbitmq, nats]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Checkout MQClient repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: Observation-Management-Service/MQClient
           path: MQClient
@@ -201,9 +201,9 @@ jobs:
         version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
         broker_client: [pulsar, rabbitmq, nats]
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - name: Checkout MQClient repo
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
         with:
           repository: Observation-Management-Service/MQClient
           path: MQClient
@@ -274,7 +274,7 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: release
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
         token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
