@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.18.4 (2024-03-14)
+
+### Other
+
+* CI: Update Versions & Patch Args ([`ea25f6f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/ea25f6f20800a25046ef29c288c21e1398552390))
+
 ## v0.18.3 (2024-03-14)
 
 ### Other
