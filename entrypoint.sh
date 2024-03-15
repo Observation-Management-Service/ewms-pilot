@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "tms entrypoint: activating venv"
-source /app/tms_venv/bin/activate
-echo "tms entrypoint: executing command: $@"
+echo "entrypoint: activating venv"
+source /app/entrypoint_venv/bin/activate
+echo "entrypoint: executing command: $@"
 exec "$@"
