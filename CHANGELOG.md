@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.18.5 (2024-03-15)
+
+### Other
+
+* Fix Container Tag ([`81f44cd`](https://github.com/Observation-Management-Service/ewms-pilot/commit/81f44cd709cd7564ab91ca5aa4a25791238bcaf5))
+
 ## v0.18.4 (2024-03-14)
 
 ### Other
