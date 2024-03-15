@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.18.6 (2024-03-15)
+
+### Other
+
+* Add `entrypoint.sh` ([#72](https://github.com/Observation-Management-Service/ewms-pilot/issues/72)) ([`00d955d`](https://github.com/Observation-Management-Service/ewms-pilot/commit/00d955dd888a850938d87595818fdb5acb8a7c23))
+
 ## v0.18.5 (2024-03-15)
 
 ### Other
