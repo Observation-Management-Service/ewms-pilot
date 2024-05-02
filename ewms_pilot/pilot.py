@@ -41,12 +41,12 @@ _EXCEPT_ERRORS = False
 async def consume_and_reply(
     cmd: str,
     #
-    queue_incoming: str,
-    queue_outgoing: str,
+    queue_incoming: str = ENV.EWMS_PILOT_QUEUE_INCOMING,
+    queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
     #
     # for subprocess
-    ftype_to_subproc: Union[str, FileType],
-    ftype_from_subproc: Union[str, FileType],
+    ftype_to_subproc: Union[str, FileType] = FileType.TXT,
+    ftype_from_subproc: Union[str, FileType] = FileType.TXT,
     #
     init_cmd: str = "",
     #
