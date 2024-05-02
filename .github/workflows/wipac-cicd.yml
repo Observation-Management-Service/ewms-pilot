@@ -1,6 +1,6 @@
 name: wipac ci/cd
 
-on: [push]
+on: [ push ]
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -39,7 +39,7 @@ jobs:
       - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
 
   mypy:
-    needs: [py-versions]
+    needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -55,22 +55,27 @@ jobs:
   py-setup:
     runs-on: ubuntu-latest
     steps:
-      # dependabot can't access normal secrets
-      #   & don't run non-branch triggers (like tags)
-      - if: |
-          github.actor != 'dependabot[bot]' &&
-          github.ref_type == 'branch'
-        name: checkout (only for non-dependabot non-default branches)
+      - if: github.actor != 'dependabot[bot]'
         uses: actions/checkout@v4
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - if: |
-          github.actor != 'dependabot[bot]' &&
-          github.ref_type == 'branch'
-        name: wipac-dev-py-setup-action (only for non-dependabot non-default branches)
-        uses: WIPACrepo/wipac-dev-py-setup-action@v2.8
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
+      - if: github.actor != 'dependabot[bot]'
+        uses: WIPACrepo/wipac-dev-py-setup-action@v3.0
         with:
           base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Management Service"
+
+  py-dependencies:
+    runs-on: ubuntu-latest
+    concurrency:
+      group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
+      cancel-in-progress: true
+    steps:
+      - if: github.actor != 'dependabot[bot]'
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
+      - if: github.actor != 'dependabot[bot]'
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.0
 
 
   ############################################################################
@@ -122,7 +127,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        broker_client: [pulsar, rabbitmq, nats]
+        broker_client: [ pulsar, rabbitmq, nats ]
     steps:
       - uses: actions/checkout@v4
       - name: Checkout MQClient repo
@@ -193,13 +198,13 @@ jobs:
           docker logs "${{ matrix.broker_client }}" || true
 
   tests:
-    needs: [py-versions]
+    needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
-        broker_client: [pulsar, rabbitmq, nats]
+        broker_client: [ pulsar, rabbitmq, nats ]
     steps:
       - uses: actions/checkout@v4
       - name: Checkout MQClient repo
@@ -274,13 +279,13 @@ jobs:
     runs-on: ubuntu-latest
     concurrency: release
     steps:
-    - uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
-        token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-    - name: Python Semantic Release
-      uses: python-semantic-release/python-semantic-release@v7.34.6
-      with:
-        github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-        repository_username: __token__
-        repository_password: ${{ secrets.PYPI_TOKEN }}
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+      - name: Python Semantic Release
+        uses: python-semantic-release/python-semantic-release@v7.34.6
+        with:
+          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          repository_username: __token__
+          repository_password: ${{ secrets.PYPI_TOKEN }}
