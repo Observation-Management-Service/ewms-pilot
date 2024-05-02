@@ -267,10 +267,11 @@ jobs:
   release:
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
     needs: [
+      py-versions,
       flake8,
       mypy,
       py-setup,
-      py-versions,
+      py-dependencies,
       test-build-docker,
       test-build-singularity,
       examples,
