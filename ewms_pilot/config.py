@@ -32,6 +32,8 @@ class EnvConfig:
     EWMS_PILOT_BROKER_CLIENT: str = "rabbitmq"
     EWMS_PILOT_BROKER_ADDRESS: str = "localhost"
     EWMS_PILOT_BROKER_AUTH_TOKEN: str = ""
+    EWMS_PILOT_QUEUE_INCOMING: str = ""
+    EWMS_PILOT_QUEUE_OUTGOING: str = ""
 
     # logging
     EWMS_PILOT_CL_LOG: str = "INFO"  # only used when running via command line
