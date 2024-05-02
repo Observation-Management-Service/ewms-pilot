@@ -2,6 +2,12 @@
 
 <!--next-version-placeholder-->
 
+## v0.18.7 (2024-05-02)
+
+### Other
+
+* Add `EWMS_PILOT_QUEUE_INCOMING` & `EWMS_PILOT_QUEUE_OUTGOING` ([#74](https://github.com/Observation-Management-Service/ewms-pilot/issues/74)) ([`dbf2544`](https://github.com/Observation-Management-Service/ewms-pilot/commit/dbf2544bc18b8370ceea3836e0600a4dc0c6b72a))
+
 ## v0.18.6 (2024-03-15)
 
 ### Other
