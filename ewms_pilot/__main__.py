@@ -95,12 +95,6 @@ def main() -> None:
         type=int,
         help="timeout (seconds) for messages TO pilot",
     )
-    parser.add_argument(
-        "--timeout-outgoing",
-        default=DEFAULT_TIMEOUT_OUTGOING,
-        type=int,
-        help="timeout (seconds) for messages FROM pilot",
-    )
 
     # meta timeouts
     parser.add_argument(
@@ -181,7 +175,6 @@ def main() -> None:
             #
             timeout_wait_for_first_message=args.timeout_wait_for_first_message,
             timeout_incoming=args.timeout_incoming,
-            timeout_outgoing=args.timeout_outgoing,
             #
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,

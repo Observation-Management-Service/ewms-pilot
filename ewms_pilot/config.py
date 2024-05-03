@@ -16,7 +16,6 @@ LOGGER = logging.getLogger("ewms-pilot")
 REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main loop
 
 DEFAULT_TIMEOUT_INCOMING = 1  # second
-DEFAULT_TIMEOUT_OUTGOING = 1  # second
 
 
 #
