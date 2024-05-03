@@ -1,6 +1,5 @@
 """Configuration constants."""
 
-
 # pylint:disable=invalid-name
 
 import dataclasses as dc
@@ -14,8 +13,6 @@ LOGGER = logging.getLogger("ewms-pilot")
 
 
 REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main loop
-
-DEFAULT_TIMEOUT_INCOMING = 1  # second
 
 
 #
@@ -44,11 +41,16 @@ class EnvConfig:
     EWMS_PILOT_HTCHIRP_DEST: str = "JOB_ATTR"  # ["JOB_EVENT_LOG", "JOB_ATTR"]
     EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL: float = 60.0
 
-    # meta
+    # timing config -- queues
+    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: Optional[int] = None
+    EWMS_PILOT_TIMEOUT_QUEUE_INCOMING: int = 1
+    # timing config -- tasks
     EWMS_PILOT_INIT_TIMEOUT: Optional[int] = None
     EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None
-    EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: bool = True
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
+
+    # task handling logic
+    EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: bool = True
     EWMS_PILOT_CONCURRENT_TASKS: int = 1
     EWMS_PILOT_PREFETCH: int = 1  # off by default -- prefetch is an optimization
 
