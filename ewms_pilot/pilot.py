@@ -1,6 +1,5 @@
 """API for launching an MQ-task pilot."""
 
-
 import asyncio
 import shutil
 import sys
@@ -12,8 +11,6 @@ import mqclient as mq
 
 from . import htchirp_tools
 from .config import (
-    DEFAULT_TIMEOUT_INCOMING,
-    DEFAULT_TIMEOUT_OUTGOING,
     ENV,
     LOGGER,
     REFRESH_INTERVAL,
@@ -57,9 +54,10 @@ async def consume_and_reply(
     #
     prefetch: int = ENV.EWMS_PILOT_PREFETCH,
     #
-    timeout_wait_for_first_message: Optional[int] = None,
-    timeout_incoming: int = DEFAULT_TIMEOUT_INCOMING,
-    timeout_outgoing: int = DEFAULT_TIMEOUT_OUTGOING,
+    timeout_wait_for_first_message: Optional[
+        int
+    ] = ENV.EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE,
+    timeout_incoming: int = ENV.EWMS_PILOT_TIMEOUT_QUEUE_INCOMING,
     #
     file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
     file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
@@ -120,7 +118,7 @@ async def consume_and_reply(
             name=queue_outgoing,
             auth_token=auth_token,
             except_errors=_EXCEPT_ERRORS,
-            timeout=timeout_outgoing,
+            # timeout=timeout_outgoing,  # no timeout needed b/c this queue is only for pub
         )
 
         # MQ tasks

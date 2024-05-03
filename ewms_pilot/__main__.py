@@ -1,12 +1,11 @@
 """Main."""
 
-
 import argparse
 import asyncio
 
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from .config import DEFAULT_TIMEOUT_INCOMING, DEFAULT_TIMEOUT_OUTGOING, ENV, LOGGER
+from .config import ENV, LOGGER
 from .pilot import consume_and_reply
 from .tasks.io import FileType
 
@@ -84,22 +83,16 @@ def main() -> None:
     )
     parser.add_argument(
         "--timeout-wait-for-first-message",
-        default=None,
+        default=ENV.EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE,
         type=int,
         help="timeout (seconds) for the first message to arrive at the pilot; "
         "defaults to `--timeout-incoming` value",
     )
     parser.add_argument(
         "--timeout-incoming",
-        default=DEFAULT_TIMEOUT_INCOMING,
+        default=ENV.EWMS_PILOT_TIMEOUT_QUEUE_INCOMING,
         type=int,
         help="timeout (seconds) for messages TO pilot",
-    )
-    parser.add_argument(
-        "--timeout-outgoing",
-        default=DEFAULT_TIMEOUT_OUTGOING,
-        type=int,
-        help="timeout (seconds) for messages FROM pilot",
     )
 
     # meta timeouts
@@ -181,7 +174,6 @@ def main() -> None:
             #
             timeout_wait_for_first_message=args.timeout_wait_for_first_message,
             timeout_incoming=args.timeout_incoming,
-            timeout_outgoing=args.timeout_outgoing,
             #
             # file_writer=UniversalFileInterface.write,
             # file_reader=UniversalFileInterface.read,
