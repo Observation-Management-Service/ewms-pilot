@@ -161,7 +161,9 @@ jobs:
           pip install .[test,${{ matrix.broker_client }}]
 
           export EWMS_PILOT_BROKER_AUTH_TOKEN=""
-          python examples/do_task.py --queue-incoming a012 --queue-outgoing b345
+          export EWMS_PILOT_QUEUE_INCOMING="a012"
+          export EWMS_PILOT_QUEUE_OUTGOING="b345"
+          python examples/do_task.py
 
           out=$(python -c '
           import mqclient as mq
