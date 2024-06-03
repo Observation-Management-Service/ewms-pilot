@@ -80,6 +80,8 @@ async def consume_and_reply(
     chirper = htchirp_tools.Chirper()
     chirper.initial_chirp()
 
+    queue_incoming = queue_incoming.split(";")[0]  # TODO: multi-input (w/ switch)
+    queue_outgoing = queue_outgoing.split(";")[0]  # ''
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
 
