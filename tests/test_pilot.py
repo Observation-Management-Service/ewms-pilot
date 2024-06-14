@@ -304,7 +304,9 @@ async def test_100__json(
 
     # some messages that would make sense json'ing
     msgs_to_subproc = [json.dumps({"attr-0": v}) for v in MSGS_TO_SUBPROC]
-    msgs_outgoing_expected = [{"attr-a": v, "attr-b": v + v} for v in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [
+        json.dumps({"attr-a": v, "attr-b": v + v}) for v in MSGS_TO_SUBPROC
+    ]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -370,7 +372,7 @@ async def test_200__pickle(
         for x in MSGS_TO_SUBPROC
     ]
     msgs_outgoing_expected = [
-        pickle.loads(d) + timedelta(days=1) for d in msgs_to_subproc
+        pickle.dumps(pickle.loads(d) + timedelta(days=1)) for d in msgs_to_subproc
     ]
 
     # run producer & consumer concurrently
