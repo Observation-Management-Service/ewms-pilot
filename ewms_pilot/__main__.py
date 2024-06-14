@@ -164,14 +164,12 @@ def main() -> None:
             #
             # incoming
             queue_incoming=args.queue_incoming,
-            queue_incoming_auth_token=args.queue_incoming_auth_token,
             prefetch=args.prefetch,
             timeout_wait_for_first_message=args.timeout_wait_for_first_message,
             timeout_incoming=args.timeout_incoming,
             #
             # outgoing
             queue_outgoing=args.queue_outgoing,
-            queue_outgoing_auth_token=args.queue_outgoing_auth_token,
             #
             # to subprocess
             ftype_to_subproc=args.infile_type,
