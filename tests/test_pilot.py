@@ -17,7 +17,7 @@ import asyncstdlib as asl
 import mqclient as mq
 import pytest
 
-from ewms_pilot import FileType, PilotSubprocessError, config, consume_and_reply
+from ewms_pilot import PilotSubprocessError, config, consume_and_reply
 from ewms_pilot.config import ENV
 
 logging.getLogger().setLevel(logging.DEBUG)
@@ -121,7 +121,7 @@ async def assert_results(
 
 def assert_debug_dir(
     debug_dir: Path,
-    ftype_to_subproc: FileType,
+    ftype_to_subproc: str,
     n_tasks: int,
     files: List[str],
     has_init_cmd_subdir: bool = False,
@@ -150,10 +150,10 @@ def assert_debug_dir(
         expected_files = list(files)  # copies
         if "in" in expected_files:
             expected_files.remove("in")
-            expected_files.append(f"in-{task_id}{ftype_to_subproc.value}")
+            expected_files.append(f"in-{task_id}{ftype_to_subproc}")
         if "out" in expected_files:
             expected_files.remove("out")
-            expected_files.append(f"out-{task_id}{ftype_to_subproc.value}")
+            expected_files.append(f"out-{task_id}{ftype_to_subproc}")
         assert sorted(p.name for p in path.iterdir()) == sorted(expected_files)
 
 
@@ -216,8 +216,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            ftype_to_subproc=".txt",
+            ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
@@ -229,7 +229,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
+            ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -282,7 +282,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
+            ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -327,8 +327,8 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.JSON,
-            ftype_from_subproc=FileType.JSON,
+            ftype_to_subproc=".json",
+            ftype_from_subproc=".json",
             timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
@@ -340,7 +340,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.JSON,
+            ".json",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -392,8 +392,8 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.PKL,
-            ftype_from_subproc=FileType.PKL,
+            ftype_to_subproc=".pkl",
+            ftype_from_subproc=".pkl",
             timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
@@ -405,7 +405,7 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.PKL,
+            ".pkl",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -453,8 +453,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            ftype_to_subproc=".txt",
+            ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
             file_writer=reverse_writer,
             file_reader=reader_w_prefix,
@@ -466,7 +466,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
+            ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -513,8 +513,8 @@ async def test_400__exception(
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                ftype_to_subproc=FileType.TXT,
-                ftype_from_subproc=FileType.TXT,
+                ftype_to_subproc=".txt",
+                ftype_from_subproc=".txt",
                 timeout_incoming=TIMEOUT_INCOMING,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
@@ -532,7 +532,7 @@ async def test_400__exception(
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
+            ".txt",
             1,  # only 1 message was processed before error
             ["in", "stderrfile", "stdoutfile"],
         )
@@ -579,8 +579,8 @@ async def test_420__timeout(
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                ftype_to_subproc=FileType.TXT,
-                ftype_from_subproc=FileType.TXT,
+                ftype_to_subproc=".txt",
+                ftype_from_subproc=".txt",
                 timeout_incoming=TIMEOUT_INCOMING,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
@@ -595,7 +595,7 @@ async def test_420__timeout(
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
+            ".txt",
             1,
             ["in", "stderrfile", "stdoutfile"],
         )
@@ -657,8 +657,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            ftype_to_subproc=".txt",
+            ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             # file_writer=UniversalFileInterface.write, # see other tests
@@ -675,7 +675,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
+            ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -722,13 +722,15 @@ async def test_510__concurrent_load_multitasking_exceptions(
                 queue_incoming,
                 msgs_to_subproc,
                 # for some reason the delay has timing issues with rabbitmq & prefetch=1
-                intermittent_sleep=TIMEOUT_INCOMING / 4
-                if not (
-                    prefetch == 1
-                    and not use_debug_dir
-                    and config.ENV.EWMS_PILOT_BROKER_CLIENT == "rabbitmq"
-                )
-                else 0,
+                intermittent_sleep=(
+                    TIMEOUT_INCOMING / 4
+                    if not (
+                        prefetch == 1
+                        and not use_debug_dir
+                        and config.ENV.EWMS_PILOT_BROKER_CLIENT == "rabbitmq"
+                    )
+                    else 0
+                ),
             ),
             consume_and_reply(
                 cmd="""python3 -c "
@@ -742,8 +744,8 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                ftype_to_subproc=FileType.TXT,
-                ftype_from_subproc=FileType.TXT,
+                ftype_to_subproc=".txt",
+                ftype_from_subproc=".txt",
                 timeout_incoming=TIMEOUT_INCOMING,
                 prefetch=prefetch,
                 # file_writer=UniversalFileInterface.write, # see other tests
@@ -764,7 +766,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
+            ".txt",
             MULTITASKING,
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -809,8 +811,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         # auth_token="",
         queue_incoming=queue_incoming,
         queue_outgoing=queue_outgoing,
-        ftype_to_subproc=FileType.TXT,
-        ftype_from_subproc=FileType.TXT,
+        ftype_to_subproc=".txt",
+        ftype_from_subproc=".txt",
         timeout_incoming=TIMEOUT_INCOMING,
         prefetch=prefetch,
         # file_writer=UniversalFileInterface.write, # see other tests
@@ -826,7 +828,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
+            ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -880,8 +882,8 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            ftype_to_subproc=".txt",
+            ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             # file_writer=UniversalFileInterface.write, # see other tests
@@ -901,7 +903,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
+            ".txt",
             MULTITASKING,
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -967,8 +969,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                ftype_to_subproc=FileType.TXT,
-                ftype_from_subproc=FileType.TXT,
+                ftype_to_subproc=".txt",
+                ftype_from_subproc=".txt",
                 timeout_incoming=timeout_incoming,
                 # file_writer=UniversalFileInterface.write, # see other tests
                 # file_reader=UniversalFileInterface.read, # see other tests
@@ -996,7 +998,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 if use_debug_dir:
                     assert_debug_dir(
                         debug_dir,
-                        FileType.TXT,
+                        ".txt",
                         len([]),
                         ["in", "out", "stderrfile", "stdoutfile"],
                     )
@@ -1007,7 +1009,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 if use_debug_dir:
                     assert_debug_dir(
                         debug_dir,
-                        FileType.TXT,
+                        ".txt",
                         len([]),
                         ["in", "out", "stderrfile", "stdoutfile"],
                     )
@@ -1017,7 +1019,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             if use_debug_dir:
                 assert_debug_dir(
                     debug_dir,
-                    FileType.TXT,
+                    ".txt",
                     len(msgs_outgoing_expected),
                     ["in", "out", "stderrfile", "stdoutfile"],
                 )
@@ -1067,8 +1069,8 @@ with open('initoutput', 'w') as f:
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            ftype_to_subproc=".txt",
+            ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
@@ -1086,7 +1088,7 @@ with open('initoutput', 'w') as f:
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
+            ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
             has_init_cmd_subdir=True,
@@ -1127,8 +1129,8 @@ time.sleep(5)
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            ftype_to_subproc=".txt",
+            ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
@@ -1166,8 +1168,8 @@ raise ValueError('no good!')
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            ftype_to_subproc=".txt",
+            ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
             # file_writer=UniversalFileInterface.write, # see other tests
             # file_reader=UniversalFileInterface.read, # see other tests
