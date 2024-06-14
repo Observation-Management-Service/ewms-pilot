@@ -38,14 +38,20 @@ async def process_msg_task(
     cmd = cmd.replace("{{INFILE}}", str(infilepath))
     cmd = cmd.replace("{{OUTFILE}}", str(outfilepath))
 
+    # put data
+    if isinstance(in_msg.data, bytes):
+        with open(infilepath, "wb") as f:
+            f.write(in_msg.data)
+    elif isinstance(in_msg.data, str):
+        with open(infilepath, "w") as f:
+            f.write(in_msg.data)
+    else:
+        raise TypeError(f"Message data must be a str or bytes, not {type(in_msg.data)}")
+
     # run
-    with open(infilepath, "w") as f:
-        if not isinstance(in_msg.data, str | bytes):
-            raise TypeError(
-                f"Message data must be a str or bytes, not {type(in_msg.data)}"
-            )
-        f.write(in_msg.data)
     await run_subproc(cmd, task_timeout, stdoutfile, stderrfile, dump_task_output)
+
+    # grab data
     with open(outfilepath) as f:
         out_data = f.read()
 
