@@ -157,34 +157,37 @@ def main() -> None:
     asyncio.run(
         consume_and_reply(
             cmd=args.cmd,
+            task_timeout=args.task_timeout,
+            multitasking=args.multitasking,
             #
-            queue_incoming=args.queue_incoming,
-            queue_outgoing=args.queue_outgoing,
-            #
-            ftype_to_subproc=args.infile_type,
-            ftype_from_subproc=args.outfile_type,
-            #
-            init_cmd=args.init_cmd,
-            #
+            # mq broker
             broker_client=args.broker_client,
             broker_address=args.broker,
             auth_token=args.auth_token,
             #
+            # incoming
+            queue_incoming=args.queue_incoming,
+            queue_incoming_auth_token=args.queue_incoming_auth_token,
             prefetch=args.prefetch,
-            #
             timeout_wait_for_first_message=args.timeout_wait_for_first_message,
             timeout_incoming=args.timeout_incoming,
             #
-            # file_writer=UniversalFileInterface.write,
-            # file_reader=UniversalFileInterface.read,
+            # outgoing
+            queue_outgoing=args.queue_outgoing,
+            queue_outgoing_auth_token=args.queue_outgoing_auth_token,
             #
-            debug_dir=args.debug_directory,
+            # to subprocess
+            ftype_to_subproc=args.infile_type,
+            ftype_from_subproc=args.outfile_type,
             #
+            # init
+            init_cmd=args.init_cmd,
             init_timeout=args.init_timeout,
-            task_timeout=args.task_timeout,
-            quarantine_time=args.quarantine_time,
             #
-            multitasking=args.multitasking,
+            # misc settings
+            debug_dir=args.debug_directory,
+            dump_task_output=args.dump_task_output,
+            quarantine_time=args.quarantine_time,
         )
     )
     LOGGER.info("Done.")

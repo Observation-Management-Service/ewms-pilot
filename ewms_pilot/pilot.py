@@ -37,39 +37,41 @@ _EXCEPT_ERRORS = False
 @htchirp_tools.async_htchirp_error_wrapper
 async def consume_and_reply(
     cmd: str,
+    task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
+    multitasking: int = ENV.EWMS_PILOT_CONCURRENT_TASKS,
     #
-    queue_incoming: str = ENV.EWMS_PILOT_QUEUE_INCOMING,
-    queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
-    #
-    # for subprocess
-    ftype_to_subproc: Union[str, FileType] = FileType.TXT,
-    ftype_from_subproc: Union[str, FileType] = FileType.TXT,
-    #
-    init_cmd: str = "",
-    #
-    # for mq
+    # mq broker
     broker_client: str = ENV.EWMS_PILOT_BROKER_CLIENT,
     broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
     auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
     #
+    # incoming
+    queue_incoming: str = ENV.EWMS_PILOT_QUEUE_INCOMING,
     prefetch: int = ENV.EWMS_PILOT_PREFETCH,
-    #
     timeout_wait_for_first_message: Optional[
         int
     ] = ENV.EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE,
     timeout_incoming: int = ENV.EWMS_PILOT_TIMEOUT_QUEUE_INCOMING,
     #
-    file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
+    # outgoing
+    queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
+    #
+    # to subprocess
+    ftype_to_subproc: Union[str, FileType] = FileType.TXT,
     file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
     #
+    # from subprocess
+    ftype_from_subproc: Union[str, FileType] = FileType.TXT,
+    file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
+    #
+    # init
+    init_cmd: str = "",
+    init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
+    #
+    # misc settings
     debug_dir: Optional[Path] = None,
     dump_task_output: bool = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT,
-    #
-    init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
-    task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
-    #
-    multitasking: int = ENV.EWMS_PILOT_CONCURRENT_TASKS,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses.
 
