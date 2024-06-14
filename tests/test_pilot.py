@@ -10,7 +10,7 @@ import time
 import uuid
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple
 from unittest.mock import patch
 
 import asyncstdlib as asl
@@ -219,8 +219,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             ftype_to_subproc=".txt",
             ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
         ),
     )
@@ -272,8 +270,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             ftype_to_subproc=".txt",
             ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
         ),
     )
@@ -330,8 +326,6 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             ftype_to_subproc=".json",
             ftype_from_subproc=".json",
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
         ),
     )
@@ -395,8 +389,6 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
             ftype_to_subproc=".pkl",
             ftype_from_subproc=".pkl",
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
         ),
     )
@@ -406,67 +398,6 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
         assert_debug_dir(
             debug_dir,
             ".pkl",
-            len(msgs_outgoing_expected),
-            ["in", "out", "stderrfile", "stdoutfile"],
-        )
-    # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
-
-
-@pytest.mark.usefixtures("unique_pwd")
-@pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_300__writer_reader(
-    queue_incoming: str,
-    queue_outgoing: str,
-    debug_dir: Path,
-    first_walk: OSWalkList,
-    use_debug_dir: bool,
-) -> None:
-    """Test a normal .txt-based pilot."""
-    msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"output: {x[::-1]}{x[::-1]}\n" for x in MSGS_TO_SUBPROC]
-
-    def reverse_writer(text: Any, fpath: Path) -> None:
-        with open(fpath, "w") as f:
-            f.write(text[::-1])
-
-    def reader_w_prefix(fpath: Path) -> str:
-        with open(fpath) as f:
-            return f"output: {f.read()}"
-
-    # run producer & consumer concurrently
-    await asyncio.gather(
-        populate_queue(
-            queue_incoming,
-            msgs_to_subproc,
-            intermittent_sleep=TIMEOUT_INCOMING / 4,
-        ),
-        consume_and_reply(
-            cmd="""python3 -c "
-output = open('{{INFILE}}').read().strip() * 2;
-print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
-            queue_incoming=queue_incoming,
-            queue_outgoing=queue_outgoing,
-            ftype_to_subproc=".txt",
-            ftype_from_subproc=".txt",
-            timeout_incoming=TIMEOUT_INCOMING,
-            file_writer=reverse_writer,
-            file_reader=reader_w_prefix,
-            debug_dir=debug_dir if use_debug_dir else None,
-        ),
-    )
-
-    await assert_results(queue_outgoing, msgs_outgoing_expected)
-    if use_debug_dir:
-        assert_debug_dir(
-            debug_dir,
-            ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -516,8 +447,6 @@ async def test_400__exception(
                 ftype_to_subproc=".txt",
                 ftype_from_subproc=".txt",
                 timeout_incoming=TIMEOUT_INCOMING,
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
                 quarantine_time=quarantine if quarantine else 0,
             ),
@@ -582,8 +511,6 @@ async def test_420__timeout(
                 ftype_to_subproc=".txt",
                 ftype_from_subproc=".txt",
                 timeout_incoming=TIMEOUT_INCOMING,
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
                 task_timeout=task_timeout,
             ),
@@ -661,8 +588,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
             multitasking=MULTITASKING,
         ),
@@ -748,8 +673,6 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 ftype_from_subproc=".txt",
                 timeout_incoming=TIMEOUT_INCOMING,
                 prefetch=prefetch,
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
                 multitasking=MULTITASKING,
             ),
@@ -815,8 +738,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         ftype_from_subproc=".txt",
         timeout_incoming=TIMEOUT_INCOMING,
         prefetch=prefetch,
-        # file_writer=UniversalFileInterface.write, # see other tests
-        # file_reader=UniversalFileInterface.read, # see other tests
         debug_dir=debug_dir if use_debug_dir else None,
         multitasking=MULTITASKING,
     )
@@ -886,8 +807,6 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
             multitasking=MULTITASKING,
         )
@@ -972,8 +891,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 ftype_to_subproc=".txt",
                 ftype_from_subproc=".txt",
                 timeout_incoming=timeout_incoming,
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
             ),
         )
@@ -1072,8 +989,6 @@ with open('initoutput', 'w') as f:
             ftype_to_subproc=".txt",
             ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
         ),
     )
@@ -1132,8 +1047,6 @@ time.sleep(5)
             ftype_to_subproc=".txt",
             ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=None,
         )
 
@@ -1171,8 +1084,6 @@ raise ValueError('no good!')
             ftype_to_subproc=".txt",
             ftype_from_subproc=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=None,
         )
 
