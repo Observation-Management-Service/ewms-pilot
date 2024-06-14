@@ -54,6 +54,7 @@ async def process_msg_task(
     await run_subproc(cmd, task_timeout, stdoutfile, stderrfile, dump_task_output)
 
     # grab data
+    out_data: Any  # really str or bytes
     if use_bytes:  # TODO: need a better way of detecting this, new user arg?
         with open(outfilepath, "rb") as f:
             out_data = f.read()
