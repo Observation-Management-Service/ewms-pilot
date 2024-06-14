@@ -40,9 +40,11 @@ async def process_msg_task(
 
     # put data
     if isinstance(in_msg.data, bytes):
+        use_bytes = True
         with open(infilepath, "wb") as f:
             f.write(in_msg.data)
     elif isinstance(in_msg.data, str):
+        use_bytes = False
         with open(infilepath, "w") as f:
             f.write(in_msg.data)
     else:
@@ -52,8 +54,12 @@ async def process_msg_task(
     await run_subproc(cmd, task_timeout, stdoutfile, stderrfile, dump_task_output)
 
     # grab data
-    with open(outfilepath) as f:
-        out_data = f.read()
+    if use_bytes:  # TODO: need a better way of detecting this, new user arg?
+        with open(outfilepath, "rb") as f:
+            out_data = f.read()
+    else:
+        with open(outfilepath) as f:
+            out_data = f.read()
 
     # send
     LOGGER.info("Sending return message...")
