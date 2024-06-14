@@ -39,7 +39,7 @@ async def process_msg_task(
     cmd = cmd.replace("{{OUTFILE}}", str(outfilepath))
 
     # run
-    with open(infilepath) as f:
+    with open(infilepath, "w") as f:
         f.write(in_msg.data)
     await run_subproc(cmd, task_timeout, stdoutfile, stderrfile, dump_task_output)
     with open(outfilepath) as f:
