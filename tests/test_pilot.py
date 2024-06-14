@@ -3,8 +3,10 @@
 # pylint:disable=redefined-outer-name
 
 import asyncio
+import json
 import logging
 import os
+import pickle
 import re
 import time
 import uuid
@@ -301,7 +303,7 @@ async def test_100__json(
     """Test a normal .json-based pilot."""
 
     # some messages that would make sense json'ing
-    msgs_to_subproc = [{"attr-0": v} for v in MSGS_TO_SUBPROC]
+    msgs_to_subproc = [json.dumps({"attr-0": v}) for v in MSGS_TO_SUBPROC]
     msgs_outgoing_expected = [{"attr-a": v, "attr-b": v + v} for v in MSGS_TO_SUBPROC]
 
     # run producer & consumer concurrently
@@ -358,14 +360,18 @@ async def test_200__pickle(
 
     # some messages that would make sense pickling
     msgs_to_subproc = [
-        date(
-            1995 + int(re.sub(r"[^0-9]", "", x)),
-            int(re.sub(r"[^0-9]", "", x)) % 12 + 1,
-            int(re.sub(r"[^0-9]", "", x)) % 28 + 1,
+        pickle.dumps(
+            date(
+                1995 + int(re.sub(r"[^0-9]", "", x)),
+                int(re.sub(r"[^0-9]", "", x)) % 12 + 1,
+                int(re.sub(r"[^0-9]", "", x)) % 28 + 1,
+            )
         )
         for x in MSGS_TO_SUBPROC
     ]
-    msgs_outgoing_expected = [d + timedelta(days=1) for d in msgs_to_subproc]
+    msgs_outgoing_expected = [
+        pickle.loads(d) + timedelta(days=1) for d in msgs_to_subproc
+    ]
 
     # run producer & consumer concurrently
     await asyncio.gather(

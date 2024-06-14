@@ -40,6 +40,8 @@ async def process_msg_task(
 
     # run
     with open(infilepath, "w") as f:
+        if not isinstance(in_msg.data, str):
+            raise TypeError(f"Message data must be a string, not {type(in_msg.data)}")
         f.write(in_msg.data)
     await run_subproc(cmd, task_timeout, stdoutfile, stderrfile, dump_task_output)
     with open(outfilepath) as f:
