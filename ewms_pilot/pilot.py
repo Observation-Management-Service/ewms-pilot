@@ -5,7 +5,7 @@ import shutil
 import sys
 import uuid
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Union
+from typing import List, Optional
 
 import mqclient as mq
 
@@ -16,7 +16,6 @@ from .config import (
     REFRESH_INTERVAL,
 )
 from .housekeeping import Housekeeping
-from .tasks.io import FileType, UniversalFileInterface
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
 from .utils.subproc import run_subproc
@@ -57,12 +56,10 @@ async def consume_and_reply(
     queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
     #
     # to subprocess
-    ftype_to_subproc: Union[str, FileType] = FileType.TXT,
-    file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
+    ftype_to_subproc: str = ".txt",
     #
     # from subprocess
-    ftype_from_subproc: Union[str, FileType] = FileType.TXT,
-    file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
+    ftype_from_subproc: str = ".txt",
     #
     # init
     init_cmd: str = "",
@@ -84,11 +81,6 @@ async def consume_and_reply(
 
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
-
-    if not isinstance(ftype_to_subproc, FileType):
-        ftype_to_subproc = FileType(ftype_to_subproc)
-    if not isinstance(ftype_from_subproc, FileType):
-        ftype_from_subproc = FileType(ftype_from_subproc)
 
     housekeeper = Housekeeping(chirper)
     staging_dir = debug_dir if debug_dir else Path("./tmp")
@@ -133,8 +125,6 @@ async def consume_and_reply(
             #
             timeout_wait_for_first_message,
             timeout_incoming,
-            file_writer,
-            file_reader,
             #
             staging_dir,
             bool(debug_dir),
@@ -238,14 +228,11 @@ async def _consume_and_reply(
     out_queue: mq.Queue,
     #
     # for subprocess
-    ftype_to_subproc: FileType,
-    ftype_from_subproc: FileType,
+    ftype_to_subproc: str,
+    ftype_from_subproc: str,
     #
     timeout_wait_for_first_message: Optional[int],
     timeout_incoming: int,
-    #
-    file_writer: Callable[[Any, Path], None],
-    file_reader: Callable[[Path], Any],
     #
     staging_dir: Path,
     keep_debug_dir: bool,
@@ -326,8 +313,6 @@ async def _consume_and_reply(
                             task_timeout,
                             ftype_to_subproc,
                             ftype_from_subproc,
-                            file_writer,
-                            file_reader,
                             staging_dir,
                             keep_debug_dir,
                             dump_task_output,

@@ -1,15 +1,13 @@
 """Single task logic."""
 
-
 import shutil
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Optional
 
 from mqclient.broker_client_interface import Message
 
 from ..config import LOGGER
 from ..utils.subproc import run_subproc
-from .io import FileType
 
 
 async def process_msg_task(
@@ -17,11 +15,8 @@ async def process_msg_task(
     cmd: str,
     task_timeout: Optional[int],
     #
-    ftype_to_subproc: FileType,
-    ftype_from_subproc: FileType,
-    #
-    file_writer: Callable[[Any, Path], None],
-    file_reader: Callable[[Path], Any],
+    ftype_to_subproc: str,
+    ftype_from_subproc: str,
     #
     staging_dir: Path,
     keep_debug_dir: bool,
@@ -36,17 +31,19 @@ async def process_msg_task(
     stdoutfile = staging_subdir / "stdoutfile"
 
     # create in/out filepaths
-    infilepath = staging_subdir / f"in-{in_msg.uuid}{ftype_to_subproc.value}"
-    outfilepath = staging_subdir / f"out-{in_msg.uuid}{ftype_from_subproc.value}"
+    infilepath = staging_subdir / f"in-{in_msg.uuid}.{ftype_to_subproc.lstrip('.')}"
+    outfilepath = staging_subdir / f"out-{in_msg.uuid}.{ftype_from_subproc.lstrip('.')}"
 
     # insert in/out files into cmd
     cmd = cmd.replace("{{INFILE}}", str(infilepath))
     cmd = cmd.replace("{{OUTFILE}}", str(outfilepath))
 
     # run
-    file_writer(in_msg.data, infilepath)
+    with open(infilepath) as f:
+        f.write(in_msg.data)
     await run_subproc(cmd, task_timeout, stdoutfile, stderrfile, dump_task_output)
-    out_data = file_reader(outfilepath)
+    with open(outfilepath) as f:
+        out_data = f.read()
 
     # send
     LOGGER.info("Sending return message...")

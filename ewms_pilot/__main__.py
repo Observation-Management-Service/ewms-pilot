@@ -7,7 +7,6 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .config import ENV, LOGGER
 from .pilot import consume_and_reply
-from .tasks.io import FileType
 
 
 def main() -> None:
@@ -25,13 +24,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--infile-type",
-        type=FileType,
         required=True,
         help="the file type (extension) of the input file for the pilot's task",
     )
     parser.add_argument(
         "--outfile-type",
-        type=FileType,
         required=True,
         help="the file type (extension) of the output file from the pilot's task",
     )
