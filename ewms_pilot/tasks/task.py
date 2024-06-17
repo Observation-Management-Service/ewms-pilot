@@ -39,13 +39,12 @@ async def process_msg_task(
     cmd = cmd.replace("{{OUTFILE}}", str(outfilepath))
 
     # put data
-    if isinstance(in_msg.data, bytes):
-        use_bytes = True
-        with open(infilepath, "wb") as f:
-            f.write(in_msg.data)
-    elif isinstance(in_msg.data, str):
-        use_bytes = False
+    # detect data type to write in
+    if isinstance(in_msg.data, str):  # plain text (text, json, yaml, ...)
         with open(infilepath, "w") as f:
+            f.write(in_msg.data)
+    elif isinstance(in_msg.data, bytes):  # bytes (like pickled data, jpeg, gif, ...)
+        with open(infilepath, "wb") as f:
             f.write(in_msg.data)
     else:
         raise TypeError(f"Message data must be a str or bytes, not {type(in_msg.data)}")
@@ -53,9 +52,14 @@ async def process_msg_task(
     # run
     await run_subproc(cmd, task_timeout, stdoutfile, stderrfile, dump_task_output)
 
-    # grab data -- always read as bytes
-    with open(outfilepath, "rb") as f:
-        out_data = f.read()
+    # grab data
+    # we cannot rely on the input type, since these can be unrelated (ex: in: gif -> out: text)
+    try:
+        with open(outfilepath, "r") as f:  # plain text
+            out_data = f.read()
+    except UnicodeDecodeError:
+        with open(outfilepath, "rb") as f:  # bytes
+            out_data = f.read()
 
     # send
     LOGGER.info("Sending return message...")
