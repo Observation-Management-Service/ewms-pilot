@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import copy
 import json
 import logging
 import os
@@ -133,30 +134,30 @@ def assert_debug_dir(
     else:
         assert len(list(debug_dir.iterdir())) == n_tasks
 
-    for path in debug_dir.iterdir():
-        assert path.is_dir()
+    for dpath in debug_dir.iterdir():
+        assert dpath.is_dir()
 
         # init subdir
-        if has_init_cmd_subdir and path.name.startswith("init"):
-            assert sorted(p.name for p in path.iterdir()) == sorted(
+        if has_init_cmd_subdir and dpath.name.startswith("init"):
+            assert sorted(p.name for p in dpath.iterdir()) == sorted(
                 ["stderrfile", "stdoutfile"]
             )
             continue
 
         # task subdirs
-        task_id = path.name
+        task_id = dpath.name
 
         # look for in/out files
-        for subpath in path.iterdir():
+        for subpath in dpath.iterdir():
             assert subpath.is_file()
-        expected_files = list(files)  # copies
+        expected_files = copy.deepcopy(files)
         if "in" in expected_files:
             expected_files.remove("in")
             expected_files.append(f"in-{task_id}{infile_ext_w_dot}")
         if "out" in expected_files:
             expected_files.remove("out")
             expected_files.append(f"out-{task_id}{outfile_ext_w_dot}")
-        assert sorted(p.name for p in path.iterdir()) == sorted(expected_files)
+        assert sorted(p.name for p in dpath.iterdir()) == sorted(expected_files)
 
 
 def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> List[str]:
@@ -392,7 +393,7 @@ async def test_200__pkl_b64(
             cmd="""python3 -c "
 import pickle, base64;
 from datetime import date, timedelta;
-indata  = open('{{INFILE}}').read()
+indata  = open('{{INFILE}}').read().strip()
 input   = pickle.loads(base64.b64decode(indata));
 output  = input+timedelta(days=1);
 outdata = base64.b64encode(pickle.dumps(output)).decode();
