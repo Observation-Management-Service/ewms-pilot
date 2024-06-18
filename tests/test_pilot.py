@@ -363,8 +363,8 @@ async def test_200__pkl_b64(
 ) -> None:
     """Test a user-defined pickle/b64-based pilot."""
 
-    dumps = lambda x: base64.b64encode(pickle.dumps(x)).decode()
-    loads = lambda x: pickle.loads(base64.b64decode(x))
+    dumps = lambda x: base64.b64encode(pickle.dumps(x)).decode()  # noqa: E731
+    loads = lambda x: pickle.loads(base64.b64decode(x))  # noqa: E731
 
     # some messages that would make sense pickling
     msgs_to_subproc = [
