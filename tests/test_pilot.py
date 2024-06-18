@@ -1,6 +1,7 @@
 """Test pilot submodule."""
 
 import asyncio
+import base64
 import json
 import logging
 import os
@@ -353,18 +354,21 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_200__pickle(
+async def test_200__pkl_b64(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
 ) -> None:
-    """Test a normal .pkl-based pilot."""
+    """Test a user-defined pickle/b64-based pilot."""
+
+    dumps = lambda x: base64.b64encode(pickle.dumps(x)).decode()
+    loads = lambda x: pickle.loads(base64.b64decode(x))
 
     # some messages that would make sense pickling
     msgs_to_subproc = [
-        pickle.dumps(
+        dumps(
             date(
                 1995 + int(re.sub(r"[^0-9]", "", x)),
                 int(re.sub(r"[^0-9]", "", x)) % 12 + 1,
@@ -374,7 +378,7 @@ async def test_200__pickle(
         for x in MSGS_TO_SUBPROC
     ]
     msgs_outgoing_expected = [
-        pickle.dumps(pickle.loads(d) + timedelta(days=1)) for d in msgs_to_subproc
+        dumps(loads(d) + timedelta(days=1)) for d in msgs_to_subproc
     ]
 
     # run producer & consumer concurrently
@@ -388,16 +392,18 @@ async def test_200__pickle(
             cmd="""python3 -c "
 import pickle;
 from datetime import date, timedelta;
-input=pickle.load(open('{{INFILE}}','rb'));
-output=input+timedelta(days=1);
-pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
+indata  = open('{{INFILE}}').read()
+input   = pickle.loads(base64.b64decode(indata));
+output  = input+timedelta(days=1);
+outdata = base64.b64encode(pickle.dumps(output)).decode();
+print(outdata, file=open('{{OUTFILE}}','w'))" """,
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".pkl",
-            outfile_type=".pkl",
+            infile_type=".pkl.b64",
+            outfile_type=".pkl.b64",
             timeout_incoming=TIMEOUT_INCOMING,
             debug_dir=debug_dir if use_debug_dir else None,
         ),
