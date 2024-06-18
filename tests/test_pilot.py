@@ -19,7 +19,6 @@ import pytest
 
 from ewms_pilot import PilotSubprocessError, config, consume_and_reply
 from ewms_pilot.config import ENV
-from ewms_pilot.tasks.io import FileExtension
 
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger("mqclient").setLevel(logging.INFO)
@@ -122,7 +121,8 @@ async def assert_results(
 
 def assert_debug_dir(
     debug_dir: Path,
-    infile_ext: FileExtension,
+    infile_ext_w_dot: str,
+    outfile_ext_w_dot: str,
     n_tasks: int,
     files: List[str],
     has_init_cmd_subdir: bool = False,
@@ -151,10 +151,10 @@ def assert_debug_dir(
         expected_files = list(files)  # copies
         if "in" in expected_files:
             expected_files.remove("in")
-            expected_files.append(f"in-{task_id}{infile_type}")
+            expected_files.append(f"in-{task_id}{infile_ext_w_dot}")
         if "out" in expected_files:
             expected_files.remove("out")
-            expected_files.append(f"out-{task_id}{infile_type}")
+            expected_files.append(f"out-{task_id}{outfile_ext_w_dot}")
         assert sorted(p.name for p in path.iterdir()) == sorted(expected_files)
 
 
@@ -229,6 +229,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         assert_debug_dir(
             debug_dir,
             ".txt",
+            ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -279,6 +280,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
+            ".txt",
             ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
@@ -337,6 +339,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
+            ".json",
             ".json",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
@@ -405,6 +408,7 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
         assert_debug_dir(
             debug_dir,
             ".pkl",
+            ".pkl",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -469,6 +473,7 @@ async def test_400__exception(
         assert_debug_dir(
             debug_dir,
             ".txt",
+            ".txt",
             1,  # only 1 message was processed before error
             ["in", "stderrfile", "stdoutfile"],
         )
@@ -529,6 +534,7 @@ async def test_420__timeout(
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
+            ".txt",
             ".txt",
             1,
             ["in", "stderrfile", "stdoutfile"],
@@ -607,6 +613,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
+            ".txt",
             ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
@@ -697,6 +704,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         assert_debug_dir(
             debug_dir,
             ".txt",
+            ".txt",
             MULTITASKING,
             ["in", "out", "stderrfile", "stdoutfile"],
         )
@@ -756,6 +764,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
+            ".txt",
             ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
@@ -829,6 +838,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
+            ".txt",
             ".txt",
             MULTITASKING,
             ["in", "out", "stderrfile", "stdoutfile"],
@@ -1010,6 +1020,7 @@ with open('initoutput', 'w') as f:
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
+            ".txt",
             ".txt",
             len(msgs_outgoing_expected),
             ["in", "out", "stderrfile", "stdoutfile"],
