@@ -2,11 +2,11 @@
 
 import shutil
 from pathlib import Path
-from typing import Optional, Union
+from typing import Optional, Any
 
 from mqclient.broker_client_interface import Message
 
-from .io import FileExtension
+from .io import FileExtension, InFileInterface, OutFileInterface
 from ..config import LOGGER
 from ..utils.subproc import run_subproc
 
@@ -22,7 +22,7 @@ async def process_msg_task(
     staging_dir: Path,
     keep_debug_dir: bool,
     dump_task_output: bool,
-) -> Union[bytes, str]:
+) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
 
     # staging-dir logic
@@ -39,29 +39,9 @@ async def process_msg_task(
     cmd = cmd.replace("{{INFILE}}", str(infilepath))
     cmd = cmd.replace("{{OUTFILE}}", str(outfilepath))
 
-    # put data
-    # detect data type to write in
-    if isinstance(in_msg.data, str):  # plain text (text, json, yaml, ...)
-        with open(infilepath, "w") as f:
-            f.write(in_msg.data)
-    elif isinstance(in_msg.data, bytes):  # bytes (like pickled data, jpeg, gif, ...)
-        with open(infilepath, "wb") as f:
-            f.write(in_msg.data)
-    else:
-        raise TypeError(f"Message data must be a str or bytes, not {type(in_msg.data)}")
-
-    # run
+    InFileInterface.write(in_msg, infilepath)
     await run_subproc(cmd, task_timeout, stdoutfile, stderrfile, dump_task_output)
-
-    # grab data
-    # we cannot rely on the input type, since these can be unrelated (ex: in: gif -> out: text)
-    out_data: Union[bytes, str]
-    try:
-        with open(outfilepath, "r") as f:  # plain text
-            out_data = f.read()
-    except UnicodeDecodeError:
-        with open(outfilepath, "rb") as f:  # bytes
-            out_data = f.read()
+    out_data = OutFileInterface.read(outfilepath)
 
     # send
     LOGGER.info("Sending return message...")
