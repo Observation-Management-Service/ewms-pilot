@@ -32,8 +32,8 @@ async def process_msg_task(
     stdoutfile = staging_subdir / "stdoutfile"
 
     # create in/out filepaths -- piggy-back the uuid since it's unique and trackable
-    infilepath = staging_subdir / f"in-{in_msg.uuid}.{infile_ext}"
-    outfilepath = staging_subdir / f"out-{in_msg.uuid}.{outfile_ext}"
+    infilepath = staging_subdir / f"infile-{in_msg.uuid}.{infile_ext}"
+    outfilepath = staging_subdir / f"outfile-{in_msg.uuid}.{outfile_ext}"
 
     # insert in/out files into cmd
     cmd = cmd.replace("{{INFILE}}", str(infilepath))
