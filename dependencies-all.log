@@ -13,9 +13,9 @@ htcondor==23.7.2
 idna==3.7
 nats-py==2.7.2
 nkeys==0.2.0
-oms-mqclient==2.4.10
+oms-mqclient==2.5.0
 pika==1.3.2
-pulsar-client==3.1.0
+pulsar-client==3.5.0
 requests==2.32.3
 typing_extensions==4.12.2
 urllib3==2.2.2
@@ -26,7 +26,7 @@ wipac-dev-tools==1.10.6
 ewms-pilot
 ├── htchirp [required: Any, installed: 3.0]
 ├── htcondor [required: Any, installed: 23.7.2]
-└── oms-mqclient [required: Any, installed: 2.4.10]
+└── oms-mqclient [required: Any, installed: 2.5.0]
     └── wipac-dev-tools [required: Any, installed: 1.10.6]
         ├── requests [required: Any, installed: 2.32.3]
         │   ├── certifi [required: >=2017.4.17, installed: 2024.6.2]
@@ -37,10 +37,10 @@ ewms-pilot
 nats-py==2.7.2
 nkeys==0.2.0
 pika==1.3.2
-pipdeptree==2.22.0
+pipdeptree==2.23.0
 ├── packaging [required: >=23.1, installed: 24.1]
 └── pip [required: >=23.1.2, installed: 24.0]
-pulsar-client==3.1.0
+pulsar-client==3.5.0
 └── certifi [required: Any, installed: 2024.6.2]
 setuptools==65.5.1
 wheel==0.43.0
