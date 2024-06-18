@@ -11,7 +11,7 @@ import time
 import uuid
 from datetime import date, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from unittest.mock import patch
 
 import asyncstdlib as asl
@@ -149,7 +149,7 @@ def assert_debug_dir(
 
         # look for in/out files
         # check that each file matches one pattern & visa versa
-        checks = {f.name: [] for f in dpath.iterdir()}
+        checks: Dict[str, list[str]] = {f.name: [] for f in dpath.iterdir()}
         for fname in checks:
             for pattern in files_patterns:
                 pattern = pattern.replace("{UUID}", task_id)
