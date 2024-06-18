@@ -23,7 +23,7 @@ class InFileInterface:
 
     @classmethod
     def write(cls, in_msg: Message, fpath: Path) -> None:
-        """Write `stuff` to `fpath` per `fpath.suffix`."""
+        """Write `in_msg` to `fpath`."""
         cls._write(in_msg, fpath)
         LOGGER.info(f"INFILE :: {fpath} ({fpath.stat().st_size} bytes)")
 
@@ -52,7 +52,7 @@ class OutFileInterface:
 
     @classmethod
     def read(cls, fpath: Path) -> Any:
-        """Read and return contents of `fpath` per `fpath.suffix`."""
+        """Read and return contents of `fpath`."""
         LOGGER.info(f"OUTFILE :: {fpath} ({fpath.stat().st_size} bytes)")
         data = cls._read(fpath)
         LOGGER.debug(data)
