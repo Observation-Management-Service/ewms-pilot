@@ -16,8 +16,8 @@ async def process_msg_task(
     cmd: str,
     task_timeout: Optional[int],
     #
-    ftype_to_subproc: FileExtension,
-    ftype_from_subproc: FileExtension,
+    infile_ext: FileExtension,
+    outfile_ext: FileExtension,
     #
     staging_dir: Path,
     keep_debug_dir: bool,
@@ -32,8 +32,8 @@ async def process_msg_task(
     stdoutfile = staging_subdir / "stdoutfile"
 
     # create in/out filepaths
-    infilepath = staging_subdir / f"in-{in_msg.uuid}.{ftype_to_subproc}"
-    outfilepath = staging_subdir / f"out-{in_msg.uuid}.{ftype_from_subproc}"
+    infilepath = staging_subdir / f"in-{in_msg.uuid}.{infile_ext}"
+    outfilepath = staging_subdir / f"out-{in_msg.uuid}.{outfile_ext}"
 
     # insert in/out files into cmd
     cmd = cmd.replace("{{INFILE}}", str(infilepath))

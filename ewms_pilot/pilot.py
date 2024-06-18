@@ -56,11 +56,9 @@ async def consume_and_reply(
     # outgoing
     queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
     #
-    # to subprocess
-    ftype_to_subproc: str = ".txt",
-    #
-    # from subprocess
-    ftype_from_subproc: str = ".txt",
+    # for subprocess
+    infile_type: str = ".in",
+    outfile_type: str = ".out",
     #
     # init
     init_cmd: str = "",
@@ -121,8 +119,8 @@ async def consume_and_reply(
             cmd,
             in_queue,
             out_queue,
-            ftype_to_subproc,
-            ftype_from_subproc,
+            FileExtension(infile_type),
+            FileExtension(outfile_type),
             #
             timeout_wait_for_first_message,
             timeout_incoming,
@@ -229,8 +227,8 @@ async def _consume_and_reply(
     out_queue: mq.Queue,
     #
     # for subprocess
-    ftype_to_subproc: FileExtension,
-    ftype_from_subproc: FileExtension,
+    infile_ext: FileExtension,
+    outfile_ext: FileExtension,
     #
     timeout_wait_for_first_message: Optional[int],
     timeout_incoming: int,
@@ -312,8 +310,8 @@ async def _consume_and_reply(
                             in_msg,
                             cmd,
                             task_timeout,
-                            ftype_to_subproc,
-                            ftype_from_subproc,
+                            infile_ext,
+                            outfile_ext,
                             staging_dir,
                             keep_debug_dir,
                             dump_task_output,

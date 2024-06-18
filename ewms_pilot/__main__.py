@@ -172,8 +172,8 @@ def main() -> None:
             queue_outgoing=args.queue_outgoing,
             #
             # to subprocess
-            ftype_to_subproc=args.infile_type,
-            ftype_from_subproc=args.outfile_type,
+            infile_type=args.infile_type,
+            outfile_type=args.outfile_type,
             #
             # init
             init_cmd=args.init_cmd,
