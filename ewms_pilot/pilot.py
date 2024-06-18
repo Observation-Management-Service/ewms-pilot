@@ -16,6 +16,7 @@ from .config import (
     REFRESH_INTERVAL,
 )
 from .housekeeping import Housekeeping
+from .tasks.io import FileExtension
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
 from .utils.subproc import run_subproc
@@ -228,8 +229,8 @@ async def _consume_and_reply(
     out_queue: mq.Queue,
     #
     # for subprocess
-    ftype_to_subproc: str,
-    ftype_from_subproc: str,
+    ftype_to_subproc: FileExtension,
+    ftype_from_subproc: FileExtension,
     #
     timeout_wait_for_first_message: Optional[int],
     timeout_incoming: int,

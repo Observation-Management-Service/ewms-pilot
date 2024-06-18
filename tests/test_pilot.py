@@ -1,7 +1,5 @@
 """Test pilot submodule."""
 
-# pylint:disable=redefined-outer-name
-
 import asyncio
 import json
 import logging
@@ -21,6 +19,7 @@ import pytest
 
 from ewms_pilot import PilotSubprocessError, config, consume_and_reply
 from ewms_pilot.config import ENV
+from ewms_pilot.tasks.io import FileExtension
 
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger("mqclient").setLevel(logging.INFO)
@@ -93,7 +92,7 @@ async def populate_queue(
                 await asyncio.sleep(0)  # for consistency
             await pub.send(msg)
 
-    assert i + 1 == len(msgs_to_subproc)  # pylint:disable=undefined-loop-variable
+    assert i + 1 == len(msgs_to_subproc)
 
 
 async def assert_results(
@@ -123,7 +122,7 @@ async def assert_results(
 
 def assert_debug_dir(
     debug_dir: Path,
-    ftype_to_subproc: str,
+    ftype_to_subproc: FileExtension,
     n_tasks: int,
     files: List[str],
     has_init_cmd_subdir: bool = False,

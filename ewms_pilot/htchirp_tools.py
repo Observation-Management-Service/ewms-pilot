@@ -1,6 +1,5 @@
 """Tools for communicating with HTChirp."""
 
-
 import asyncio
 import enum
 import sys
@@ -22,7 +21,6 @@ P = ParamSpec("P")
 class PilotStatus(enum.Enum):
     """A simple listing of statuses, useful for reporting & aggregation."""
 
-    # pylint:disable=invalid-name
     Started = enum.auto()
     RunningInitCommand = enum.auto()
     AwaitingFirstMessage = enum.auto()
@@ -39,7 +37,6 @@ HTCHIRP_ATTR_PREFIX = "HTChirpEWMSPilot"
 class HTChirpEWMSPilotAttr(enum.Enum):
     """Organized list of attributes for chirping."""
 
-    # pylint:disable=invalid-name
     LastUpdatedTimestamp = enum.auto()  # always overwritten
 
     StartedTimestamp = enum.auto()
