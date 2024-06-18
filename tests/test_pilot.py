@@ -389,7 +389,7 @@ indata  = open('{{INFILE}}').read().strip()
 input   = pickle.loads(base64.b64decode(indata));
 output  = input+timedelta(days=1);
 outdata = base64.b64encode(pickle.dumps(output)).decode();
-print(outdata, file=open('{{OUTFILE}}','w'))" """,
+print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
