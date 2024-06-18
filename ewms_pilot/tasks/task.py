@@ -31,7 +31,7 @@ async def process_msg_task(
     stderrfile = staging_subdir / "stderrfile"
     stdoutfile = staging_subdir / "stdoutfile"
 
-    # create in/out filepaths
+    # create in/out filepaths -- piggy-back the uuid since it's unique and trackable
     infilepath = staging_subdir / f"in-{in_msg.uuid}.{infile_ext}"
     outfilepath = staging_subdir / f"out-{in_msg.uuid}.{outfile_ext}"
 
