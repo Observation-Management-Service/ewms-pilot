@@ -190,14 +190,14 @@ def assert_versus_os_walk(first_walk: OSWalkList, persisted_dirs: List[Path]) ->
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_000__txt(
+async def test_000(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
 ) -> None:
-    """Test a normal .txt-based pilot."""
+    """Test a normal pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
@@ -217,8 +217,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".txt",
-            outfile_type=".txt",
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
             debug_dir=debug_dir if use_debug_dir else None,
         ),
@@ -229,7 +229,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         assert_debug_dir(
             debug_dir,
             len(msgs_outgoing_expected),
-            [r"infile-.*\.in", r"outfile-.*\.in", "stderrfile", "stdoutfile"],
+            [r"infile-.*\.in", r"outfile-.*\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -279,7 +279,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         assert_debug_dir(
             debug_dir,
             len(msgs_outgoing_expected),
-            [r"infile-.*\.in", r"outfile-.*\.in", "stderrfile", "stdoutfile"],
+            [r"infile-.*\.txt", r"outfile-.*\.txt", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -457,8 +457,8 @@ async def test_400__exception(
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                infile_type=".txt",
-                outfile_type=".txt",
+                # infile_type=,
+                # outfile_type=,
                 timeout_incoming=TIMEOUT_INCOMING,
                 debug_dir=debug_dir if use_debug_dir else None,
                 quarantine_time=quarantine if quarantine else 0,
@@ -520,8 +520,8 @@ async def test_420__timeout(
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                infile_type=".txt",
-                outfile_type=".txt",
+                # infile_type=,
+                # outfile_type=,
                 timeout_incoming=TIMEOUT_INCOMING,
                 debug_dir=debug_dir if use_debug_dir else None,
                 task_timeout=task_timeout,
@@ -595,8 +595,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".txt",
-            outfile_type=".txt",
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             debug_dir=debug_dir if use_debug_dir else None,
@@ -612,7 +612,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         assert_debug_dir(
             debug_dir,
             len(msgs_outgoing_expected),
-            [r"infile-.*\.in", r"outfile-.*\.in", "stderrfile", "stdoutfile"],
+            [r"infile-.*\.in", r"outfile-.*\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -679,8 +679,8 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                infile_type=".txt",
-                outfile_type=".txt",
+                # infile_type=,
+                # outfile_type=,
                 timeout_incoming=TIMEOUT_INCOMING,
                 prefetch=prefetch,
                 debug_dir=debug_dir if use_debug_dir else None,
@@ -700,7 +700,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         assert_debug_dir(
             debug_dir,
             MULTITASKING,
-            [r"infile-.*\.in", r"outfile-.*\.in", "stderrfile", "stdoutfile"],
+            [r"infile-.*\.in", r"outfile-.*\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -743,8 +743,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         # auth_token="",
         queue_incoming=queue_incoming,
         queue_outgoing=queue_outgoing,
-        infile_type=".txt",
-        outfile_type=".txt",
+        # infile_type=,
+        # outfile_type=,
         timeout_incoming=TIMEOUT_INCOMING,
         prefetch=prefetch,
         debug_dir=debug_dir if use_debug_dir else None,
@@ -759,7 +759,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         assert_debug_dir(
             debug_dir,
             len(msgs_outgoing_expected),
-            [r"infile-.*\.in", r"outfile-.*\.in", "stderrfile", "stdoutfile"],
+            [r"infile-.*\.in", r"outfile-.*\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -811,8 +811,8 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".txt",
-            outfile_type=".txt",
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             debug_dir=debug_dir if use_debug_dir else None,
@@ -831,7 +831,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         assert_debug_dir(
             debug_dir,
             MULTITASKING,
-            [r"infile-.*\.in", r"outfile-.*\.in", "stderrfile", "stdoutfile"],
+            [r"infile-.*\.in", r"outfile-.*\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -895,8 +895,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                infile_type=".txt",
-                outfile_type=".txt",
+                # infile_type=,
+                # outfile_type=,
                 timeout_incoming=timeout_incoming,
                 debug_dir=debug_dir if use_debug_dir else None,
             ),
@@ -925,7 +925,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         len([]),
                         [
                             r"infile-.*\.in",
-                            r"outfile-.*\.in",
+                            r"outfile-.*\.out",
                             "stderrfile",
                             "stdoutfile",
                         ],
@@ -940,7 +940,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         len([]),
                         [
                             r"infile-.*\.in",
-                            r"outfile-.*\.in",
+                            r"outfile-.*\.out",
                             "stderrfile",
                             "stdoutfile",
                         ],
@@ -952,7 +952,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 assert_debug_dir(
                     debug_dir,
                     len(msgs_outgoing_expected),
-                    [r"infile-.*\.in", r"outfile-.*\.in", "stderrfile", "stdoutfile"],
+                    [r"infile-.*\.in", r"outfile-.*\.out", "stderrfile", "stdoutfile"],
                 )
 
     # check for persisted files
@@ -1000,8 +1000,8 @@ with open('initoutput', 'w') as f:
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".txt",
-            outfile_type=".txt",
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
             debug_dir=debug_dir if use_debug_dir else None,
         ),
@@ -1018,7 +1018,7 @@ with open('initoutput', 'w') as f:
         assert_debug_dir(
             debug_dir,
             len(msgs_outgoing_expected),
-            [r"infile-.*\.in", r"outfile-.*\.in", "stderrfile", "stdoutfile"],
+            [r"infile-.*\.in", r"outfile-.*\.out", "stderrfile", "stdoutfile"],
             has_init_cmd_subdir=True,
         )
     # check for persisted files
@@ -1057,8 +1057,8 @@ time.sleep(5)
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".txt",
-            outfile_type=".txt",
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
             debug_dir=None,
         )
@@ -1094,8 +1094,8 @@ raise ValueError('no good!')
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".txt",
-            outfile_type=".txt",
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
             debug_dir=None,
         )
