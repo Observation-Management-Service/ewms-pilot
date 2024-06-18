@@ -2,7 +2,7 @@
 
 import shutil
 from pathlib import Path
-from typing import Any, Optional
+from typing import Optional, Union
 
 from mqclient.broker_client_interface import Message
 
@@ -21,7 +21,7 @@ async def process_msg_task(
     staging_dir: Path,
     keep_debug_dir: bool,
     dump_task_output: bool,
-) -> Any:
+) -> Union[bytes, str]:
     """Process the message's task in a subprocess using `cmd` & respond."""
 
     # staging-dir logic
@@ -54,6 +54,7 @@ async def process_msg_task(
 
     # grab data
     # we cannot rely on the input type, since these can be unrelated (ex: in: gif -> out: text)
+    out_data: Union[bytes, str]
     try:
         with open(outfilepath, "r") as f:  # plain text
             out_data = f.read()
