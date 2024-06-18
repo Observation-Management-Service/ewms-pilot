@@ -390,7 +390,7 @@ async def test_200__pkl_b64(
         ),
         consume_and_reply(
             cmd="""python3 -c "
-import pickle;
+import pickle, base64;
 from datetime import date, timedelta;
 indata  = open('{{INFILE}}').read()
 input   = pickle.loads(base64.b64decode(indata));
