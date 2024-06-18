@@ -44,7 +44,7 @@ async def process_msg_task(
     out_data = OutFileInterface.read(outfilepath)
 
     # send
-    LOGGER.info("Sending return message...")
+    LOGGER.info("Sending response message...")
 
     # cleanup -- on success only
     if not keep_debug_dir:
