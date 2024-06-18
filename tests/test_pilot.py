@@ -933,6 +933,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                     assert_debug_dir(
                         debug_dir,
                         ".txt",
+                        ".txt",
                         len([]),
                         ["in", "out", "stderrfile", "stdoutfile"],
                     )
@@ -944,6 +945,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                     assert_debug_dir(
                         debug_dir,
                         ".txt",
+                        ".txt",
                         len([]),
                         ["in", "out", "stderrfile", "stdoutfile"],
                     )
@@ -953,6 +955,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             if use_debug_dir:
                 assert_debug_dir(
                     debug_dir,
+                    ".txt",
                     ".txt",
                     len(msgs_outgoing_expected),
                     ["in", "out", "stderrfile", "stdoutfile"],
