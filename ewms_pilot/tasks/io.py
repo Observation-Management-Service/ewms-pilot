@@ -1,11 +1,26 @@
 """Tools for controlling sub-processes' input/output."""
 
+import json
 from pathlib import Path
 from typing import Any
 
 from mqclient.broker_client_interface import Message
 
 from ..config import LOGGER
+
+
+class InvalidDataForInfileException(Exception):
+    """Raised when a message contains data that cannot be transformed into a file."""
+
+    def __init__(self, reason: str, fpath: Path) -> None:
+        super().__init__(f"{reason} for infile ({fpath.name})")
+
+
+class InvalidDataFromOutfileException(Exception):
+    """Raised when a file contains data that cannot be transformed into a message."""
+
+    def __init__(self, reason: str, fpath: Path) -> None:
+        super().__init__(f"{reason} for outfile ({fpath.name})")
 
 
 class FileExtension:
@@ -40,10 +55,21 @@ class InFileInterface:
         elif isinstance(in_msg.data, bytes):  # ex: pickled data, jpeg, gif, ...
             with open(fpath, "wb") as f:
                 f.write(in_msg.data)
-        # OBJECT
+        # OBJECT -> json infile
+        elif fpath.suffix == ".json":
+            try:
+                with open(fpath, "w") as f:
+                    json.dump(in_msg.data, f)
+            except TypeError as e:
+                raise InvalidDataForInfileException(str(e), fpath)
+        # OBJECT -> *NOT* json infile
         else:
-            raise TypeError(
-                f"Message data must be a str or bytes, not {type(in_msg.data)}"
+            raise InvalidDataForInfileException(
+                (
+                    f"Message data must be json-serializable (with a '.json' infile), "
+                    f"str, or bytes; not {type(in_msg.data)})"
+                ),
+                fpath,
             )
 
 
@@ -62,11 +88,20 @@ class OutFileInterface:
     def _read(cls, fpath: Path) -> Any:
         LOGGER.info(f"Reading from file: {fpath}")
 
-        # PLAIN TEXT
-        try:
+        # json outfile -> OBJECT
+        if fpath.suffix == ".json":
             with open(fpath, "r") as f:  # plain text
-                return f.read()
-        # BYTES
-        except UnicodeDecodeError:
-            with open(fpath, "rb") as f:  # bytes
-                return f.read()
+                try:
+                    return json.load(f)
+                except TypeError as e:
+                    raise InvalidDataFromOutfileException(str(e), fpath)
+        # non-json outfile...
+        else:
+            # PLAIN TEXT
+            try:
+                with open(fpath, "r") as f:  # plain text
+                    return f.read()
+            # BYTES
+            except UnicodeDecodeError:
+                with open(fpath, "rb") as f:  # bytes
+                    return f.read()
