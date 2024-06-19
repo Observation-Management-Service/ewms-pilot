@@ -46,7 +46,7 @@ async def consume_and_reply(
     #
     # incoming
     queue_incoming: str = ENV.EWMS_PILOT_QUEUE_INCOMING,
-    queue_incoming_auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
+    queue_incoming_auth_token: str = ENV.EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN,
     prefetch: int = ENV.EWMS_PILOT_PREFETCH,
     timeout_wait_for_first_message: Optional[
         int
@@ -55,7 +55,7 @@ async def consume_and_reply(
     #
     # outgoing
     queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
-    queue_outgoing_auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
+    queue_outgoing_auth_token: str = ENV.EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN,
     #
     # for subprocess
     infile_type: str = ".in",
