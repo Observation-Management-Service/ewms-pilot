@@ -1,7 +1,5 @@
 """Configuration constants."""
 
-# pylint:disable=invalid-name
-
 import dataclasses as dc
 import logging
 import os

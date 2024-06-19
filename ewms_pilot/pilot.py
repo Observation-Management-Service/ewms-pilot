@@ -5,7 +5,7 @@ import shutil
 import sys
 import uuid
 from pathlib import Path
-from typing import Any, Callable, List, Optional, Union
+from typing import List, Optional
 
 import mqclient as mq
 
@@ -16,7 +16,7 @@ from .config import (
     REFRESH_INTERVAL,
 )
 from .housekeeping import Housekeeping
-from .tasks.io import FileType, UniversalFileInterface
+from .tasks.io import FileExtension
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
 from .utils.subproc import run_subproc
@@ -37,42 +37,37 @@ _EXCEPT_ERRORS = False
 @htchirp_tools.async_htchirp_error_wrapper
 async def consume_and_reply(
     cmd: str,
+    task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
+    multitasking: int = ENV.EWMS_PILOT_CONCURRENT_TASKS,
     #
-    # for mq
+    # mq broker
     broker_client: str = ENV.EWMS_PILOT_BROKER_CLIENT,
     broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
+    auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
     #
+    # incoming
     queue_incoming: str = ENV.EWMS_PILOT_QUEUE_INCOMING,
-    queue_incoming_auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
-    #
-    queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
-    queue_outgoing_auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
-    #
-    # for subprocess
-    ftype_to_subproc: Union[str, FileType] = FileType.TXT,
-    ftype_from_subproc: Union[str, FileType] = FileType.TXT,
-    #
-    init_cmd: str = "",
-    #
-    #
     prefetch: int = ENV.EWMS_PILOT_PREFETCH,
-    #
     timeout_wait_for_first_message: Optional[
         int
     ] = ENV.EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE,
     timeout_incoming: int = ENV.EWMS_PILOT_TIMEOUT_QUEUE_INCOMING,
     #
-    file_writer: Callable[[Any, Path], None] = UniversalFileInterface.write,
-    file_reader: Callable[[Path], Any] = UniversalFileInterface.read,
+    # outgoing
+    queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
     #
+    # for subprocess
+    infile_type: str = ".in",
+    outfile_type: str = ".out",
+    #
+    # init
+    init_cmd: str = "",
+    init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
+    #
+    # misc settings
     debug_dir: Optional[Path] = None,
     dump_task_output: bool = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT,
-    #
-    init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
-    task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
-    #
-    multitasking: int = ENV.EWMS_PILOT_CONCURRENT_TASKS,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses.
 
@@ -85,11 +80,6 @@ async def consume_and_reply(
 
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
-
-    if not isinstance(ftype_to_subproc, FileType):
-        ftype_to_subproc = FileType(ftype_to_subproc)
-    if not isinstance(ftype_from_subproc, FileType):
-        ftype_from_subproc = FileType(ftype_from_subproc)
 
     housekeeper = Housekeeping(chirper)
     staging_dir = debug_dir if debug_dir else Path("./tmp")
@@ -111,7 +101,7 @@ async def consume_and_reply(
             address=broker_address,
             name=queue_incoming,
             prefetch=prefetch,
-            auth_token=queue_incoming_auth_token,
+            auth_token=auth_token,
             except_errors=_EXCEPT_ERRORS,
             # timeout=timeout_incoming, # manually set below
         )
@@ -119,7 +109,7 @@ async def consume_and_reply(
             broker_client,
             address=broker_address,
             name=queue_outgoing,
-            auth_token=queue_outgoing_auth_token,
+            auth_token=auth_token,
             except_errors=_EXCEPT_ERRORS,
             # timeout=timeout_outgoing,  # no timeout needed b/c this queue is only for pub
         )
@@ -129,13 +119,11 @@ async def consume_and_reply(
             cmd,
             in_queue,
             out_queue,
-            ftype_to_subproc,
-            ftype_from_subproc,
+            FileExtension(infile_type),
+            FileExtension(outfile_type),
             #
             timeout_wait_for_first_message,
             timeout_incoming,
-            file_writer,
-            file_reader,
             #
             staging_dir,
             bool(debug_dir),
@@ -239,14 +227,11 @@ async def _consume_and_reply(
     out_queue: mq.Queue,
     #
     # for subprocess
-    ftype_to_subproc: FileType,
-    ftype_from_subproc: FileType,
+    infile_ext: FileExtension,
+    outfile_ext: FileExtension,
     #
     timeout_wait_for_first_message: Optional[int],
     timeout_incoming: int,
-    #
-    file_writer: Callable[[Any, Path], None],
-    file_reader: Callable[[Path], Any],
     #
     staging_dir: Path,
     keep_debug_dir: bool,
@@ -325,10 +310,8 @@ async def _consume_and_reply(
                             in_msg,
                             cmd,
                             task_timeout,
-                            ftype_to_subproc,
-                            ftype_from_subproc,
-                            file_writer,
-                            file_reader,
+                            infile_ext,
+                            outfile_ext,
                             staging_dir,
                             keep_debug_dir,
                             dump_task_output,
