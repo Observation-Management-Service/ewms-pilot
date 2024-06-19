@@ -1,77 +1,107 @@
 """Tools for controlling sub-processes' input/output."""
 
-
-import enum
 import json
-import pickle
 from pathlib import Path
 from typing import Any
+
+from mqclient.broker_client_interface import Message
 
 from ..config import LOGGER
 
 
-class FileType(enum.Enum):
-    """Various file types/extensions."""
+class InvalidDataForInfileException(Exception):
+    """Raised when a message contains data that cannot be transformed into a file."""
 
-    PKL = ".pkl"
-    TXT = ".txt"
-    JSON = ".json"
+    def __init__(self, reason: str, fpath: Path) -> None:
+        super().__init__(f"{reason} for infile ({fpath.name})")
 
 
-class UniversalFileInterface:
-    """Support reading and writing for any `FileType` file extension."""
+class InvalidDataFromOutfileException(Exception):
+    """Raised when a file contains data that cannot be transformed into a message."""
+
+    def __init__(self, reason: str, fpath: Path) -> None:
+        super().__init__(f"{reason} for outfile ({fpath.name})")
+
+
+class FileExtension:
+    """Really, this just strips the dot off the file extension string."""
+
+    def __init__(self, extension: str):
+        self.val = extension.lstrip(".").lower()
+
+    def __str__(self) -> str:
+        return self.val
+
+
+class InFileInterface:
+    """Support writing an infile from message data."""
 
     @classmethod
-    def write(cls, in_msg: Any, fpath: Path) -> None:
-        """Write `stuff` to `fpath` per `fpath.suffix`."""
+    def write(cls, in_msg: Message, fpath: Path) -> None:
+        """Write `in_msg` to `fpath`."""
         cls._write(in_msg, fpath)
-        LOGGER.info(f"File Written :: {fpath} ({fpath.stat().st_size} bytes)")
+        LOGGER.info(f"INFILE :: {fpath} ({fpath.stat().st_size} bytes)")
 
     @classmethod
-    def _write(cls, in_msg: Any, fpath: Path) -> None:
+    def _write(cls, in_msg: Message, fpath: Path) -> None:
         LOGGER.info(f"Writing to file: {fpath}")
         LOGGER.debug(in_msg)
 
-        # PKL
-        if fpath.suffix == FileType.PKL.value:
+        # PLAIN TEXT
+        if isinstance(in_msg.data, str):  # ex: text, yaml string, json string
+            with open(fpath, "w") as f:
+                f.write(in_msg.data)
+        # BYTES
+        elif isinstance(in_msg.data, bytes):  # ex: pickled data, jpeg, gif, ...
             with open(fpath, "wb") as f:
-                pickle.dump(in_msg, f)
-        # TXT
-        elif fpath.suffix == FileType.TXT.value:
-            with open(fpath, "w") as f:
-                f.write(in_msg)
-        # JSON
-        elif fpath.suffix == FileType.JSON.value:
-            with open(fpath, "w") as f:
-                json.dump(in_msg, f)
-        # ???
+                f.write(in_msg.data)
+        # OBJECT -> json infile
+        elif fpath.suffix == ".json":
+            try:
+                with open(fpath, "w") as f:
+                    json.dump(in_msg.data, f)
+            except TypeError as e:
+                raise InvalidDataForInfileException(str(e), fpath)
+        # OBJECT -> *NOT* json infile
         else:
-            raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
+            raise InvalidDataForInfileException(
+                (
+                    f"Message data must be json-serializable (with a '.json' infile), "
+                    f"str, or bytes; not {type(in_msg.data)})"
+                ),
+                fpath,
+            )
+
+
+class OutFileInterface:
+    """Support reading an outfile for use in a message."""
 
     @classmethod
     def read(cls, fpath: Path) -> Any:
-        """Read and return contents of `fpath` per `fpath.suffix`."""
-        msg = cls._read(fpath)
-        LOGGER.info(f"File Read :: {fpath} ({fpath.stat().st_size} bytes)")
-        LOGGER.debug(msg)
-        return msg
+        """Read and return contents of `fpath`."""
+        LOGGER.info(f"OUTFILE :: {fpath} ({fpath.stat().st_size} bytes)")
+        data = cls._read(fpath)
+        LOGGER.debug(data)
+        return data
 
     @classmethod
     def _read(cls, fpath: Path) -> Any:
         LOGGER.info(f"Reading from file: {fpath}")
 
-        # PKL
-        if fpath.suffix == FileType.PKL.value:
-            with open(fpath, "rb") as f:
-                return pickle.load(f)
-        # TXT
-        elif fpath.suffix == FileType.TXT.value:
-            with open(fpath, "r") as f:
-                return f.read()
-        # JSON
-        elif fpath.suffix == FileType.JSON.value:
-            with open(fpath, "r") as f:
-                return json.load(f)
-        # ???
+        # json outfile -> OBJECT
+        if fpath.suffix == ".json":
+            with open(fpath, "r") as f:  # plain text
+                try:
+                    return json.load(f)
+                except TypeError as e:
+                    raise InvalidDataFromOutfileException(str(e), fpath)
+        # non-json outfile...
         else:
-            raise ValueError(f"Unsupported file type: {fpath.suffix} ({fpath})")
+            # PLAIN TEXT
+            try:
+                with open(fpath, "r") as f:  # plain text
+                    return f.read()
+            # BYTES
+            except UnicodeDecodeError:
+                with open(fpath, "rb") as f:  # bytes
+                    return f.read()

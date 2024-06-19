@@ -7,7 +7,6 @@ from wipac_dev_tools import argparse_tools, logging_tools
 
 from .config import ENV, LOGGER
 from .pilot import consume_and_reply
-from .tasks.io import FileType
 
 
 def main() -> None:
@@ -25,13 +24,11 @@ def main() -> None:
     )
     parser.add_argument(
         "--infile-type",
-        type=FileType,
         required=True,
         help="the file type (extension) of the input file for the pilot's task",
     )
     parser.add_argument(
         "--outfile-type",
-        type=FileType,
         required=True,
         help="the file type (extension) of the output file from the pilot's task",
     )
@@ -157,34 +154,35 @@ def main() -> None:
     asyncio.run(
         consume_and_reply(
             cmd=args.cmd,
+            task_timeout=args.task_timeout,
+            multitasking=args.multitasking,
             #
-            queue_incoming=args.queue_incoming,
-            queue_outgoing=args.queue_outgoing,
-            #
-            ftype_to_subproc=args.infile_type,
-            ftype_from_subproc=args.outfile_type,
-            #
-            init_cmd=args.init_cmd,
-            #
+            # mq broker
             broker_client=args.broker_client,
             broker_address=args.broker,
             auth_token=args.auth_token,
             #
+            # incoming
+            queue_incoming=args.queue_incoming,
             prefetch=args.prefetch,
-            #
             timeout_wait_for_first_message=args.timeout_wait_for_first_message,
             timeout_incoming=args.timeout_incoming,
             #
-            # file_writer=UniversalFileInterface.write,
-            # file_reader=UniversalFileInterface.read,
+            # outgoing
+            queue_outgoing=args.queue_outgoing,
             #
-            debug_dir=args.debug_directory,
+            # to subprocess
+            infile_type=args.infile_type,
+            outfile_type=args.outfile_type,
             #
+            # init
+            init_cmd=args.init_cmd,
             init_timeout=args.init_timeout,
-            task_timeout=args.task_timeout,
-            quarantine_time=args.quarantine_time,
             #
-            multitasking=args.multitasking,
+            # misc settings
+            debug_dir=args.debug_directory,
+            dump_task_output=args.dump_task_output,
+            quarantine_time=args.quarantine_time,
         )
     )
     LOGGER.info("Done.")

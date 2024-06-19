@@ -1,23 +1,24 @@
 """Test pilot submodule."""
 
-# pylint:disable=redefined-outer-name
-
 import asyncio
+import base64
+import json
 import logging
 import os
+import pickle
 import re
 import time
 import uuid
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import List, Optional, Tuple, Dict
 from unittest.mock import patch
 
 import asyncstdlib as asl
 import mqclient as mq
 import pytest
 
-from ewms_pilot import FileType, PilotSubprocessError, config, consume_and_reply
+from ewms_pilot import PilotSubprocessError, config, consume_and_reply
 from ewms_pilot.config import ENV
 
 logging.getLogger().setLevel(logging.DEBUG)
@@ -91,7 +92,7 @@ async def populate_queue(
                 await asyncio.sleep(0)  # for consistency
             await pub.send(msg)
 
-    assert i + 1 == len(msgs_to_subproc)  # pylint:disable=undefined-loop-variable
+    assert i + 1 == len(msgs_to_subproc)
 
 
 async def assert_results(
@@ -121,9 +122,8 @@ async def assert_results(
 
 def assert_debug_dir(
     debug_dir: Path,
-    ftype_to_subproc: FileType,
     n_tasks: int,
-    files: List[str],
+    files_patterns: List[str],
     has_init_cmd_subdir: bool = False,
 ) -> None:
     if has_init_cmd_subdir:
@@ -131,30 +131,32 @@ def assert_debug_dir(
     else:
         assert len(list(debug_dir.iterdir())) == n_tasks
 
-    for path in debug_dir.iterdir():
-        assert path.is_dir()
+    for dpath in debug_dir.iterdir():
+        assert dpath.is_dir()
 
         # init subdir
-        if has_init_cmd_subdir and path.name.startswith("init"):
-            assert sorted(p.name for p in path.iterdir()) == sorted(
+        if has_init_cmd_subdir and dpath.name.startswith("init"):
+            assert sorted(p.name for p in dpath.iterdir()) == sorted(
                 ["stderrfile", "stdoutfile"]
             )
             continue
 
         # task subdirs
-        task_id = path.name
+        task_id = dpath.name
+
+        for subpath in dpath.iterdir():
+            assert subpath.is_file()
 
         # look for in/out files
-        for subpath in path.iterdir():
-            assert subpath.is_file()
-        expected_files = list(files)  # copies
-        if "in" in expected_files:
-            expected_files.remove("in")
-            expected_files.append(f"in-{task_id}{ftype_to_subproc.value}")
-        if "out" in expected_files:
-            expected_files.remove("out")
-            expected_files.append(f"out-{task_id}{ftype_to_subproc.value}")
-        assert sorted(p.name for p in path.iterdir()) == sorted(expected_files)
+        # check that each file matches one pattern & visa versa
+        checks: Dict[str, list[str]] = {f.name: [] for f in dpath.iterdir()}
+        for fname in checks:
+            for pattern in files_patterns:
+                pattern = pattern.replace("{UUID}", task_id)
+                if re.fullmatch(pattern, fname):
+                    checks[fname].append(pattern)
+        assert all(len(checks[f]) == 1 for f in checks)
+        assert len(list(dpath.iterdir())) == len(files_patterns)
 
 
 def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> List[str]:
@@ -189,14 +191,14 @@ def assert_versus_os_walk(first_walk: OSWalkList, persisted_dirs: List[Path]) ->
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_000__txt(
+async def test_000(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
 ) -> None:
-    """Test a normal .txt-based pilot."""
+    """Test a normal pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
@@ -216,11 +218,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
         ),
     )
@@ -229,9 +229,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
             len(msgs_outgoing_expected),
-            ["in", "out", "stderrfile", "stdoutfile"],
+            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -269,11 +268,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=".txt",
-            ftype_from_subproc=".txt",
+            infile_type=".txt",
+            outfile_type=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
         ),
     )
@@ -282,9 +279,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
             len(msgs_outgoing_expected),
-            ["in", "out", "stderrfile", "stdoutfile"],
+            [r"infile-{UUID}\.txt", r"outfile-{UUID}\.txt", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -295,7 +291,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_100__json(
+async def test_100__json__objects(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
@@ -327,11 +323,9 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.JSON,
-            ftype_from_subproc=FileType.JSON,
+            infile_type=".json",
+            outfile_type=".json",
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
         ),
     )
@@ -340,9 +334,13 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.JSON,
             len(msgs_outgoing_expected),
-            ["in", "out", "stderrfile", "stdoutfile"],
+            [
+                r"infile-{UUID}\.json",
+                r"outfile-{UUID}\.json",
+                "stderrfile",
+                "stdoutfile",
+            ],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -353,25 +351,92 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_200__pickle(
+async def test_101__json__preserialized(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
     first_walk: OSWalkList,
     use_debug_dir: bool,
 ) -> None:
-    """Test a normal .pkl-based pilot."""
+    """Test a normal .json-based pilot."""
+
+    # some messages that would make sense json'ing
+    msgs_to_subproc = [json.dumps({"attr-0": v}) for v in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [{"attr-a": v, "attr-b": v + v} for v in MSGS_TO_SUBPROC]
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
+        ),
+        consume_and_reply(
+            cmd="""python3 -c "
+import json;
+input=json.load(open('{{INFILE}}'));
+v=input['attr-0'];
+output={'attr-a':v, 'attr-b':v+v};
+json.dump(output, open('{{OUTFILE}}','w'))" """,
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            infile_type=".json",
+            outfile_type=".json",
+            timeout_incoming=TIMEOUT_INCOMING,
+            debug_dir=debug_dir if use_debug_dir else None,
+        ),
+    )
+
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
+    if use_debug_dir:
+        assert_debug_dir(
+            debug_dir,
+            len(msgs_outgoing_expected),
+            [
+                r"infile-{UUID}\.json",
+                r"outfile-{UUID}\.json",
+                "stderrfile",
+                "stdoutfile",
+            ],
+        )
+    # check for persisted files
+    assert_versus_os_walk(
+        first_walk,
+        [debug_dir if use_debug_dir else Path("./tmp")],
+    )
+
+
+@pytest.mark.usefixtures("unique_pwd")
+@pytest.mark.parametrize("use_debug_dir", [True, False])
+async def test_200__pkl_b64(
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: OSWalkList,
+    use_debug_dir: bool,
+) -> None:
+    """Test a user-defined pickle/b64-based pilot."""
+
+    dumps = lambda x: base64.b64encode(pickle.dumps(x)).decode()  # noqa: E731
+    loads = lambda x: pickle.loads(base64.b64decode(x))  # noqa: E731
 
     # some messages that would make sense pickling
     msgs_to_subproc = [
-        date(
-            1995 + int(re.sub(r"[^0-9]", "", x)),
-            int(re.sub(r"[^0-9]", "", x)) % 12 + 1,
-            int(re.sub(r"[^0-9]", "", x)) % 28 + 1,
+        dumps(
+            date(
+                1995 + int(re.sub(r"[^0-9]", "", x)),
+                int(re.sub(r"[^0-9]", "", x)) % 12 + 1,
+                int(re.sub(r"[^0-9]", "", x)) % 28 + 1,
+            )
         )
         for x in MSGS_TO_SUBPROC
     ]
-    msgs_outgoing_expected = [d + timedelta(days=1) for d in msgs_to_subproc]
+    msgs_outgoing_expected = [
+        dumps(loads(d) + timedelta(days=1)) for d in msgs_to_subproc
+    ]
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -382,21 +447,21 @@ async def test_200__pickle(
         ),
         consume_and_reply(
             cmd="""python3 -c "
-import pickle;
+import pickle, base64;
 from datetime import date, timedelta;
-input=pickle.load(open('{{INFILE}}','rb'));
-output=input+timedelta(days=1);
-pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
+indata  = open('{{INFILE}}').read().strip()
+input   = pickle.loads(base64.b64decode(indata));
+output  = input+timedelta(days=1);
+outdata = base64.b64encode(pickle.dumps(output)).decode();
+print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.PKL,
-            ftype_from_subproc=FileType.PKL,
+            infile_type=".pkl.b64",
+            outfile_type=".pkl.b64",
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
         ),
     )
@@ -405,70 +470,13 @@ pickle.dump(output, open('{{OUTFILE}}','wb'))" """,
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.PKL,
             len(msgs_outgoing_expected),
-            ["in", "out", "stderrfile", "stdoutfile"],
-        )
-    # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
-
-
-@pytest.mark.usefixtures("unique_pwd")
-@pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_300__writer_reader(
-    queue_incoming: str,
-    queue_outgoing: str,
-    debug_dir: Path,
-    first_walk: OSWalkList,
-    use_debug_dir: bool,
-) -> None:
-    """Test a normal .txt-based pilot."""
-    msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"output: {x[::-1]}{x[::-1]}\n" for x in MSGS_TO_SUBPROC]
-
-    def reverse_writer(text: Any, fpath: Path) -> None:
-        with open(fpath, "w") as f:
-            f.write(text[::-1])
-
-    def reader_w_prefix(fpath: Path) -> str:
-        with open(fpath) as f:
-            return f"output: {f.read()}"
-
-    # run producer & consumer concurrently
-    await asyncio.gather(
-        populate_queue(
-            queue_incoming,
-            msgs_to_subproc,
-            intermittent_sleep=TIMEOUT_INCOMING / 4,
-        ),
-        consume_and_reply(
-            cmd="""python3 -c "
-output = open('{{INFILE}}').read().strip() * 2;
-print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
-            queue_incoming=queue_incoming,
-            queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
-            timeout_incoming=TIMEOUT_INCOMING,
-            file_writer=reverse_writer,
-            file_reader=reader_w_prefix,
-            debug_dir=debug_dir if use_debug_dir else None,
-        ),
-    )
-
-    await assert_results(queue_outgoing, msgs_outgoing_expected)
-    if use_debug_dir:
-        assert_debug_dir(
-            debug_dir,
-            FileType.TXT,
-            len(msgs_outgoing_expected),
-            ["in", "out", "stderrfile", "stdoutfile"],
+            [
+                r"infile-{UUID}\.pkl\.b64",
+                r"outfile-{UUID}\.pkl\.b64",
+                "stderrfile",
+                "stdoutfile",
+            ],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -513,11 +521,9 @@ async def test_400__exception(
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                ftype_to_subproc=FileType.TXT,
-                ftype_from_subproc=FileType.TXT,
+                # infile_type=,
+                # outfile_type=,
                 timeout_incoming=TIMEOUT_INCOMING,
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
                 quarantine_time=quarantine if quarantine else 0,
             ),
@@ -532,9 +538,8 @@ async def test_400__exception(
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
             1,  # only 1 message was processed before error
-            ["in", "stderrfile", "stdoutfile"],
+            [r"infile-{UUID}\.in", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -579,11 +584,9 @@ async def test_420__timeout(
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                ftype_to_subproc=FileType.TXT,
-                ftype_from_subproc=FileType.TXT,
+                # infile_type=,
+                # outfile_type=,
                 timeout_incoming=TIMEOUT_INCOMING,
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
                 task_timeout=task_timeout,
             ),
@@ -595,9 +598,8 @@ async def test_420__timeout(
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
             1,
-            ["in", "stderrfile", "stdoutfile"],
+            [r"infile-{UUID}\.in", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -657,12 +659,10 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
             multitasking=MULTITASKING,
         ),
@@ -675,9 +675,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
             len(msgs_outgoing_expected),
-            ["in", "out", "stderrfile", "stdoutfile"],
+            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -722,13 +721,15 @@ async def test_510__concurrent_load_multitasking_exceptions(
                 queue_incoming,
                 msgs_to_subproc,
                 # for some reason the delay has timing issues with rabbitmq & prefetch=1
-                intermittent_sleep=TIMEOUT_INCOMING / 4
-                if not (
-                    prefetch == 1
-                    and not use_debug_dir
-                    and config.ENV.EWMS_PILOT_BROKER_CLIENT == "rabbitmq"
-                )
-                else 0,
+                intermittent_sleep=(
+                    TIMEOUT_INCOMING / 4
+                    if not (
+                        prefetch == 1
+                        and not use_debug_dir
+                        and config.ENV.EWMS_PILOT_BROKER_CLIENT == "rabbitmq"
+                    )
+                    else 0
+                ),
             ),
             consume_and_reply(
                 cmd="""python3 -c "
@@ -742,12 +743,10 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                ftype_to_subproc=FileType.TXT,
-                ftype_from_subproc=FileType.TXT,
+                # infile_type=,
+                # outfile_type=,
                 timeout_incoming=TIMEOUT_INCOMING,
                 prefetch=prefetch,
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
                 multitasking=MULTITASKING,
             ),
@@ -764,9 +763,8 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
             MULTITASKING,
-            ["in", "out", "stderrfile", "stdoutfile"],
+            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -809,12 +807,10 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         # auth_token="",
         queue_incoming=queue_incoming,
         queue_outgoing=queue_outgoing,
-        ftype_to_subproc=FileType.TXT,
-        ftype_from_subproc=FileType.TXT,
+        # infile_type=,
+        # outfile_type=,
         timeout_incoming=TIMEOUT_INCOMING,
         prefetch=prefetch,
-        # file_writer=UniversalFileInterface.write, # see other tests
-        # file_reader=UniversalFileInterface.read, # see other tests
         debug_dir=debug_dir if use_debug_dir else None,
         multitasking=MULTITASKING,
     )
@@ -826,9 +822,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
             len(msgs_outgoing_expected),
-            ["in", "out", "stderrfile", "stdoutfile"],
+            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -880,12 +875,10 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
             multitasking=MULTITASKING,
         )
@@ -901,9 +894,8 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
             MULTITASKING,
-            ["in", "out", "stderrfile", "stdoutfile"],
+            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -967,11 +959,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                ftype_to_subproc=FileType.TXT,
-                ftype_from_subproc=FileType.TXT,
+                # infile_type=,
+                # outfile_type=,
                 timeout_incoming=timeout_incoming,
-                # file_writer=UniversalFileInterface.write, # see other tests
-                # file_reader=UniversalFileInterface.read, # see other tests
                 debug_dir=debug_dir if use_debug_dir else None,
             ),
         )
@@ -996,9 +986,13 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 if use_debug_dir:
                     assert_debug_dir(
                         debug_dir,
-                        FileType.TXT,
                         len([]),
-                        ["in", "out", "stderrfile", "stdoutfile"],
+                        [
+                            r"infile-{UUID}\.in",
+                            r"outfile-{UUID}\.out",
+                            "stderrfile",
+                            "stdoutfile",
+                        ],
                     )
         elif refresh_interval_rabbitmq_heartbeat_interval == TEST_1000_SLEEP:
             with pytest.raises(mq.broker_client_interface.ClosingFailedException):
@@ -1007,9 +1001,13 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 if use_debug_dir:
                     assert_debug_dir(
                         debug_dir,
-                        FileType.TXT,
                         len([]),
-                        ["in", "out", "stderrfile", "stdoutfile"],
+                        [
+                            r"infile-{UUID}\.in",
+                            r"outfile-{UUID}\.out",
+                            "stderrfile",
+                            "stdoutfile",
+                        ],
                     )
         else:  # refresh_interval_rabbitmq_heartbeat_interval < TEST_1000_SLEEP
             await _test()
@@ -1017,9 +1015,13 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             if use_debug_dir:
                 assert_debug_dir(
                     debug_dir,
-                    FileType.TXT,
                     len(msgs_outgoing_expected),
-                    ["in", "out", "stderrfile", "stdoutfile"],
+                    [
+                        r"infile-{UUID}\.in",
+                        r"outfile-{UUID}\.out",
+                        "stderrfile",
+                        "stdoutfile",
+                    ],
                 )
 
     # check for persisted files
@@ -1067,11 +1069,9 @@ with open('initoutput', 'w') as f:
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=debug_dir if use_debug_dir else None,
         ),
     )
@@ -1086,9 +1086,8 @@ with open('initoutput', 'w') as f:
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            FileType.TXT,
             len(msgs_outgoing_expected),
-            ["in", "out", "stderrfile", "stdoutfile"],
+            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
             has_init_cmd_subdir=True,
         )
     # check for persisted files
@@ -1127,11 +1126,9 @@ time.sleep(5)
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=None,
         )
 
@@ -1166,11 +1163,9 @@ raise ValueError('no good!')
             # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            ftype_to_subproc=FileType.TXT,
-            ftype_from_subproc=FileType.TXT,
+            # infile_type=,
+            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
-            # file_writer=UniversalFileInterface.write, # see other tests
-            # file_reader=UniversalFileInterface.read, # see other tests
             debug_dir=None,
         )
 
