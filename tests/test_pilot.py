@@ -291,7 +291,67 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
-async def test_100__json(
+async def test_100__json__objects(
+    queue_incoming: str,
+    queue_outgoing: str,
+    debug_dir: Path,
+    first_walk: OSWalkList,
+    use_debug_dir: bool,
+) -> None:
+    """Test a normal .json-based pilot."""
+
+    # some messages that would make sense json'ing
+    msgs_to_subproc = [{"attr-0": v} for v in MSGS_TO_SUBPROC]
+    msgs_outgoing_expected = [{"attr-a": v, "attr-b": v + v} for v in MSGS_TO_SUBPROC]
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
+        ),
+        consume_and_reply(
+            cmd="""python3 -c "
+import json;
+input=json.load(open('{{INFILE}}'));
+v=input['attr-0'];
+output={'attr-a':v, 'attr-b':v+v};
+json.dump(output, open('{{OUTFILE}}','w'))" """,
+            # broker_client=,  # rely on env var
+            # broker_address=,  # rely on env var
+            # auth_token="",
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            infile_type=".json",
+            outfile_type=".json",
+            timeout_incoming=TIMEOUT_INCOMING,
+            debug_dir=debug_dir if use_debug_dir else None,
+        ),
+    )
+
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
+    if use_debug_dir:
+        assert_debug_dir(
+            debug_dir,
+            len(msgs_outgoing_expected),
+            [
+                r"infile-{UUID}\.json",
+                r"outfile-{UUID}\.json",
+                "stderrfile",
+                "stdoutfile",
+            ],
+        )
+    # check for persisted files
+    assert_versus_os_walk(
+        first_walk,
+        [debug_dir if use_debug_dir else Path("./tmp")],
+    )
+
+
+@pytest.mark.usefixtures("unique_pwd")
+@pytest.mark.parametrize("use_debug_dir", [True, False])
+async def test_101__json__preserialized(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
@@ -302,9 +362,7 @@ async def test_100__json(
 
     # some messages that would make sense json'ing
     msgs_to_subproc = [json.dumps({"attr-0": v}) for v in MSGS_TO_SUBPROC]
-    msgs_outgoing_expected = [
-        json.dumps({"attr-a": v, "attr-b": v + v}) for v in MSGS_TO_SUBPROC
-    ]
+    msgs_outgoing_expected = [{"attr-a": v, "attr-b": v + v} for v in MSGS_TO_SUBPROC]
 
     # run producer & consumer concurrently
     await asyncio.gather(
