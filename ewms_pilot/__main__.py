@@ -67,12 +67,6 @@ def main() -> None:
         help="The MQ broker URL to connect to",
     )
     parser.add_argument(
-        "-a",
-        "--auth-token",
-        default=ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
-        help="The MQ authentication token to use",
-    )
-    parser.add_argument(
         "--prefetch",
         default=ENV.EWMS_PILOT_PREFETCH,
         type=int,
