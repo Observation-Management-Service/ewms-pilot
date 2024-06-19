@@ -298,7 +298,7 @@ async def test_100__json__objects(
     first_walk: OSWalkList,
     use_debug_dir: bool,
 ) -> None:
-    """Test a normal .json-based pilot."""
+    """Test a normal (object in, object out) .json-based pilot."""
 
     # some messages that would make sense json'ing
     msgs_to_subproc = [{"attr-0": v} for v in MSGS_TO_SUBPROC]
@@ -358,7 +358,7 @@ async def test_101__json__preserialized(
     first_walk: OSWalkList,
     use_debug_dir: bool,
 ) -> None:
-    """Test a normal .json-based pilot."""
+    """Test a preserialized (json-string in, object out) .json-based pilot."""
 
     # some messages that would make sense json'ing
     msgs_to_subproc = [json.dumps({"attr-0": v}) for v in MSGS_TO_SUBPROC]

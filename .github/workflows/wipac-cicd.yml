@@ -160,7 +160,6 @@ jobs:
           export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker_client }}
           pip install .[test,${{ matrix.broker_client }}]
 
-          export EWMS_PILOT_BROKER_AUTH_TOKEN=""
           export EWMS_PILOT_QUEUE_INCOMING="a012"
           export EWMS_PILOT_QUEUE_OUTGOING="b345"
           python examples/do_task.py
