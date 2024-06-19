@@ -43,10 +43,10 @@ async def consume_and_reply(
     # mq broker
     broker_client: str = ENV.EWMS_PILOT_BROKER_CLIENT,
     broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
-    auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
     #
     # incoming
     queue_incoming: str = ENV.EWMS_PILOT_QUEUE_INCOMING,
+    queue_incoming_auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
     prefetch: int = ENV.EWMS_PILOT_PREFETCH,
     timeout_wait_for_first_message: Optional[
         int
@@ -55,6 +55,7 @@ async def consume_and_reply(
     #
     # outgoing
     queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
+    queue_outgoing_auth_token: str = ENV.EWMS_PILOT_BROKER_AUTH_TOKEN,
     #
     # for subprocess
     infile_type: str = ".in",
@@ -101,7 +102,7 @@ async def consume_and_reply(
             address=broker_address,
             name=queue_incoming,
             prefetch=prefetch,
-            auth_token=auth_token,
+            auth_token=queue_incoming_auth_token,
             except_errors=_EXCEPT_ERRORS,
             # timeout=timeout_incoming, # manually set below
         )
@@ -109,7 +110,7 @@ async def consume_and_reply(
             broker_client,
             address=broker_address,
             name=queue_outgoing,
-            auth_token=auth_token,
+            auth_token=queue_outgoing_auth_token,
             except_errors=_EXCEPT_ERRORS,
             # timeout=timeout_outgoing,  # no timeout needed b/c this queue is only for pub
         )

@@ -160,7 +160,6 @@ def main() -> None:
             # mq broker
             broker_client=args.broker_client,
             broker_address=args.broker,
-            auth_token=args.auth_token,
             #
             # incoming
             queue_incoming=args.queue_incoming,
