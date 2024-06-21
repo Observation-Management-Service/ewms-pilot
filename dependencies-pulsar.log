@@ -37,7 +37,7 @@ ewms-pilot
     └── zstd [required: Any, installed: 1.5.5.1]
 pipdeptree==2.23.0
 ├── packaging [required: >=23.1, installed: 24.1]
-└── pip [required: >=23.1.2, installed: 24.0]
+└── pip [required: >=23.1.2, installed: 24.1]
 pulsar-client==3.5.0
 └── certifi [required: Any, installed: 2024.6.2]
 setuptools==70.0.0
