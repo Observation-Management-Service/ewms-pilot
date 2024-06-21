@@ -22,36 +22,56 @@ REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main
 class EnvConfig:
     """For storing environment variables, typed."""
 
-    # broker -- assumes one broker is the norm
-    EWMS_PILOT_BROKER_CLIENT: str = "rabbitmq"
-    EWMS_PILOT_BROKER_ADDRESS: str = "localhost"
-    EWMS_PILOT_QUEUE_INCOMING: str = ""
-    EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN: str = ""
-    EWMS_PILOT_QUEUE_OUTGOING: str = ""
-    EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN: str = ""
+    # incoming queue
+    EWMS_PILOT_QUEUE_INCOMING: str = ""  # name of the incoming queue
+    EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN: str = ""  # auth token for queue
+    EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
+    EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
 
-    # logging
-    EWMS_PILOT_CL_LOG: str = "INFO"  # only used when running via command line
-    EWMS_PILOT_CL_LOG_THIRD_PARTY: str = "WARNING"  # ^^^
-    EWMS_PILOT_DUMP_TASK_OUTPUT: bool = False
+    # incoming queue - settings
+    EWMS_PILOT_PREFETCH: int = (
+        1  # prefetch amount for incoming messages (off by default -- prefetch is an optimization)
+    )
+    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: Optional[int] = (
+        None  # timeout (sec) for the first message to arrive at the pilot (defaults to incoming timeout value)
+    )
+    EWMS_PILOT_TIMEOUT_QUEUE_INCOMING: int = 1  # timeout (sec) for messages TO pilot
+
+    # outgoing queue
+    EWMS_PILOT_QUEUE_OUTGOING: str = ""  # name of the outgoing queue
+    EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN: str = ""  # auth token for queue
+    EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
+    EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
+
+    # logging -- only used when running via command line
+    EWMS_PILOT_CL_LOG: str = "INFO"  # level for 1st-party loggers
+    EWMS_PILOT_CL_LOG_THIRD_PARTY: str = "WARNING"  # level for 3rd-party loggers
 
     # chirp
     EWMS_PILOT_HTCHIRP: bool = False
     EWMS_PILOT_HTCHIRP_DEST: str = "JOB_ATTR"  # ["JOB_EVENT_LOG", "JOB_ATTR"]
     EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL: float = 60.0
 
-    # timing config -- queues
-    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: Optional[int] = None
-    EWMS_PILOT_TIMEOUT_QUEUE_INCOMING: int = 1
     # timing config -- tasks
-    EWMS_PILOT_INIT_TIMEOUT: Optional[int] = None
-    EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None
-    EWMS_PILOT_QUARANTINE_TIME: int = 0  # seconds
+    EWMS_PILOT_INIT_TIMEOUT: Optional[int] = None  # timeout (sec) for the init command
+    EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None  # timeout (sec) for each task
 
     # task handling logic
-    EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: bool = True
-    EWMS_PILOT_CONCURRENT_TASKS: int = 1
-    EWMS_PILOT_PREFETCH: int = 1  # off by default -- prefetch is an optimization
+    EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: bool = (
+        True
+        # whether to stop taking future tasks after a task fails;
+        # ex: set to False if on known good compute node (testing cluster),
+        #     set to True  if on unknown node (large homogeneous cluster)
+    )
+    EWMS_PILOT_MAX_CONCURRENT_TASKS: int = 1  # max no. of tasks to process in parallel
+
+    # misc settings
+    EWMS_PILOT_DUMP_TASK_OUTPUT: bool = (
+        False  # dump each task's stderr to stderr and stdout to stdout
+    )
+    EWMS_PILOT_QUARANTINE_TIME: int = (
+        0  # how long to sleep after error (useful for preventing blackhole scenarios on condor)
+    )
 
     def __post_init__(self) -> None:
         if timeout := os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT"):
@@ -66,9 +86,9 @@ class EnvConfig:
                 # b/c frozen
                 object.__setattr__(self, "EWMS_PILOT_TASK_TIMEOUT", int(timeout))
 
-        if self.EWMS_PILOT_CONCURRENT_TASKS < 1:
+        if self.EWMS_PILOT_MAX_CONCURRENT_TASKS < 1:
             LOGGER.warning(
-                f"Invalid value for 'EWMS_PILOT_CONCURRENT_TASKS' ({self.EWMS_PILOT_CONCURRENT_TASKS}),"
+                f"Invalid value for 'EWMS_PILOT_MAX_CONCURRENT_TASKS' ({self.EWMS_PILOT_MAX_CONCURRENT_TASKS}),"
                 " defaulting to '1'."
             )
             object.__setattr__(self, "EWMS_PILOT_CONCURRENT_TASKS", 1)  # b/c frozen

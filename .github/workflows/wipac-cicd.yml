@@ -9,9 +9,13 @@ concurrency:
 
 env:
   PULSAR_CONTAINER: pulsar_local
-  EWMS_PILOT_BROKER_ADDRESS: localhost
+  #
+  EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS: localhost
   EWMS_PILOT_TIMEOUT_INCOMING: 1
+  #
+  EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: localhost
   EWMS_PILOT_TIMEOUT_OUTGOING: 1
+  #
   DOCKER_IMAGE_NAME: pilot-test/example
 
 
@@ -157,19 +161,21 @@ jobs:
           echo "running examples..."
 
           pip install --upgrade pip wheel setuptools pytest
-          export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker_client }}
+          export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
+          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
           pip install .[test,${{ matrix.broker_client }}]
 
           export EWMS_PILOT_QUEUE_INCOMING="a012"
           export EWMS_PILOT_QUEUE_OUTGOING="b345"
           python examples/do_task.py
 
+          # read messages
           out=$(python -c '
           import mqclient as mq
           import os, asyncio
           queue = mq.Queue(
-              os.environ["EWMS_PILOT_BROKER_CLIENT"],
-              address=os.environ["EWMS_PILOT_BROKER_ADDRESS"],
+              os.environ["EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE"],
+              address=os.environ["EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS"],
               name="b345",
           )
           async def go():
@@ -235,7 +241,8 @@ jobs:
           echo "running tests..."
 
           pip install --upgrade pip wheel setuptools pytest
-          export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker_client }}
+          export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
+          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
           pip install .[test,${{ matrix.broker_client }}]
 
           if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
