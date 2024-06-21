@@ -2,6 +2,10 @@
 
 import dataclasses as dc
 import logging
+import os
+from typing import Optional
+
+from wipac_dev_tools import from_environment_as_dataclass
 
 LOGGER = logging.getLogger("ewms-pilot")
 
@@ -24,6 +28,15 @@ class EnvConfig:
     EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
     EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
 
+    # incoming queue - settings
+    EWMS_PILOT_PREFETCH: int = (
+        1  # prefetch amount for incoming messages (off by default -- prefetch is an optimization)
+    )
+    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: Optional[int] = (
+        None  # timeout (sec) for the first message to arrive at the pilot (defaults to incoming timeout value)
+    )
+    EWMS_PILOT_TIMEOUT_QUEUE_INCOMING: int = 1  # timeout (sec) for messages TO pilot
+
     # outgoing queue
     EWMS_PILOT_QUEUE_OUTGOING: str = ""  # name of the outgoing queue
     EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN: str = ""  # auth token for queue
@@ -34,28 +47,14 @@ class EnvConfig:
     EWMS_PILOT_CL_LOG: str = "INFO"  # level for 1st-party loggers
     EWMS_PILOT_CL_LOG_THIRD_PARTY: str = "WARNING"  # level for 3rd-party loggers
 
-    # dumping
-    EWMS_PILOT_DUMP_TASK_OUTPUT: bool = (
-        False  # dump each task's stderr to stderr and stdout to stdout
-    )
-
     # chirp
     EWMS_PILOT_HTCHIRP: bool = False
     EWMS_PILOT_HTCHIRP_DEST: str = "JOB_ATTR"  # ["JOB_EVENT_LOG", "JOB_ATTR"]
     EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL: float = 60.0
 
-    # timing config -- queues
-    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: Optional[int] = (
-        None  # timeout (sec) for the first message to arrive at the pilot (defaults to incoming timeout value)
-    )
-    EWMS_PILOT_TIMEOUT_QUEUE_INCOMING: int = 1  # timeout (sec) for messages TO pilot
-
     # timing config -- tasks
     EWMS_PILOT_INIT_TIMEOUT: Optional[int] = None  # timeout (sec) for the init command
     EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None  # timeout (sec) for each task
-    EWMS_PILOT_QUARANTINE_TIME: int = (
-        0  # how long to sleep after error (useful for preventing blackhole scenarios on condor)
-    )
 
     # task handling logic
     EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: bool = (
@@ -65,8 +64,13 @@ class EnvConfig:
         #     set to True  if on unknown node (large hemogenous cluster)
     )
     EWMS_PILOT_CONCURRENT_TASKS: int = 1  # max number of tasks to process in parallel
-    EWMS_PILOT_PREFETCH: int = (
-        1  # prefetch amount for incoming messages (off by default -- prefetch is an optimization)
+
+    # misc settings
+    EWMS_PILOT_DUMP_TASK_OUTPUT: bool = (
+        False  # dump each task's stderr to stderr and stdout to stdout
+    )
+    EWMS_PILOT_QUARANTINE_TIME: int = (
+        0  # how long to sleep after error (useful for preventing blackhole scenarios on condor)
     )
 
     def __post_init__(self) -> None:
