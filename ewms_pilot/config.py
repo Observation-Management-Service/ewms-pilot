@@ -61,9 +61,9 @@ class EnvConfig:
         True
         # whether to stop taking future tasks after a task fails;
         # ex: set to False if on known good compute node (testing cluster),
-        #     set to True  if on unknown node (large hemogenous cluster)
+        #     set to True  if on unknown node (large homogeneous cluster)
     )
-    EWMS_PILOT_CONCURRENT_TASKS: int = 1  # max number of tasks to process in parallel
+    EWMS_PILOT_MAX_CONCURRENT_TASKS: int = 1  # max no. of tasks to process in parallel
 
     # misc settings
     EWMS_PILOT_DUMP_TASK_OUTPUT: bool = (
@@ -86,9 +86,9 @@ class EnvConfig:
                 # b/c frozen
                 object.__setattr__(self, "EWMS_PILOT_TASK_TIMEOUT", int(timeout))
 
-        if self.EWMS_PILOT_CONCURRENT_TASKS < 1:
+        if self.EWMS_PILOT_MAX_CONCURRENT_TASKS < 1:
             LOGGER.warning(
-                f"Invalid value for 'EWMS_PILOT_CONCURRENT_TASKS' ({self.EWMS_PILOT_CONCURRENT_TASKS}),"
+                f"Invalid value for 'EWMS_PILOT_MAX_CONCURRENT_TASKS' ({self.EWMS_PILOT_MAX_CONCURRENT_TASKS}),"
                 " defaulting to '1'."
             )
             object.__setattr__(self, "EWMS_PILOT_CONCURRENT_TASKS", 1)  # b/c frozen

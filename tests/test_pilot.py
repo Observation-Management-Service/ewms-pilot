@@ -608,16 +608,16 @@ async def test_420__timeout(
     )
 
 
-MULTITASKING = 4
+MAX_CONCURRENT_TASKS = 4
 PREFETCH_TEST_PARAMETERS = sorted(
     set(
         [
             ENV.EWMS_PILOT_PREFETCH,
             1,
             2,
-            MULTITASKING - 1,
-            MULTITASKING,
-            MULTITASKING + 1,
+            MAX_CONCURRENT_TASKS - 1,
+            MAX_CONCURRENT_TASKS,
+            MAX_CONCURRENT_TASKS + 1,
             77,
         ]
     )
@@ -627,7 +627,7 @@ PREFETCH_TEST_PARAMETERS = sorted(
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
-async def test_500__concurrent_load_multitasking(
+async def test_500__concurrent_load_max_concurrent_tasks(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
@@ -635,7 +635,7 @@ async def test_500__concurrent_load_multitasking(
     use_debug_dir: bool,
     prefetch: int,
 ) -> None:
-    """Test multitasking within the pilot."""
+    """Test max_concurrent_tasks within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
@@ -664,7 +664,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             debug_dir=debug_dir if use_debug_dir else None,
-            multitasking=MULTITASKING,
+            max_concurrent_tasks=MAX_CONCURRENT_TASKS,
         ),
     )
 
@@ -693,7 +693,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
-async def test_510__concurrent_load_multitasking_exceptions(
+async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
@@ -701,7 +701,7 @@ async def test_510__concurrent_load_multitasking_exceptions(
     use_debug_dir: bool,
     prefetch: int,
 ) -> None:
-    """Test multitasking within the pilot."""
+    """Test max_concurrent_tasks within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
@@ -710,10 +710,10 @@ async def test_510__concurrent_load_multitasking_exceptions(
     # run producer & consumer concurrently
     with pytest.raises(
         RuntimeError,
-        match=re.escape(f"{MULTITASKING} TASK(S) FAILED: ")
+        match=re.escape(f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: ")
         + ", ".join(  # b/c we don't guarantee in-order delivery, we cannot assert which messages each subproc failed on
             r"PilotSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: [^']+'\)"
-            for _ in range(MULTITASKING)
+            for _ in range(MAX_CONCURRENT_TASKS)
         ),
     ) as e:
         await asyncio.gather(
@@ -748,11 +748,11 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 timeout_incoming=TIMEOUT_INCOMING,
                 prefetch=prefetch,
                 debug_dir=debug_dir if use_debug_dir else None,
-                multitasking=MULTITASKING,
+                max_concurrent_tasks=MAX_CONCURRENT_TASKS,
             ),
         )
     # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
-    # we already know there are MULTITASKING subproc errors
+    # we already know there are MAX_CONCURRENT_TASKS subproc errors
     for msg in msgs_outgoing_expected:
         assert str(e.value).count(f"ValueError: gotta fail: {msg.strip()}") <= 1
 
@@ -763,7 +763,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            MULTITASKING,
+            MAX_CONCURRENT_TASKS,
             [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
@@ -776,7 +776,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
-async def test_520__preload_multitasking(
+async def test_520__preload_max_concurrent_tasks(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
@@ -784,7 +784,7 @@ async def test_520__preload_multitasking(
     use_debug_dir: bool,
     prefetch: int,
 ) -> None:
-    """Test multitasking within the pilot."""
+    """Test max_concurrent_tasks within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
@@ -812,7 +812,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         timeout_incoming=TIMEOUT_INCOMING,
         prefetch=prefetch,
         debug_dir=debug_dir if use_debug_dir else None,
-        multitasking=MULTITASKING,
+        max_concurrent_tasks=MAX_CONCURRENT_TASKS,
     )
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
@@ -835,7 +835,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
-async def test_530__preload_multitasking_exceptions(
+async def test_530__preload_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
@@ -843,7 +843,7 @@ async def test_530__preload_multitasking_exceptions(
     use_debug_dir: bool,
     prefetch: int,
 ) -> None:
-    """Test multitasking within the pilot."""
+    """Test max_concurrent_tasks within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
@@ -857,10 +857,10 @@ async def test_530__preload_multitasking_exceptions(
 
     with pytest.raises(
         RuntimeError,
-        match=re.escape(f"{MULTITASKING} TASK(S) FAILED: ")
+        match=re.escape(f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: ")
         + ", ".join(  # b/c we don't guarantee in-order delivery, we cannot assert which messages each subproc failed on
             r"PilotSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: [^']+'\)"
-            for _ in range(MULTITASKING)
+            for _ in range(MAX_CONCURRENT_TASKS)
         ),
     ) as e:
         await consume_and_reply(
@@ -880,10 +880,10 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             debug_dir=debug_dir if use_debug_dir else None,
-            multitasking=MULTITASKING,
+            max_concurrent_tasks=MAX_CONCURRENT_TASKS,
         )
     # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
-    # we already know there are MULTITASKING subproc errors
+    # we already know there are MAX_CONCURRENT_TASKS subproc errors
     for msg in msgs_outgoing_expected:
         assert str(e.value).count(f"ValueError: gotta fail: {msg.strip()}") <= 1
 
@@ -894,7 +894,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     if use_debug_dir:
         assert_debug_dir(
             debug_dir,
-            MULTITASKING,
+            MAX_CONCURRENT_TASKS,
             [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
         )
     # check for persisted files

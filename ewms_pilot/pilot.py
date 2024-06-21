@@ -38,7 +38,7 @@ _EXCEPT_ERRORS = False
 async def consume_and_reply(
     cmd: str,
     task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
-    multitasking: int = ENV.EWMS_PILOT_CONCURRENT_TASKS,
+    max_concurrent_tasks: int = ENV.EWMS_PILOT_MAX_CONCURRENT_TASKS,
     #
     # incoming queue
     queue_incoming: str = ENV.EWMS_PILOT_QUEUE_INCOMING,
@@ -132,7 +132,7 @@ async def consume_and_reply(
             dump_task_output,
             #
             task_timeout,
-            multitasking,
+            max_concurrent_tasks,
             #
             housekeeper,
         )
@@ -240,7 +240,7 @@ async def _consume_and_reply(
     dump_task_output: bool,
     #
     task_timeout: Optional[int],
-    multitasking: int,
+    max_concurrent_tasks: int,
     #
     housekeeper: Housekeeping,
 ) -> None:
@@ -278,7 +278,7 @@ async def _consume_and_reply(
     #
     # open pub & sub
     async with out_queue.open_pub() as pub, in_queue.open_sub_manual_acking() as sub:
-        LOGGER.info(f"Processing up to {multitasking} tasks concurrently")
+        LOGGER.info(f"Processing up to {max_concurrent_tasks} tasks concurrently")
         message_iterator = sub.iter_messages()
         await housekeeper.entered_listener_loop()
         #
@@ -292,7 +292,7 @@ async def _consume_and_reply(
             await housekeeper.queue_housekeeping(in_queue, sub, pub)
             #
             # get messages/tasks
-            if len(pending) >= multitasking:
+            if len(pending) >= max_concurrent_tasks:
                 LOGGER.debug("At max task concurrency limit")
             else:
                 LOGGER.debug("Listening for incoming message...")
