@@ -174,7 +174,7 @@ jobs:
           import mqclient as mq
           import os, asyncio
           queue = mq.Queue(
-              os.environ["EWMS_PILOT_BROKER_CLIENT"],
+              os.environ["EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE"],
               address=os.environ["EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS"],
               name="b345",
           )
@@ -241,7 +241,8 @@ jobs:
           echo "running tests..."
 
           pip install --upgrade pip wheel setuptools pytest
-          export EWMS_PILOT_BROKER_CLIENT=${{ matrix.broker_client }}
+          export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
+          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
           pip install .[test,${{ matrix.broker_client }}]
 
           if [ "${{ matrix.broker_client }}" = "pulsar" ]; then

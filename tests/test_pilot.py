@@ -79,8 +79,8 @@ async def populate_queue(
 ) -> None:
     """Send messages to queue."""
     to_client_q = mq.Queue(
-        config.ENV.EWMS_PILOT_BROKER_CLIENT,
-        address=config.ENV.EWMS_PILOT_BROKER_ADDRESS,
+        config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE,
+        address=config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS,
         name=queue_incoming,
     )
 
@@ -101,8 +101,8 @@ async def assert_results(
 ) -> None:
     """Get messages and assert against expected results."""
     from_client_q = mq.Queue(
-        config.ENV.EWMS_PILOT_BROKER_CLIENT,
-        address=config.ENV.EWMS_PILOT_BROKER_ADDRESS,
+        config.ENV.EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE,
+        address=config.ENV.EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS,
         name=queue_outgoing,
     )
     received: list = []
@@ -688,7 +688,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 @pytest.mark.flaky(  # https://pypi.org/project/pytest-retry/
     retries=3,
     delay=1,
-    condition=config.ENV.EWMS_PILOT_BROKER_CLIENT == "rabbitmq",
+    condition=config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE == "rabbitmq",
 )
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
@@ -726,7 +726,8 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
                     if not (
                         prefetch == 1
                         and not use_debug_dir
-                        and config.ENV.EWMS_PILOT_BROKER_CLIENT == "rabbitmq"
+                        and config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE
+                        == "rabbitmq"
                     )
                     else 0
                 ),
@@ -930,7 +931,7 @@ async def test_1000__rabbitmq_heartbeat_workaround(
     refresh_interval_rabbitmq_heartbeat_interval: float,
 ) -> None:
     """Test a normal .txt-based pilot."""
-    if config.ENV.EWMS_PILOT_BROKER_CLIENT != "rabbitmq":
+    if config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq":
         return
 
     msgs_to_subproc = MSGS_TO_SUBPROC[:2]
