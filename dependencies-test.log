@@ -46,7 +46,7 @@ ewms-pilot
     └── zstd [required: Any, installed: 1.5.5.1]
 pipdeptree==2.23.0
 ├── packaging [required: >=23.1, installed: 24.1]
-└── pip [required: >=23.1.2, installed: 24.0]
+└── pip [required: >=23.1.2, installed: 24.1]
 pytest-asyncio==0.23.7
 └── pytest [required: >=7.0.0,<9, installed: 8.2.2]
     ├── iniconfig [required: Any, installed: 2.0.0]
