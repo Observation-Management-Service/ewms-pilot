@@ -2,10 +2,6 @@
 
 import dataclasses as dc
 import logging
-import os
-from typing import Optional
-
-from wipac_dev_tools import from_environment_as_dataclass
 
 LOGGER = logging.getLogger("ewms-pilot")
 
@@ -22,19 +18,17 @@ REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main
 class EnvConfig:
     """For storing environment variables, typed."""
 
-    # broker -- assumes one broker is the norm
-    EWMS_PILOT_BROKER_CLIENT: str = "rabbitmq"
-    EWMS_PILOT_BROKER_ADDRESS: str = "localhost"
-    #
+    # incoming queue
     EWMS_PILOT_QUEUE_INCOMING: str = ""  # name of the incoming queue
-    EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN: str = ""
-    # which kind of broker: pulsar, rabbitmq, etc.
-    # MQ broker URL to connect to
-    #
+    EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN: str = ""  # auth token for queue
+    EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
+    EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
+
+    # outgoing queue
     EWMS_PILOT_QUEUE_OUTGOING: str = ""  # name of the outgoing queue
-    EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN: str = ""
-    # which kind of broker: pulsar, rabbitmq, etc.
-    # MQ broker URL to connect to
+    EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN: str = ""  # auth token for queue
+    EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
+    EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
 
     # logging -- only used when running via command line
     EWMS_PILOT_CL_LOG: str = "INFO"  # level for 1st-party loggers

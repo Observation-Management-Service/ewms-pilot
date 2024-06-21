@@ -40,22 +40,23 @@ async def consume_and_reply(
     task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     multitasking: int = ENV.EWMS_PILOT_CONCURRENT_TASKS,
     #
-    # mq broker
-    broker_client: str = ENV.EWMS_PILOT_BROKER_CLIENT,
-    broker_address: str = ENV.EWMS_PILOT_BROKER_ADDRESS,
-    #
-    # incoming
+    # incoming queue
     queue_incoming: str = ENV.EWMS_PILOT_QUEUE_INCOMING,
     queue_incoming_auth_token: str = ENV.EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN,
+    queue_incoming_broker_type: str = ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE,
+    queue_incoming_broker_address: str = ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS,
+    # incoming queue - settings
     prefetch: int = ENV.EWMS_PILOT_PREFETCH,
     timeout_wait_for_first_message: Optional[
         int
     ] = ENV.EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE,
     timeout_incoming: int = ENV.EWMS_PILOT_TIMEOUT_QUEUE_INCOMING,
     #
-    # outgoing
+    # outgoing queue
     queue_outgoing: str = ENV.EWMS_PILOT_QUEUE_OUTGOING,
     queue_outgoing_auth_token: str = ENV.EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN,
+    queue_outgoing_broker_type: str = ENV.EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE,
+    queue_outgoing_broker_address: str = ENV.EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS,
     #
     # for subprocess
     infile_type: str = ".in",
@@ -98,8 +99,8 @@ async def consume_and_reply(
 
         # connect queues
         in_queue = mq.Queue(
-            broker_client,
-            address=broker_address,
+            queue_incoming_broker_type,
+            address=queue_incoming_broker_address,
             name=queue_incoming,
             prefetch=prefetch,
             auth_token=queue_incoming_auth_token,
@@ -107,8 +108,8 @@ async def consume_and_reply(
             # timeout=timeout_incoming, # manually set below
         )
         out_queue = mq.Queue(
-            broker_client,
-            address=broker_address,
+            queue_outgoing_broker_type,
+            address=queue_outgoing_broker_address,
             name=queue_outgoing,
             auth_token=queue_outgoing_auth_token,
             except_errors=_EXCEPT_ERRORS,
