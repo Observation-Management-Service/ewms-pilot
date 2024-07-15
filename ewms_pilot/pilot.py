@@ -36,7 +36,8 @@ _EXCEPT_ERRORS = False
 
 @htchirp_tools.async_htchirp_error_wrapper
 async def consume_and_reply(
-    cmd: str,
+    task_image: str,
+    task_args: str = "",
     task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     max_concurrent_tasks: int = ENV.EWMS_PILOT_MAX_CONCURRENT_TASKS,
     #
@@ -63,7 +64,8 @@ async def consume_and_reply(
     outfile_type: str = ".out",
     #
     # init
-    init_cmd: str = "",
+    init_image: str = "",
+    init_args: str = "",
     init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
     #
     # misc settings
