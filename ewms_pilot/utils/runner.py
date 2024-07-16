@@ -1,9 +1,6 @@
 """Logic for running a subprocess."""
 
-
 import asyncio
-import shlex
-import shutil
 import sys
 from pathlib import Path
 from typing import Optional, TextIO
@@ -30,21 +27,6 @@ class PilotSubprocessError(Exception):
         )
 
 
-def mv_or_rm_file(src: Path, dest: Optional[Path]) -> None:
-    """Move the file to `dest` if not None, else rm it.
-
-    No error if file doesn't exist.
-    """
-    if not src.exists():
-        return
-    if dest:
-        # src.rename(dest / src.name)  # mv
-        # NOTE: https://github.com/python/cpython/pull/30650
-        shutil.move(str(src), str(dest / src.name))  # py 3.6 requires strs
-    else:
-        src.unlink()  # rm
-
-
 def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
     try:
         with open(fpath, "rb") as file:
@@ -57,17 +39,20 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
         LOGGER.error(f"Error dumping subprocess output ({stream.name}): {e}")
 
 
-async def run_subproc(
-    cmd: str,
-    subproc_timeout: Optional[int],
+async def run_container(
+    image: str,
+    args: str,
+    timeout: Optional[int],
     stdoutfile: Path,
     stderrfile: Path,
     dump_output: bool,
+    mount_bindings: str = "",
 ) -> None:
-    """Start a subprocess running `cmd`."""
+    """Run the container and dump outputs."""
+    cmd = f"docker run --rm -i {mount_bindings} {image} {args}"
+    LOGGER.info(cmd)
 
     # call & check outputs
-    LOGGER.info(f"Executing: {shlex.split(cmd)}")
     try:
         with open(stdoutfile, "wb") as stdoutf, open(stderrfile, "wb") as stderrf:
             # await to start & prep coroutines
@@ -80,13 +65,11 @@ async def run_subproc(
             try:
                 await asyncio.wait_for(  # raises TimeoutError
                     proc.wait(),
-                    timeout=subproc_timeout,
+                    timeout=timeout,
                 )
             except (TimeoutError, asyncio.exceptions.TimeoutError) as e:
                 # < 3.11 -> asyncio.exceptions.TimeoutError
-                raise TimeoutError(
-                    f"subprocess timed out after {subproc_timeout}s"
-                ) from e
+                raise TimeoutError(f"subprocess timed out after {timeout}s") from e
 
         LOGGER.info(f"Subprocess return code: {proc.returncode}")
 

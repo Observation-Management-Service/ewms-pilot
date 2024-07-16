@@ -19,7 +19,7 @@ from .housekeeping import Housekeeping
 from .tasks.io import FileExtension
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
-from .utils.subproc import run_subproc
+from .utils.runner import run_container
 from .utils.utils import all_task_errors_string
 
 # fmt:off
@@ -90,9 +90,10 @@ async def consume_and_reply(
 
     try:
         # Init command
-        if init_cmd:
-            await run_init_command(
-                init_cmd,
+        if init_image:
+            await run_init_container(
+                init_image,
+                init_args,
                 init_timeout,
                 housekeeper,
                 staging_dir,
@@ -120,7 +121,8 @@ async def consume_and_reply(
 
         # MQ tasks
         await _consume_and_reply(
-            cmd,
+            task_image,
+            task_args,
             in_queue,
             out_queue,
             FileExtension(infile_type),
@@ -161,22 +163,24 @@ async def consume_and_reply(
 
 
 @htchirp_tools.async_htchirp_error_wrapper
-async def run_init_command(
-    init_cmd: str,
+async def run_init_container(
+    init_image: str,
+    init_args: str,
     init_timeout: Optional[int],
     housekeeper: Housekeeping,
     staging_dir: Path,
     keep_debug_dir: bool,
 ) -> None:
-    """Run the init command."""
-    await housekeeper.running_init_command()
+    """Run the init container with the given arguments."""
+    await housekeeper.running_init_container()
 
     staging_subdir = staging_dir / f"init-{uuid.uuid4().hex}"
     staging_subdir.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
-        run_subproc(
-            init_cmd,
+        run_container(
+            init_image,
+            init_args,
             init_timeout,
             staging_subdir / "stdoutfile",
             staging_subdir / "stderrfile",
@@ -225,7 +229,8 @@ def listener_loop_exit(
 
 @htchirp_tools.async_htchirp_error_wrapper
 async def _consume_and_reply(
-    cmd: str,
+    task_image: str,
+    task_args: str,
     #
     in_queue: mq.Queue,
     out_queue: mq.Queue,
@@ -312,7 +317,8 @@ async def _consume_and_reply(
                     task = asyncio.create_task(
                         process_msg_task(
                             in_msg,
-                            cmd,
+                            task_image,
+                            task_args,
                             task_timeout,
                             infile_ext,
                             outfile_ext,

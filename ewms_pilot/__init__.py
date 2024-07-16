@@ -1,7 +1,7 @@
 """Init."""
 
 from .pilot import consume_and_reply
-from .utils.subproc import PilotSubprocessError
+from .utils.runner import PilotSubprocessError
 
 __all__ = [
     "consume_and_reply",

@@ -2,18 +2,20 @@
 
 import shutil
 from pathlib import Path
-from typing import Optional, Any
+from typing import Any, Optional
 
 from mqclient.broker_client_interface import Message
 
 from .io import FileExtension, InFileInterface, OutFileInterface
 from ..config import LOGGER
-from ..utils.subproc import run_subproc
+from ..utils.runner import run_container
 
 
 async def process_msg_task(
     in_msg: Message,
-    cmd: str,
+    #
+    task_image: str,
+    task_args: str,
     task_timeout: Optional[int],
     #
     infile_ext: FileExtension,
@@ -25,22 +27,40 @@ async def process_msg_task(
 ) -> Any:
     """Process the message's task in a subprocess using `cmd` & respond."""
 
-    # staging-dir logic
-    staging_subdir = staging_dir / str(in_msg.uuid)
-    staging_subdir.mkdir(parents=True, exist_ok=False)
-    stderrfile = staging_subdir / "stderrfile"
-    stdoutfile = staging_subdir / "stdoutfile"
+    # staging-dir logic -- includes stderr/stdout files (see below)
+    task_staging_dpath = staging_dir / str(in_msg.uuid)
+    task_staging_dpath.mkdir(parents=True, exist_ok=False)
+
+    # msgs dpath(s) -- make this separate so container only has access to message(s)
+    msgs_dpath = task_staging_dpath / "msgs"
+    msgs_dpath.mkdir(parents=True, exist_ok=False)
+    msgs_dpath_inside_container = Path("/ewms-pilot/task-io/")
 
     # create in/out filepaths -- piggy-back the uuid since it's unique and trackable
-    infilepath = staging_subdir / f"infile-{in_msg.uuid}.{infile_ext}"
-    outfilepath = staging_subdir / f"outfile-{in_msg.uuid}.{outfile_ext}"
+    infilepath = msgs_dpath / f"infile-{in_msg.uuid}.{infile_ext}"
+    outfilepath = msgs_dpath / f"outfile-{in_msg.uuid}.{outfile_ext}"
 
-    # insert in/out files into cmd
-    cmd = cmd.replace("{{INFILE}}", str(infilepath))
-    cmd = cmd.replace("{{OUTFILE}}", str(outfilepath))
+    # insert in/out files into task_args
+    task_args = task_args.replace(
+        "{{INFILE}}",
+        str(msgs_dpath_inside_container / infilepath.name),
+    )
+    task_args = task_args.replace(
+        "{{OUTFILE}}",
+        str(msgs_dpath_inside_container / outfilepath.name),
+    )
 
+    # do task
     InFileInterface.write(in_msg, infilepath)
-    await run_subproc(cmd, task_timeout, stdoutfile, stderrfile, dump_task_output)
+    await run_container(
+        task_image,
+        task_args,
+        task_timeout,
+        task_staging_dpath / "stderrfile",
+        task_staging_dpath / "stdoutfile",
+        dump_task_output,
+        f"--mount type=bind,source={msgs_dpath},target={msgs_dpath_inside_container}",
+    )
     out_data = OutFileInterface.read(outfilepath)
 
     # send
@@ -48,6 +68,6 @@ async def process_msg_task(
 
     # cleanup -- on success only
     if not keep_debug_dir:
-        shutil.rmtree(staging_subdir)  # rm -r
+        shutil.rmtree(task_staging_dpath)  # rm -r
 
     return out_data

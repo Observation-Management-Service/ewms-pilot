@@ -1,6 +1,5 @@
 """Housekeeping logic."""
 
-
 import asyncio
 import time
 from functools import wraps
@@ -47,7 +46,7 @@ class Housekeeping:
         await asyncio.sleep(0)
 
     @with_basic_housekeeping
-    async def running_init_command(self) -> None:
+    async def running_init_container(self) -> None:
         """Basic housekeeping + status chirping (if needed)."""
         self.chirper.chirp_status(htchirp_tools.PilotStatus.RunningInitCommand)
 

@@ -11,7 +11,7 @@ import time
 import uuid
 from datetime import date, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple, Dict
+from typing import Dict, List, Optional, Tuple
 from unittest.mock import patch
 
 import asyncstdlib as asl
