@@ -123,11 +123,11 @@ async def assert_results(
 def assert_debug_dir(
     debug_dir: Path,
     n_tasks: int,
-    task_fpaths: List[str],
+    task_dir_contents: List[str],
     has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
-    assert len(task_fpaths) == len(set(task_fpaths))  # no duplicates
+    assert len(task_dir_contents) == len(set(task_dir_contents))  # no duplicates
 
     if has_init_cmd_subdir:
         assert len(list(debug_dir.iterdir())) == n_tasks + 1
@@ -149,7 +149,7 @@ def assert_debug_dir(
         task_id = task_dpath.name
 
         # look at files -- flattened tree
-        this_task_files = [f.replace("{UUID}", task_id) for f in task_fpaths]
+        this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
         assert sorted(this_task_files) == sorted(
             str(p.relative_to(task_dpath)) for p in task_dpath.rglob("*")
         )
@@ -226,8 +226,9 @@ async def test_000(
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"msgs/infile-{UUID}.in",
-                r"msgs/outfile-{UUID}.out",
+                "msgs/infile-{UUID}.in",
+                "msgs/outfile-{UUID}.out",
+                "msgs/",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -282,8 +283,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"msgs/infile-{UUID}.txt",
-                r"msgs/outfile-{UUID}.txt",
+                "msgs/infile-{UUID}.txt",
+                "msgs/outfile-{UUID}.txt",
+                "msgs/",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -343,8 +345,9 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"msgs/infile-{UUID}.json",
-                r"msgs/outfile-{UUID}.json",
+                "msgs/infile-{UUID}.json",
+                "msgs/outfile-{UUID}.json",
+                "msgs/",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -404,8 +407,9 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"msgs/infile-{UUID}.json",
-                r"msgs/outfile-{UUID}.json",
+                "msgs/infile-{UUID}.json",
+                "msgs/outfile-{UUID}.json",
+                "msgs/",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -481,8 +485,9 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"msgs/infile-{UUID}.pkl.b64",
-                r"msgs/outfile-{UUID}.pkl.b64",
+                "msgs/infile-{UUID}.pkl.b64",
+                "msgs/outfile-{UUID}.pkl.b64",
+                "msgs/",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -549,7 +554,12 @@ async def test_400__exception(
         assert_debug_dir(
             debug_dir,
             1,  # only 1 message was processed before error
-            [r"msgs/infile-{UUID}.in", "stderrfile", "stdoutfile"],
+            [
+                "msgs/infile-{UUID}.in",
+                "msgs/",
+                "stderrfile",
+                "stdoutfile",
+            ],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -610,7 +620,12 @@ async def test_420__timeout(
         assert_debug_dir(
             debug_dir,
             1,
-            [r"msgs/infile-{UUID}.in", "stderrfile", "stdoutfile"],
+            [
+                "msgs/infile-{UUID}.in",
+                "msgs/",
+                "stderrfile",
+                "stdoutfile",
+            ],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -689,8 +704,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"msgs/infile-{UUID}.in",
-                r"msgs/outfile-{UUID}.out",
+                "msgs/infile-{UUID}.in",
+                "msgs/outfile-{UUID}.out",
+                "msgs/",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -784,8 +800,9 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             debug_dir,
             MAX_CONCURRENT_TASKS,
             [
-                r"msgs/infile-{UUID}.in",
-                r"msgs/outfile-{UUID}.out",
+                "msgs/infile-{UUID}.in",
+                "msgs/outfile-{UUID}.out",
+                "msgs/",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -849,8 +866,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"msgs/infile-{UUID}.in",
-                r"msgs/outfile-{UUID}.out",
+                "msgs/infile-{UUID}.in",
+                "msgs/outfile-{UUID}.out",
+                "msgs/",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -927,8 +945,9 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             debug_dir,
             MAX_CONCURRENT_TASKS,
             [
-                r"msgs/infile-{UUID}.in",
-                r"msgs/outfile-{UUID}.out",
+                "msgs/infile-{UUID}.in",
+                "msgs/outfile-{UUID}.out",
+                "msgs/",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -1025,8 +1044,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         debug_dir,
                         len([]),
                         [
-                            r"msgs/infile-{UUID}.in",
-                            r"msgs/outfile-{UUID}.out",
+                            "msgs/infile-{UUID}.in",
+                            "msgs/outfile-{UUID}.out",
+                            "msgs/",
                             "stderrfile",
                             "stdoutfile",
                         ],
@@ -1040,8 +1060,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         debug_dir,
                         len([]),
                         [
-                            r"msgs/infile-{UUID}.in",
-                            r"msgs/outfile-{UUID}.out",
+                            "msgs/infile-{UUID}.in",
+                            "msgs/outfile-{UUID}.out",
+                            "msgs/",
                             "stderrfile",
                             "stdoutfile",
                         ],
@@ -1054,8 +1075,9 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                     debug_dir,
                     len(msgs_outgoing_expected),
                     [
-                        r"msgs/infile-{UUID}.in",
-                        r"msgs/outfile-{UUID}.out",
+                        "msgs/infile-{UUID}.in",
+                        "msgs/outfile-{UUID}.out",
+                        "msgs/",
                         "stderrfile",
                         "stdoutfile",
                     ],
@@ -1127,8 +1149,9 @@ with open('initoutput', 'w') as f:
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"msgs/infile-{UUID}.in",
-                r"msgs/outfile-{UUID}.out",
+                "msgs/infile-{UUID}.in",
+                "msgs/outfile-{UUID}.out",
+                "msgs/",
                 "stderrfile",
                 "stdoutfile",
             ],
