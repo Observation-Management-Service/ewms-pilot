@@ -6,6 +6,8 @@ import sys
 from pathlib import Path
 from typing import Optional, TextIO
 
+from ewms_pilot.config import ENV
+
 LOGGER = logging.getLogger(__name__)
 
 
@@ -46,10 +48,12 @@ async def run_container(
     timeout: Optional[int],
     stdoutfile: Path,
     stderrfile: Path,
-    dump_output: bool,
     mount_bindings: str = "",
 ) -> None:
     """Run the container and dump outputs."""
+    dump_output = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT
+
+    # NOTE: don't add to mount_bindings (WYSIWYG); also avoid intermediate structures
     cmd = f"docker run --rm -i {mount_bindings} {image} {args}"
     LOGGER.info(cmd)
 

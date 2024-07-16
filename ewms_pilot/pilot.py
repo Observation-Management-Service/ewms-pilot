@@ -4,13 +4,13 @@ import asyncio
 import shutil
 import sys
 import uuid
-from pathlib import Path
 from typing import List, Optional
 
 import mqclient as mq
 
 from . import htchirp_tools
 from .config import (
+    ContainerBindMountDirectoryMapper,
     ENV,
     LOGGER,
     REFRESH_INTERVAL,
@@ -69,8 +69,6 @@ async def consume_and_reply(
     init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
     #
     # misc settings
-    debug_dir: Optional[Path] = None,
-    dump_task_output: bool = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses.
@@ -86,7 +84,6 @@ async def consume_and_reply(
         raise RuntimeError("Must define an incoming and an outgoing queue")
 
     housekeeper = Housekeeping(chirper)
-    staging_dir = debug_dir if debug_dir else Path("./tmp")
 
     try:
         # Init command
@@ -96,8 +93,6 @@ async def consume_and_reply(
                 init_args,
                 init_timeout,
                 housekeeper,
-                staging_dir,
-                bool(debug_dir),
             )
 
         # connect queues
@@ -130,10 +125,6 @@ async def consume_and_reply(
             #
             timeout_wait_for_first_message,
             timeout_incoming,
-            #
-            staging_dir,
-            bool(debug_dir),
-            dump_task_output,
             #
             task_timeout,
             max_concurrent_tasks,
@@ -168,23 +159,21 @@ async def run_init_container(
     init_args: str,
     init_timeout: Optional[int],
     housekeeper: Housekeeping,
-    staging_dir: Path,
-    keep_debug_dir: bool,
 ) -> None:
     """Run the init container with the given arguments."""
     await housekeeper.running_init_container()
 
-    staging_subdir = staging_dir / f"init-{uuid.uuid4().hex}"
-    staging_subdir.mkdir(parents=True, exist_ok=False)
+    dirs = ContainerBindMountDirectoryMapper(f"init-{uuid.uuid4().hex}")
+    dirs.outputs.on_host.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
         run_container(
             init_image,
             init_args,
             init_timeout,
-            staging_subdir / "stdoutfile",
-            staging_subdir / "stderrfile",
-            dump_output=True,
+            dirs.outputs.on_host / "stdoutfile",
+            dirs.outputs.on_host / "stderrfile",
+            f"--mount type=bind,source={dirs.pilot_store.on_host},target={dirs.pilot_store.in_container}",
         )
     )
     pending = set([task])
@@ -206,8 +195,8 @@ async def run_init_container(
         raise
 
     # cleanup -- on success only
-    if not keep_debug_dir:
-        shutil.rmtree(staging_subdir)  # rm -r
+    if not ENV.EWMS_PILOT_KEEP_ALL_TASK_FILES:
+        dirs.rm_unique_dirs()
 
     await housekeeper.finished_init_command()
 
@@ -241,10 +230,6 @@ async def _consume_and_reply(
     #
     timeout_wait_for_first_message: Optional[int],
     timeout_incoming: int,
-    #
-    staging_dir: Path,
-    keep_debug_dir: bool,
-    dump_task_output: bool,
     #
     task_timeout: Optional[int],
     max_concurrent_tasks: int,
@@ -322,9 +307,6 @@ async def _consume_and_reply(
                             task_timeout,
                             infile_ext,
                             outfile_ext,
-                            staging_dir,
-                            keep_debug_dir,
-                            dump_task_output,
                         )
                     )
                     pending[task] = in_msg

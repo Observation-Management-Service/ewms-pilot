@@ -3,6 +3,8 @@
 import dataclasses as dc
 import logging
 import os
+import shutil
+from pathlib import Path
 from typing import Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
@@ -66,6 +68,7 @@ class EnvConfig:
     EWMS_PILOT_MAX_CONCURRENT_TASKS: int = 1  # max no. of tasks to process in parallel
 
     # misc settings
+    EWMS_PILOT_KEEP_ALL_TASK_FILES: bool = False
     EWMS_PILOT_DUMP_TASK_OUTPUT: bool = (
         False  # dump each task's stderr to stderr and stdout to stdout
     )
@@ -110,3 +113,46 @@ class EnvConfig:
 
 
 ENV = from_environment_as_dataclass(EnvConfig)
+
+
+#
+# --------------------------------------------------------------------------------------
+#
+
+
+PILOT_DIR = Path("/ewms-pilot")
+
+
+class ContainerBindMountDirectoryMapper:
+    """Handles the naming and mapping logic for a task's directories."""
+
+    @dc.dataclass
+    class _MapPair:
+        on_host: Path
+        in_container: Optional[Path]
+
+    def __init__(self, name: str):
+        """Directories are not pre-created; you must `mkdir -p` to use."""
+        self._unique_dir = PILOT_DIR / name
+
+        # for inter-task/init storage: startup data, init container's output, etc.
+        self.pilot_store = self._MapPair(
+            PILOT_DIR / "store",
+            PILOT_DIR / "store",
+        )
+
+        # for persisting stderr and stdout
+        self.outputs = self._MapPair(
+            self._unique_dir / "outputs",
+            None,
+        )
+
+        # for message-based task i/o
+        self.task_io = self._MapPair(
+            self._unique_dir / "task-io",
+            PILOT_DIR / "task-io",
+        )
+
+    def rm_unique_dirs(self) -> None:
+        """Remove all directories (on host) created for use only by this container."""
+        shutil.rmtree(self._unique_dir)  # rm -r
