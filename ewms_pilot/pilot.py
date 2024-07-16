@@ -1,7 +1,6 @@
 """API for launching an MQ-task pilot."""
 
 import asyncio
-import shutil
 import sys
 import uuid
 from typing import List, Optional
@@ -131,10 +130,6 @@ async def consume_and_reply(
             #
             housekeeper,
         )
-
-        # cleanup
-        if not list(staging_dir.iterdir()):  # if empty
-            shutil.rmtree(staging_dir)  # rm -r
 
     # ERROR -> Quarantine
     except Exception as e:
