@@ -285,7 +285,7 @@ async def test_100__json__objects(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    file_tree_initial,
+    file_tree_initial: List[Path],
     use_debug_dir: bool,
 ) -> None:
     """Test a normal (object in, object out) .json-based pilot."""
