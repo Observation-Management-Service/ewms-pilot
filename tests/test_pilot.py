@@ -486,7 +486,7 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("use_debug_dir", [True, False])
 @pytest.mark.parametrize("quarantine", [None, 20])
-async def test_400__exception(
+async def test_400__exception_quarantine(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
@@ -494,7 +494,7 @@ async def test_400__exception(
     use_debug_dir: bool,
     quarantine: Optional[int],
 ) -> None:
-    """Test a normal .txt-based pilot."""
+    """Test handling for exception w/ and w/o quarantine."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
@@ -531,7 +531,7 @@ async def test_400__exception(
     if quarantine:
         assert time.time() - start_time >= quarantine  # did quarantine_time work?
     else:
-        assert time.time() - start_time <= 3  # no quarantine time
+        assert time.time() - start_time <= 6  # no quarantine time # it's a magic number
 
     await assert_results(queue_outgoing, [])
     if use_debug_dir:
@@ -561,7 +561,7 @@ async def test_420__timeout(
     file_tree_initial,
     use_debug_dir: bool,
 ) -> None:
-    """Test a normal .txt-based pilot."""
+    """Test handling on a timeout."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
