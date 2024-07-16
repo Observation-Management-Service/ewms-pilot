@@ -11,7 +11,7 @@ import time
 import uuid
 from datetime import date, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import List, Optional, Tuple
 from unittest.mock import patch
 
 import asyncstdlib as asl
@@ -123,40 +123,34 @@ async def assert_results(
 def assert_debug_dir(
     debug_dir: Path,
     n_tasks: int,
-    files_patterns: List[str],
+    task_fpaths: List[str],
     has_init_cmd_subdir: bool = False,
 ) -> None:
+    """Assert the contents of the debug directory."""
+    assert len(task_fpaths) == len(set(task_fpaths))  # no duplicates
+
     if has_init_cmd_subdir:
         assert len(list(debug_dir.iterdir())) == n_tasks + 1
     else:
         assert len(list(debug_dir.iterdir())) == n_tasks
 
-    for dpath in debug_dir.iterdir():
-        assert dpath.is_dir()
+    # check each task's dir
+    for task_dpath in debug_dir.iterdir():
+        assert task_dpath.is_dir()
 
-        # init subdir
-        if has_init_cmd_subdir and dpath.name.startswith("init"):
-            assert sorted(p.name for p in dpath.iterdir()) == sorted(
+        # actually, is this an init subdir?
+        if has_init_cmd_subdir and task_dpath.name.startswith("init"):
+            assert sorted(p.name for p in task_dpath.iterdir()) == sorted(
                 ["stderrfile", "stdoutfile"]
             )
             continue
 
-        # task subdirs
-        task_id = dpath.name
+        # now we know this is a task dir
+        task_id = task_dpath.name
 
-        for subpath in dpath.iterdir():
-            assert subpath.is_file()
-
-        # look for in/out files
-        # check that each file matches one pattern & visa versa
-        checks: Dict[str, list[str]] = {f.name: [] for f in dpath.iterdir()}
-        for fname in checks:
-            for pattern in files_patterns:
-                pattern = pattern.replace("{UUID}", task_id)
-                if re.fullmatch(pattern, fname):
-                    checks[fname].append(pattern)
-        assert all(len(checks[f]) == 1 for f in checks)
-        assert len(list(dpath.iterdir())) == len(files_patterns)
+        # look at files -- flattened tree
+        this_task_files = [f.replace("{UUID}", task_id) for f in task_fpaths]
+        assert sorted(this_task_files) == sorted(str(p) for p in task_dpath.rglob("*"))
 
 
 def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> List[str]:
@@ -229,7 +223,12 @@ async def test_000(
         assert_debug_dir(
             debug_dir,
             len(msgs_outgoing_expected),
-            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
+            [
+                r"msgs/infile-{UUID}.in",
+                r"msgs/outfile-{UUID}.out",
+                "stderrfile",
+                "stdoutfile",
+            ],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -280,7 +279,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         assert_debug_dir(
             debug_dir,
             len(msgs_outgoing_expected),
-            [r"infile-{UUID}\.txt", r"outfile-{UUID}\.txt", "stderrfile", "stdoutfile"],
+            [
+                r"msgs/infile-{UUID}.txt",
+                r"msgs/outfile-{UUID}.txt",
+                "stderrfile",
+                "stdoutfile",
+            ],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -337,8 +341,8 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"infile-{UUID}\.json",
-                r"outfile-{UUID}\.json",
+                r"msgs/infile-{UUID}.json",
+                r"msgs/outfile-{UUID}.json",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -398,8 +402,8 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"infile-{UUID}\.json",
-                r"outfile-{UUID}\.json",
+                r"msgs/infile-{UUID}.json",
+                r"msgs/outfile-{UUID}.json",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -475,8 +479,8 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
             debug_dir,
             len(msgs_outgoing_expected),
             [
-                r"infile-{UUID}\.pkl\.b64",
-                r"outfile-{UUID}\.pkl\.b64",
+                r"msgs/infile-{UUID}.pkl.b64",
+                r"msgs/outfile-{UUID}.pkl.b64",
                 "stderrfile",
                 "stdoutfile",
             ],
@@ -543,7 +547,7 @@ async def test_400__exception(
         assert_debug_dir(
             debug_dir,
             1,  # only 1 message was processed before error
-            [r"infile-{UUID}\.in", "stderrfile", "stdoutfile"],
+            [r"msgs/infile-{UUID}.in", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -604,7 +608,7 @@ async def test_420__timeout(
         assert_debug_dir(
             debug_dir,
             1,
-            [r"infile-{UUID}\.in", "stderrfile", "stdoutfile"],
+            [r"msgs/infile-{UUID}.in", "stderrfile", "stdoutfile"],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -682,7 +686,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         assert_debug_dir(
             debug_dir,
             len(msgs_outgoing_expected),
-            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
+            [
+                r"msgs/infile-{UUID}.in",
+                r"msgs/outfile-{UUID}.out",
+                "stderrfile",
+                "stdoutfile",
+            ],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -772,7 +781,12 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         assert_debug_dir(
             debug_dir,
             MAX_CONCURRENT_TASKS,
-            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
+            [
+                r"msgs/infile-{UUID}.in",
+                r"msgs/outfile-{UUID}.out",
+                "stderrfile",
+                "stdoutfile",
+            ],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -832,7 +846,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         assert_debug_dir(
             debug_dir,
             len(msgs_outgoing_expected),
-            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
+            [
+                r"msgs/infile-{UUID}.in",
+                r"msgs/outfile-{UUID}.out",
+                "stderrfile",
+                "stdoutfile",
+            ],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -905,7 +924,12 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
         assert_debug_dir(
             debug_dir,
             MAX_CONCURRENT_TASKS,
-            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
+            [
+                r"msgs/infile-{UUID}.in",
+                r"msgs/outfile-{UUID}.out",
+                "stderrfile",
+                "stdoutfile",
+            ],
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -999,8 +1023,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         debug_dir,
                         len([]),
                         [
-                            r"infile-{UUID}\.in",
-                            r"outfile-{UUID}\.out",
+                            r"msgs/infile-{UUID}.in",
+                            r"msgs/outfile-{UUID}.out",
                             "stderrfile",
                             "stdoutfile",
                         ],
@@ -1014,8 +1038,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                         debug_dir,
                         len([]),
                         [
-                            r"infile-{UUID}\.in",
-                            r"outfile-{UUID}\.out",
+                            r"msgs/infile-{UUID}.in",
+                            r"msgs/outfile-{UUID}.out",
                             "stderrfile",
                             "stdoutfile",
                         ],
@@ -1028,8 +1052,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                     debug_dir,
                     len(msgs_outgoing_expected),
                     [
-                        r"infile-{UUID}\.in",
-                        r"outfile-{UUID}\.out",
+                        r"msgs/infile-{UUID}.in",
+                        r"msgs/outfile-{UUID}.out",
                         "stderrfile",
                         "stdoutfile",
                     ],
@@ -1100,7 +1124,12 @@ with open('initoutput', 'w') as f:
         assert_debug_dir(
             debug_dir,
             len(msgs_outgoing_expected),
-            [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
+            [
+                r"msgs/infile-{UUID}.in",
+                r"msgs/outfile-{UUID}.out",
+                "stderrfile",
+                "stdoutfile",
+            ],
             has_init_cmd_subdir=True,
         )
     # check for persisted files
