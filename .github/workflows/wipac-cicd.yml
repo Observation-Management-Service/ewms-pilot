@@ -247,9 +247,9 @@ jobs:
 
           if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
             # occasionally has connection errors
-            python -m pytest -vvv tests -n 32 --retries 3 --retry-delay 5 --exitfirst
+            python -m pytest -vvv tests --retries 3 --retry-delay 5 --exitfirst  # -n 32
           else
-            python -m pytest -vvv tests -n 32 --exitfirst
+            python -m pytest -vvv tests --exitfirst  # -n 32
           fi
 
       - name: broker output
