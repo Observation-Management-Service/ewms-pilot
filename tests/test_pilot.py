@@ -192,9 +192,6 @@ async def test_000(
             """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             # infile_type=,
@@ -249,9 +246,6 @@ async def test_001__txt__str_filetype(
             """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             infile_type=".txt",
@@ -311,9 +305,6 @@ input=json.load(open('{{INFILE}}'));
 v=input['attr-0'];
 output={'attr-a':v, 'attr-b':v+v};
 json.dump(output, open('{{OUTFILE}}','w'))" """,
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             infile_type=".json",
@@ -373,9 +364,6 @@ input=json.load(open('{{INFILE}}'));
 v=input['attr-0'];
 output={'attr-a':v, 'attr-b':v+v};
 json.dump(output, open('{{OUTFILE}}','w'))" """,
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             infile_type=".json",
@@ -451,9 +439,6 @@ input   = pickle.loads(base64.b64decode(indata));
 output  = input+timedelta(days=1);
 outdata = base64.b64encode(pickle.dumps(output)).decode();
 print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             infile_type=".pkl.b64",
@@ -515,9 +500,6 @@ async def test_400__exception_quarantine(
             consume_and_reply(
                 "python:alpine",
                 """python3 -c "raise ValueError('no good!')" """,
-                # broker_client=,  # rely on env var
-                # broker_address=,  # rely on env var
-                # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
                 # infile_type=,
@@ -584,9 +566,6 @@ async def test_420__timeout(
             consume_and_reply(
                 "python:alpine",
                 """python3 -c "import time; time.sleep(30)" """,
-                # broker_client=,  # rely on env var
-                # broker_address=,  # rely on env var
-                # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
                 # infile_type=,
@@ -665,9 +644,6 @@ import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             # infile_type=,
@@ -757,9 +733,6 @@ output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))
 raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
-                # broker_client=,  # rely on env var
-                # broker_address=,  # rely on env var
-                # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
                 # infile_type=,
@@ -828,9 +801,6 @@ import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
-        # broker_client=,  # rely on env var
-        # broker_address=,  # rely on env var
-        # auth_token="",
         queue_incoming=queue_incoming,
         queue_outgoing=queue_outgoing,
         # infile_type=,
@@ -903,9 +873,6 @@ output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))
 raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             # infile_type=,
@@ -994,9 +961,6 @@ time.sleep("""
                 + str(TEST_1000_SLEEP)
                 + """);
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
-                # broker_client=,  # rely on env var
-                # broker_address=,  # rely on env var
-                # auth_token="",
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
                 # infile_type=,
@@ -1109,9 +1073,6 @@ with open('initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
 " """,
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             # infile_type=,
@@ -1174,9 +1135,6 @@ with open('initoutput', 'w') as f:
 time.sleep(5)
 " """,
             init_timeout=init_timeout,
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             # infile_type=,
@@ -1213,9 +1171,6 @@ with open('initoutput', 'w') as f:
     print('hello world!', file=f)
 raise ValueError('no good!')
 " """,
-            # broker_client=,  # rely on env var
-            # broker_address=,  # rely on env var
-            # auth_token="",
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             # infile_type=,
