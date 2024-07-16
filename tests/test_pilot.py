@@ -210,7 +210,8 @@ async def test_000(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            cmd="""python3 -c "
+            "python:alpine",
+            """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # broker_client=,  # rely on env var
@@ -260,7 +261,8 @@ async def test_001__txt__str_filetype(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            cmd="""python3 -c "
+            "python:alpine",
+            """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             # broker_client=,  # rely on env var
@@ -312,7 +314,8 @@ async def test_100__json__objects(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            cmd="""python3 -c "
+            "python:alpine",
+            """python3 -c "
 import json;
 input=json.load(open('{{INFILE}}'));
 v=input['attr-0'];
@@ -372,7 +375,8 @@ async def test_101__json__preserialized(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            cmd="""python3 -c "
+            "python:alpine",
+            """python3 -c "
 import json;
 input=json.load(open('{{INFILE}}'));
 v=input['attr-0'];
@@ -446,7 +450,8 @@ async def test_200__pkl_b64(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            cmd="""python3 -c "
+            "python:alpine",
+            """python3 -c "
 import pickle, base64;
 from datetime import date, timedelta;
 indata  = open('{{INFILE}}').read().strip()
@@ -515,7 +520,8 @@ async def test_400__exception(
                 intermittent_sleep=TIMEOUT_INCOMING / 4,
             ),
             consume_and_reply(
-                cmd="""python3 -c "raise ValueError('no good!')" """,
+                "python:alpine",
+                """python3 -c "raise ValueError('no good!')" """,
                 # broker_client=,  # rely on env var
                 # broker_address=,  # rely on env var
                 # auth_token="",
@@ -578,7 +584,8 @@ async def test_420__timeout(
                 intermittent_sleep=TIMEOUT_INCOMING / 4,
             ),
             consume_and_reply(
-                cmd="""python3 -c "import time; time.sleep(30)" """,
+                "python:alpine",
+                """python3 -c "import time; time.sleep(30)" """,
                 # broker_client=,  # rely on env var
                 # broker_address=,  # rely on env var
                 # auth_token="",
@@ -649,7 +656,8 @@ async def test_500__concurrent_load_max_concurrent_tasks(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            cmd="""python3 -c "
+            "python:alpine",
+            """python3 -c "
 import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
@@ -733,7 +741,8 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
                 ),
             ),
             consume_and_reply(
-                cmd="""python3 -c "
+                "python:alpine",
+                """python3 -c "
 import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
@@ -798,7 +807,8 @@ async def test_520__preload_max_concurrent_tasks(
     )
 
     await consume_and_reply(
-        cmd="""python3 -c "
+        "python:alpine",
+        """python3 -c "
 import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
@@ -865,7 +875,8 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
         ),
     ) as e:
         await consume_and_reply(
-            cmd="""python3 -c "
+            "python:alpine",
+            """python3 -c "
 import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
@@ -948,7 +959,8 @@ async def test_1000__rabbitmq_heartbeat_workaround(
                 intermittent_sleep=timeout_incoming / 4,
             ),
             consume_and_reply(
-                cmd="""python3 -c "
+                "python:alpine",
+                """python3 -c "
 import time;
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep("""
@@ -1056,11 +1068,13 @@ async def test_2000_init(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            cmd="""python3 -c "
+            "python:alpine",
+            """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
-            init_cmd="""python3 -c "
+            init_image="python:alpine",
+            init_args="""python3 -c "
 with open('initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
@@ -1089,7 +1103,7 @@ with open('initoutput', 'w') as f:
             debug_dir,
             len(msgs_outgoing_expected),
             [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
-            has_init_cmd_subdir=True,
+            has_init_args_subdir=True,
         )
     # check for persisted files
     assert_versus_os_walk(
@@ -1110,11 +1124,13 @@ async def test_2001_init__timeout_error(
         match=re.escape(f"subprocess timed out after {init_timeout}s"),
     ):
         await consume_and_reply(
-            cmd="""python3 -c "
+            "python:alpine",
+            """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
-            init_cmd="""python3 -c "
+            init_image="python:alpine",
+            init_args="""python3 -c "
 import time
 with open('initoutput', 'w') as f:
     print('writing hello world to a file...')
@@ -1149,11 +1165,13 @@ async def test_2002_init__exception(
         match=re.escape("Subprocess completed with exit code 1: ValueError: no good!"),
     ):
         await consume_and_reply(
-            cmd="""python3 -c "
+            "python:alpine",
+            """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
-            init_cmd="""python3 -c "
+            init_image="python:alpine",
+            init_args="""python3 -c "
 with open('initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
