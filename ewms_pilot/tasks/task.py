@@ -59,7 +59,7 @@ async def process_msg_task(
         task_staging_dpath / "stderrfile",
         task_staging_dpath / "stdoutfile",
         dump_task_output,
-        f"--mount type=bind,source={msgs_dpath},target={msgs_dpath_inside_container}",
+        f"--mount type=bind,source={msgs_dpath.resolve()},target={msgs_dpath_inside_container}",
     )
     out_data = OutFileInterface.read(outfilepath)
 
