@@ -2,6 +2,7 @@
 
 import asyncio
 import base64
+import copy
 import json
 import logging
 import os
@@ -11,7 +12,7 @@ import time
 import uuid
 from datetime import date, timedelta
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from unittest.mock import patch
 
 import asyncstdlib as asl
@@ -63,13 +64,10 @@ def debug_dir() -> Path:
     return Path(f"./debug-dir-{time.time()}")
 
 
-OSWalkList = List[Tuple[str, List[str], List[str]]]
-
-
 @pytest.fixture
-def first_walk() -> OSWalkList:
-    """Get os.walk list for initial state."""
-    return list(os.walk("."))
+def file_tree_initial() -> List[Path]:
+    """Get the file systems initial state, aka all the files and paths."""
+    return [p.resolve() for p in Path(".").rglob("*")]
 
 
 async def populate_queue(
@@ -156,31 +154,14 @@ def assert_debug_dir(
         )
 
 
-def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> List[str]:
-    filepaths = [
-        os.path.abspath(os.path.join(root, fname))
-        for root, _, filenames in os_walk
-        for fname in filenames
-    ]
-    dirpaths = [
-        os.path.abspath(os.path.join(root, dname))
-        for root, dirnames, _ in os_walk
-        for dname in dirnames
-    ]
-    rootpaths = [os.path.abspath(root) for root, _, _ in os_walk]
-    return sorted(set(filepaths + dirpaths + rootpaths))
-
-
-def assert_versus_os_walk(first_walk: OSWalkList, persisted_dirs: List[Path]) -> None:
+def assert_versus_file_tree(file_tree: List[Path], persisted_dirs: List[Path]) -> None:
     """Check for persisted files."""
-    expected_files = os_walk_to_flat_abspaths(first_walk)
+    current_ftree = copy.deepcopy(file_tree)
     for dpath in persisted_dirs:  # add all files nested under each dir
-        expected_files.extend(os_walk_to_flat_abspaths(list(os.walk(dpath))))
-
-    current_fpaths = os_walk_to_flat_abspaths(list(os.walk(".")))
+        current_ftree.extend(p.resolve() for p in dpath.rglob("*"))
 
     # use sets for better diffs in pytest logs
-    assert set(current_fpaths) == set(expected_files)
+    assert set(current_ftree) == set(p.resolve() for p in dpath.rglob("*"))
 
 
 ########################################################################################
@@ -192,7 +173,7 @@ async def test_000(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
 ) -> None:
     """Test a normal pilot."""
@@ -235,8 +216,8 @@ async def test_000(
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -247,7 +228,7 @@ async def test_001__txt__str_filetype(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
 ) -> None:
     """Test a normal .txt-based pilot."""
@@ -292,8 +273,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -304,7 +285,7 @@ async def test_100__json__objects(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
 ) -> None:
     """Test a normal (object in, object out) .json-based pilot."""
@@ -354,8 +335,8 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -366,7 +347,7 @@ async def test_101__json__preserialized(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
 ) -> None:
     """Test a preserialized (json-string in, object out) .json-based pilot."""
@@ -416,8 +397,8 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -428,7 +409,7 @@ async def test_200__pkl_b64(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
 ) -> None:
     """Test a user-defined pickle/b64-based pilot."""
@@ -494,8 +475,8 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -507,7 +488,7 @@ async def test_400__exception(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
     quarantine: Optional[int],
 ) -> None:
@@ -563,8 +544,8 @@ async def test_400__exception(
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -575,7 +556,7 @@ async def test_420__timeout(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
 ) -> None:
     """Test a normal .txt-based pilot."""
@@ -629,8 +610,8 @@ async def test_420__timeout(
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -658,7 +639,7 @@ async def test_500__concurrent_load_max_concurrent_tasks(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
     prefetch: int,
 ) -> None:
@@ -713,8 +694,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -731,7 +712,7 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
     prefetch: int,
 ) -> None:
@@ -809,8 +790,8 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -822,7 +803,7 @@ async def test_520__preload_max_concurrent_tasks(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
     prefetch: int,
 ) -> None:
@@ -875,8 +856,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -888,7 +869,7 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
     prefetch: int,
 ) -> None:
@@ -954,8 +935,8 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             ],
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -981,7 +962,7 @@ async def test_1000__rabbitmq_heartbeat_workaround(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
     refresh_interval_rabbitmq_heartbeat_interval: float,
 ) -> None:
@@ -1085,8 +1066,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 )
 
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
@@ -1100,7 +1081,7 @@ async def test_2000_init(
     queue_incoming: str,
     queue_outgoing: str,
     debug_dir: Path,
-    first_walk: OSWalkList,
+    file_tree_initial,
     use_debug_dir: bool,
 ) -> None:
     """Test a normal init command."""
@@ -1159,8 +1140,8 @@ with open('initoutput', 'w') as f:
             has_init_cmd_subdir=True,
         )
     # check for persisted files
-    assert_versus_os_walk(
-        first_walk,
+    assert_versus_file_tree(
+        file_tree_initial,
         [debug_dir if use_debug_dir else Path("./tmp")],
     )
 
