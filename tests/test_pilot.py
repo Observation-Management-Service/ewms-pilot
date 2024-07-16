@@ -150,7 +150,9 @@ def assert_debug_dir(
 
         # look at files -- flattened tree
         this_task_files = [f.replace("{UUID}", task_id) for f in task_fpaths]
-        assert sorted(this_task_files) == sorted(str(p) for p in task_dpath.rglob("*"))
+        assert sorted(this_task_files) == sorted(
+            str(p.relative_to(task_dpath)) for p in task_dpath.rglob("*")
+        )
 
 
 def os_walk_to_flat_abspaths(os_walk: OSWalkList) -> List[str]:
