@@ -79,6 +79,7 @@ async def run_container(
 
     except Exception as e:
         LOGGER.error(f"Subprocess failed: {e}")  # log the time
+        dump_output = True
         raise
     finally:
         if dump_output:
