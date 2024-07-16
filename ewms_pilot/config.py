@@ -127,7 +127,7 @@ class ContainerBindMountDirectoryMapper:
     """Handles the naming and mapping logic for a task's directories."""
 
     @dc.dataclass
-    class _MapPair:
+    class _DirPair:
         on_host: Path
         in_container: Optional[Path]
 
@@ -136,19 +136,19 @@ class ContainerBindMountDirectoryMapper:
         self._unique_dir = PILOT_DIR / name
 
         # for inter-task/init storage: startup data, init container's output, etc.
-        self.pilot_store = self._MapPair(
+        self.pilot_store = self._DirPair(
             PILOT_DIR / "store",
             PILOT_DIR / "store",
         )
 
         # for persisting stderr and stdout
-        self.outputs = self._MapPair(
+        self.outputs = self._DirPair(
             self._unique_dir / "outputs",
             None,
         )
 
         # for message-based task i/o
-        self.task_io = self._MapPair(
+        self.task_io = self._DirPair(
             self._unique_dir / "task-io",
             PILOT_DIR / "task-io",
         )

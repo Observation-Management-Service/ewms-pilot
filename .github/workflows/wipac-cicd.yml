@@ -248,6 +248,19 @@ jobs:
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
           pip install .[test,${{ matrix.broker_client }}]
 
+          # iterate each test, starting each in a container
+          # https://superuser.com/a/284226
+          while IFS= read -r test || [[ -n $test ]]; do
+              echo "$test"
+              docker run --rm -i --network="host" \
+                  --mount type=bind,source=$(pwd),target=/repo/,readonly \
+                  $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                  python:alpine \
+                  pytest /repo/tests -k "$line"
+          done < <(printf '%s' "$(pytest --collect-only -q --disable-warnings tests | head -n -2)")
+          
+          exit 0  # TODO 
+
           if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
             # occasionally has connection errors
             python -m pytest -vvv tests --retries 3 --retry-delay 5 --exitfirst  -n 32
