@@ -255,7 +255,7 @@ jobs:
               docker run --rm -i --network="host" \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                  /bin/bash -c 'pip install .[test,${{ matrix.broker_client }}]; pytest /repo/tests -k "$test" '
+                  python:alpine /bin/bash -c 'pip install .[test,${{ matrix.broker_client }}]; pytest /repo/tests -k "$test" '
           done < <(printf '%s' "$(pytest --collect-only -q --disable-warnings tests | head -n -2)")
           
           exit 0  # TODO 
