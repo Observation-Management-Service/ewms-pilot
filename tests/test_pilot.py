@@ -127,6 +127,7 @@ def assert_debug_dir(
     has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
+    task_dir_contents = [c.rstrip("/") for c in task_dir_contents]
     assert len(task_dir_contents) == len(set(task_dir_contents))  # no duplicates
 
     if has_init_cmd_subdir:
