@@ -17,7 +17,8 @@ async def main() -> None:
 
     await consume_and_reply(
         # task is to "double" the input, one-at-a-time
-        cmd="""python3 -c "
+        "python:alpine",
+        """python3 -c "
 import sys
 import time
 import argparse

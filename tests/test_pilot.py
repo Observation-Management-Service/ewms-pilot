@@ -1103,7 +1103,7 @@ with open('initoutput', 'w') as f:
             debug_dir,
             len(msgs_outgoing_expected),
             [r"infile-{UUID}\.in", r"outfile-{UUID}\.out", "stderrfile", "stdoutfile"],
-            has_init_args_subdir=True,
+            has_init_cmd_subdir=True,
         )
     # check for persisted files
     assert_versus_os_walk(
