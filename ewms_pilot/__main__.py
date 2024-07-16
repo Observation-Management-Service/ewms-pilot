@@ -2,11 +2,13 @@
 
 import argparse
 import asyncio
+import logging
 
 from wipac_dev_tools import argparse_tools, logging_tools
 
-from .config import LOGGER
 from .pilot import consume_and_reply
+
+LOGGER = logging.getLogger(__package__)
 
 
 def main() -> None:

@@ -1,12 +1,13 @@
 """Tools for controlling sub-processes' input/output."""
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
 from mqclient.broker_client_interface import Message
 
-from ..config import LOGGER
+LOGGER = logging.getLogger(__name__)
 
 
 class InvalidDataForInfileException(Exception):

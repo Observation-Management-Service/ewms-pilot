@@ -1,5 +1,6 @@
 """Single task logic."""
 
+import logging
 import shutil
 from pathlib import Path
 from typing import Any, Optional
@@ -7,8 +8,9 @@ from typing import Any, Optional
 from mqclient.broker_client_interface import Message
 
 from .io import FileExtension, InFileInterface, OutFileInterface
-from ..config import LOGGER
 from ..utils.runner import run_container
+
+LOGGER = logging.getLogger(__name__)
 
 
 async def process_msg_task(

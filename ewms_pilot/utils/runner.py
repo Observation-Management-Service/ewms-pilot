@@ -1,11 +1,12 @@
 """Logic for running a subprocess."""
 
 import asyncio
+import logging
 import sys
 from pathlib import Path
 from typing import Optional, TextIO
 
-from ..config import LOGGER
+LOGGER = logging.getLogger(__name__)
 
 
 def get_last_line(fpath: Path) -> str:

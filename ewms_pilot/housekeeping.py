@@ -1,6 +1,7 @@
 """Housekeeping logic."""
 
 import asyncio
+import logging
 import time
 from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
@@ -9,7 +10,8 @@ import mqclient as mq
 from typing_extensions import ParamSpec
 
 from . import htchirp_tools
-from .config import LOGGER
+
+LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
 P = ParamSpec("P")
