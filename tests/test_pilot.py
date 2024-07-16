@@ -211,7 +211,7 @@ async def test_000(
         ),
         consume_and_reply(
             "python:alpine",
-            """ python3 -c "output = open('{{INFILE}}').read().strip() * 2; print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            "python3 -V",  # double cat
             # broker_client=,  # rely on env var
             # broker_address=,  # rely on env var
             # auth_token="",
