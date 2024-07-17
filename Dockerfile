@@ -2,6 +2,13 @@ ARG PYTHON=3.12
 
 FROM python:${PYTHON}
 
+# installs
+RUN apt-get update && \
+    apt-get -qy full-upgrade && \
+    apt-get install -qy curl && \
+    curl -sSL https://get.docker.com/ | sh
+
+# user
 RUN useradd -m -U app
 
 # dirs
@@ -19,12 +26,6 @@ RUN chmod +x /entrypoint.sh
 # user
 USER app
 COPY --chown=app:app . .
-
-# installs
-RUN apt-get update && \
-    apt-get -qy full-upgrade && \
-    apt-get install -qy curl && \
-    curl -sSL https://get.docker.com/ | sh
 
 # python: venv and install
 RUN pip install virtualenv
