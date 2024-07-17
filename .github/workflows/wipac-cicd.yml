@@ -253,6 +253,8 @@ jobs:
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
               .
+          
+          pip install pytest  # for the for-loop below
 
           # iterate each test, starting each in a container
           # https://superuser.com/a/284226
