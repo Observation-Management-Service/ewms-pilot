@@ -4,9 +4,13 @@ FROM python:${PYTHON}
 
 RUN useradd -m -U app
 
+# dirs
 RUN mkdir /app
-WORKDIR /app
 RUN chown -R app /app
+WORKDIR /app
+#
+RUN mkdir -p /ewms-pilot
+RUN chown -R app /ewms-pilot
 
 # entrypoint magic
 COPY entrypoint.sh /entrypoint.sh
