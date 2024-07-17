@@ -1,4 +1,7 @@
-FROM python:3.12
+ARG PYTHON=3.12
+ARG FLAVOR="rabbitmq"
+
+FROM python:${PYTHON}
 
 RUN useradd -m -U app
 
@@ -19,7 +22,7 @@ RUN pip install virtualenv
 RUN python -m virtualenv /app/entrypoint_venv
 RUN . /app/entrypoint_venv/bin/activate && \
     pip install --upgrade pip && \
-    pip install --no-cache-dir .[rabbitmq]
+    pip install --no-cache-dir .[${FLAVOR}]
 
 # go
 ENTRYPOINT ["/entrypoint.sh"]

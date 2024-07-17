@@ -243,15 +243,16 @@ jobs:
           echo "--------------------------------------------------------------"
           echo "running tests..."
 
-          pip install --upgrade pip wheel setuptools pytest
           export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
-          pip install .[test,${{ matrix.broker_client }}]
 
           #
           # TODO: RUN PYTEST INSIDE PILOT CONTAINER! THAT WAY WE CAN SETTLE REQS
           #
-          docker build --tag pilot .
+          docker build --tag pilot \
+              --build-arg="PYTHON=${{ matrix.version }}" \
+              --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
+              .
 
           # iterate each test, starting each in a container
           # https://superuser.com/a/284226
@@ -261,7 +262,7 @@ jobs:
               docker run --rm -i --network="host" \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                  pilot /bin/sh -c "pip install pytest; pytest tests/ -k $test"
+                  pilot pytest tests/ -k $test
           done < <(printf '%s' "$(pytest --collect-only -q --disable-warnings tests | head -n -2)")
           
           exit 0  # TODO 
