@@ -254,7 +254,8 @@ jobs:
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
               .
           
-          pip install pytest  # for the for-loop below
+          pip install .[test]  # for the for-loop below
+          all_tests="$(pytest --collect-only -q --disable-warnings tests | head -n -2)"
 
           # iterate each test, starting each in a container
           # https://superuser.com/a/284226
@@ -265,7 +266,7 @@ jobs:
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   pilot pytest tests/ -k $test
-          done < <(printf '%s' "$(pytest --collect-only -q --disable-warnings tests | head -n -2)")
+          done < <( printf '%s' "$all_tests" )
           
           exit 0  # TODO 
 
