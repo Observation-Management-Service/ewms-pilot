@@ -1,5 +1,4 @@
 ARG PYTHON=3.12
-ARG FLAVOR="rabbitmq"
 
 FROM python:${PYTHON}
 
@@ -20,6 +19,7 @@ COPY --chown=app:app . .
 # venv and install
 RUN pip install virtualenv
 RUN python -m virtualenv /app/entrypoint_venv
+ARG FLAVOR="rabbitmq"
 RUN . /app/entrypoint_venv/bin/activate && \
     pip install --upgrade pip && \
     pip install --no-cache-dir .[${FLAVOR}]
