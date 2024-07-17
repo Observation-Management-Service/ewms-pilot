@@ -20,7 +20,13 @@ RUN chmod +x /entrypoint.sh
 USER app
 COPY --chown=app:app . .
 
-# venv and install
+# installs
+RUN apt-get update && \
+    apt-get -qy full-upgrade && \
+    apt-get install -qy curl && \
+    curl -sSL https://get.docker.com/ | sh
+
+# python: venv and install
 RUN pip install virtualenv
 RUN python -m virtualenv /app/entrypoint_venv
 ARG FLAVOR="rabbitmq"
