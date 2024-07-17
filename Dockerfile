@@ -3,6 +3,7 @@ ARG PYTHON=3.12
 FROM python:${PYTHON}
 
 # installs
+# RUN sudo apt  install docker.io
 RUN apt-get update && \
     apt-get -qy full-upgrade && \
     apt-get install -qy curl && \

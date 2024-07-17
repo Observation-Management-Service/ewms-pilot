@@ -271,7 +271,7 @@ jobs:
               echo "$test"
               # TODO: pull image before parallelize
               docker run --rm -i --network="host" \
-                  -v /var/run/docker.sock:/var/run/docker.sock \
+                  --runtime=sysbox-runc --hostname syscont \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   pilot pytest $test
