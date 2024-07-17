@@ -270,7 +270,10 @@ jobs:
           while IFS= read -r test || [[ -n $test ]]; do
               echo "$test"
               # TODO: pull image before parallelize
-              docker run --rm -i --network="host" \
+              docker run --rm -i \
+                  -p 5672:5672 \
+                  -p 4222:4222 \
+                  -p 8080:8080 \
                   --runtime=sysbox-runc --hostname syscont \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
