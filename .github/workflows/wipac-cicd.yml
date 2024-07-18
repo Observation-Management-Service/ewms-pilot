@@ -237,17 +237,6 @@ jobs:
         run: |
           set -x
 
-          # Pulsar
-          if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
-            ./MQClient/resources/docker-pulsar.sh "${{ matrix.broker_client }}"
-          # RabbitMQ
-          elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
-            ./MQClient/resources/docker-rabbitmq.sh "${{ matrix.broker_client }}"
-          # NATS
-          elif [ "${{ matrix.broker_client }}" = "nats" ]; then
-            ./MQClient/resources/local-nats-js.sh
-          fi
-
           echo "--------------------------------------------------------------"
           echo "running tests..."
 
@@ -264,16 +253,66 @@ jobs:
           
           pip install .[test]  # for the for-loop below
           pytest_nodeids="$(pytest --collect-only -q --disable-warnings tests | head -n -2)"
+          
+          # if this doesn't work, then try using gha service containers
+          # https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
+          docker network create mynet
+          
+          if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
+              DOCKERIZE_VERSION=v0.6.1
+              wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+              docker run -i --rm --name $1 \
+                  --net=mynet \
+                  -p 6650:6650 \
+                  -p 8080:8080 \
+                  apachepulsar/pulsar:2.6.0 /bin/bash \
+                  -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone" \
+                  >> broker.out 2>&1 &
+              dockerize -wait tcp://localhost:8080 -timeout 10m
+              dockerize -wait tcp://localhost:6650 -timeout 10m
+          # RabbitMQ
+          elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
+              DOCKERIZE_VERSION=v0.6.1
+              wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
+              if [ -z $2 ]; then
+                  echo -e "log.console.level = debug\n" >> "./rabbitmq-custom.conf"
+                  echo -e "loopback_users = none\n" >> "./rabbitmq-custom.conf"  # allows guest/guest from non-localhost
+                  CUSTOM_CONF_MOUNT="-v $(realpath './rabbitmq-custom.conf'):/bitnami/rabbitmq/conf/custom.conf:ro"
+              else
+                  CUSTOM_CONF_MOUNT="-v $(realpath $2):/bitnami/rabbitmq/conf/custom.conf:ro"
+              fi
+              set -x
+              mkdir ./broker_logs
+              docker run -i --rm --name $1 \
+                  --net=mynet \
+                  --env RABBITMQ_USERNAME=guest \
+                  --env RABBITMQ_PASSWORD=guest \
+                  --env BITNAMI_DEBUG=true \
+                  $CUSTOM_CONF_MOUNT \
+                  --mount type=bind,source=$(realpath ./broker_logs),target=/opt/bitnami/rabbitmq/var/log/rabbitmq/ \
+                  bitnami/rabbitmq:latest \
+                  >> broker.out 2>&1 &
+              dockerize -wait tcp://localhost:5672 -timeout 1m
+              dockerize -wait tcp://localhost:15672 -timeout 1m
+          # NATS
+          elif [ "${{ matrix.broker_client }}" = "nats" ]; then
+              # Download from source b/c snap's version is too old (doesn't have jetstream support)
+              curl -L https://github.com/nats-io/nats-server/releases/download/v2.6.6/nats-server-v2.6.6-linux-amd64.zip -o nats-server.zip
+              unzip nats-server.zip -d nats-server
+              nats-server/nats-server-v2.6.6-linux-amd64/nats-server -js >> broker.out 2>&1 &
+          fi
 
           # iterate each test, starting each in a container
           # https://superuser.com/a/284226
           while IFS= read -r test || [[ -n $test ]]; do
               echo "$test"
+              # --hostname syscont # unique? 
               docker run --rm -i \
+                  --net=mynet \
                   -p 5672:5672 \
                   -p 4222:4222 \
                   -p 8080:8080 \
-                  --runtime=sysbox-runc --hostname syscont \
+                  --runtime=sysbox-runc \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   pilot pytest $test
