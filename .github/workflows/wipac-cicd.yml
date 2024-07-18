@@ -280,6 +280,8 @@ jobs:
           fi
           
           sleep 10  # takes 5 sec to startup broker
+          echo "the time!"
+          date --rfc-3339=seconds
           
           echo "--------------------------------------------------------------"
           echo "running tests..."
