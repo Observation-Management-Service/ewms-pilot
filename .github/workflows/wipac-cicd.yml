@@ -279,6 +279,8 @@ jobs:
               nats-server/nats-server-v2.6.6-linux-amd64/nats-server -js >> broker.out 2>&1 &
           fi
           
+          sleep 10  # takes 5 sec to startup broker
+          
           echo "--------------------------------------------------------------"
           echo "running tests..."
           
