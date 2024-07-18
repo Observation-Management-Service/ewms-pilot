@@ -24,6 +24,7 @@ RUN mkdir -p /ewms-pilot
 RUN chown -R app /ewms-pilot
 #
 # to startup docker daemon
+RUN touch /var/log/dockerd.log
 RUN chown app /var/log/dockerd.log
 
 # entrypoint magic
