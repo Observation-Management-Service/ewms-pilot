@@ -5,7 +5,6 @@ See https://github.com/Observation-Management-Service/ewms-workflow-management-s
 
 import asyncio
 import logging
-from pathlib import Path
 
 from ewms_pilot import consume_and_reply
 
@@ -29,7 +28,6 @@ time.sleep(5)
 print('printed: ' + output)
 print(output, file=open('{{OUTFILE}}','w'))
 " """,
-        debug_dir=Path("."),
     )
 
 
