@@ -315,10 +315,10 @@ jobs:
           # https://superuser.com/a/284226
           while IFS= read -r test || [[ -n $test ]]; do
               echo "$test"
-              # --hostname syscont # unique? 
               docker run --rm -i \
                   --net=mynet \
                   --runtime=sysbox-runc \
+                  --hostname=syscont \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   pilot pytest $test
