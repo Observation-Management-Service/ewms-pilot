@@ -283,7 +283,7 @@ jobs:
           
           echo "before time!"
           date --rfc-3339=seconds
-          sleep 180  # takes 5 sec to startup broker + time to pull/build image
+          sleep 20  # takes 5 sec to startup broker + time to build image
           echo "after time!"
           date --rfc-3339=seconds
           
