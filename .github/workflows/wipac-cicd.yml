@@ -290,6 +290,9 @@ jobs:
           date --rfc-3339=seconds
           docker network inspect mynet
           
+          export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS=broker
+          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=broker
+          
           echo "--------------------------------------------------------------"
           echo "running tests..."
           
