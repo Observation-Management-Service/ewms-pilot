@@ -233,6 +233,8 @@ jobs:
       - name: pre-pull images for testing
         run: |
           docker pull python:alpine
+          docker pull bitnami/rabbitmq:latest
+          docker pull apachepulsar/pulsar:2.6.0
       - name: Integrate
         run: |
           set -x
