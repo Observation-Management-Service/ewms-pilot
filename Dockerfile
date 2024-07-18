@@ -13,12 +13,18 @@ RUN apt-get update && \
 RUN useradd -m -U app
 
 # dirs
+#
+# the WORKDIR
 RUN mkdir /app
 RUN chown -R app /app
 WORKDIR /app
 #
+# the directory exposed to all tasks
 RUN mkdir -p /ewms-pilot
 RUN chown -R app /ewms-pilot
+#
+# to startup docker daemon
+RUN chown app /var/log/dockerd.log
 
 # entrypoint magic
 COPY entrypoint.sh /entrypoint.sh
