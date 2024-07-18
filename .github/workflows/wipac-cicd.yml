@@ -286,6 +286,7 @@ jobs:
           sleep 20  # takes 5 sec to startup broker + time to build image
           echo "after time!"
           date --rfc-3339=seconds
+          docker network inspect mynet
           
           echo "--------------------------------------------------------------"
           echo "running tests..."
