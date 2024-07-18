@@ -279,8 +279,10 @@ jobs:
               nats-server/nats-server-v2.6.6-linux-amd64/nats-server -js >> broker.out 2>&1 &
           fi
           
+          echo "before time!"
+          date --rfc-3339=seconds
           sleep 20  # takes 5 sec to startup broker + time to pull/build image
-          echo "the time!"
+          echo "after time!"
           date --rfc-3339=seconds
           
           echo "--------------------------------------------------------------"
@@ -334,7 +336,7 @@ jobs:
       - name: broker docker logs
         if: always()
         run: |
-          docker logs "${{ matrix.broker_client }}" || true
+          docker logs broker || true
 
 
   #############################################################################
