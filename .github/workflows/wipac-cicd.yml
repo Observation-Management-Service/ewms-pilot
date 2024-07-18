@@ -10,10 +10,9 @@ concurrency:
 env:
   PULSAR_CONTAINER: pulsar_local
   #
-  EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS: localhost
-  EWMS_PILOT_TIMEOUT_INCOMING: 1
+  BROKER_CONTAINER_NAME: broker
   #
-  EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: localhost
+  EWMS_PILOT_TIMEOUT_INCOMING: 1
   EWMS_PILOT_TIMEOUT_OUTGOING: 1
   #
   DOCKER_IMAGE_NAME: pilot-test/example
@@ -163,6 +162,8 @@ jobs:
           pip install --upgrade pip wheel setuptools pytest
           export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
+          export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS=localhost
+          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=localhost
           pip install .[test,${{ matrix.broker_client }}]
 
           export EWMS_PILOT_QUEUE_INCOMING="a012"
@@ -246,7 +247,7 @@ jobs:
           if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
               DOCKERIZE_VERSION=v0.6.1
               wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-              (docker run -i --rm -d --name broker \
+              (docker run -i --rm -d --name $BROKER_CONTAINER_NAME \
                   --net=mynet \
                   --runtime=sysbox-runc \
                   apachepulsar/pulsar:2.6.0 /bin/bash \
@@ -265,7 +266,7 @@ jobs:
               fi
               set -x
               mkdir ./broker_logs
-              (docker run -i --rm -d --name broker \
+              (docker run -i --rm -d --name $BROKER_CONTAINER_NAME \
                   --net=mynet \
                   --runtime=sysbox-runc \
                   --env RABBITMQ_USERNAME=guest \
@@ -280,18 +281,18 @@ jobs:
               # Download from source b/c snap's version is too old (doesn't have jetstream support)
               curl -L https://github.com/nats-io/nats-server/releases/download/v2.6.6/nats-server-v2.6.6-linux-amd64.zip -o nats-server.zip
               unzip nats-server.zip -d nats-server
-              (nats-server/nats-server-v2.6.6-linux-amd64/nats-server -js >> broker.out 2>&1 )
+              (nats-server/nats-server-v2.6.6-linux-amd64/nats-server -js >> broker.out 2>&1 &)
           fi
           
           echo "before time!"
           date --rfc-3339=seconds
-          sleep 20  # takes 5 sec to startup broker + time to build image
+          sleep 20  # takes 5 sec to startup $BROKER_CONTAINER_NAME + time to build image
           echo "after time!"
           date --rfc-3339=seconds
           docker network inspect mynet
           
-          export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS=broker
-          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS=broker
+          export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
+          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           
           echo "--------------------------------------------------------------"
           echo "running tests..."
@@ -344,7 +345,7 @@ jobs:
       - name: broker docker logs
         if: always()
         run: |
-          docker logs broker || true
+          docker logs $BROKER_CONTAINER_NAME || true
 
 
   #############################################################################
