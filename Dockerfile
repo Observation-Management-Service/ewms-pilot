@@ -20,8 +20,8 @@ RUN mkdir /app
 WORKDIR /app
 #
 # the directory exposed to all tasks
-RUN mkdir -p /ewms-pilot
-# RUN chown -R app /ewms-pilot
+RUN mkdir -p /ewms-pilot/store
+# RUN chown -R app /ewms-pilot/store
 #
 # to startup docker daemon
 RUN touch /var/log/dockerd.log

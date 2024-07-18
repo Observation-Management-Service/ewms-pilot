@@ -1,5 +1,5 @@
 #!/bin/bash
-echo "entrypoint: activating docker daemon"
+echo "entrypoint: activating docker daemon..."
 dockerd > /var/log/dockerd.log 2>&1 &
 sleep 15
 docker ps
