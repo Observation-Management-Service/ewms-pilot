@@ -230,35 +230,38 @@ jobs:
           docker rm $(docker ps -a -q) -f  |  true
           sudo apt-get install jq
           sudo apt-get install ./sysbox-ce_0.6.4-0.linux_amd64.deb
-          # sudo systemctl status sysbox -n20  # used in actual step
-      - name: pre-pull images for testing
+          # sudo systemctl status sysbox -n20  # used below
+      - name: pre-pull/build images for testing
         run: |
           docker pull python:alpine
           docker pull bitnami/rabbitmq:latest
           docker pull apachepulsar/pulsar:2.6.0
+          docker build --tag pilot \
+              --build-arg="PYTHON=${{ matrix.version }}" \
+              --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
+              .
       - name: Integrate
         run: |
           set -x
           
+          # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
           sudo systemctl status sysbox -n20
-
-          # if this doesn't work, then try using gha service containers
-          # https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
+          # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
           
+          
+          echo "--------------------------------------------------------------"
+          echo "starting broker..."
+          
           if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
-              DOCKERIZE_VERSION=v0.6.1
-              wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-              (docker run -i --rm -d --name $BROKER_CONTAINER_NAME \
+              docker run -i --rm -d --name $BROKER_CONTAINER_NAME \
                   --net=mynet \
                   --runtime=sysbox-runc \
                   apachepulsar/pulsar:2.6.0 /bin/bash \
                   -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone" \
-                  >> broker.out 2>&1 )
+                  >> broker.out 2>&1 &
           # RabbitMQ
           elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
-              DOCKERIZE_VERSION=v0.6.1
-              wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
               if [ -z $2 ]; then
                   echo -e "log.console.level = debug\n" >> "./rabbitmq-custom.conf"
                   echo -e "loopback_users = none\n" >> "./rabbitmq-custom.conf"  # allows guest/guest from non-localhost
@@ -266,9 +269,8 @@ jobs:
               else
                   CUSTOM_CONF_MOUNT="-v $(realpath $2):/bitnami/rabbitmq/conf/custom.conf:ro"
               fi
-              set -x
               mkdir ./broker_logs
-              (docker run -i --rm -d --name $BROKER_CONTAINER_NAME \
+              docker run -i --rm -d --name $BROKER_CONTAINER_NAME \
                   --net=mynet \
                   --runtime=sysbox-runc \
                   --env RABBITMQ_USERNAME=guest \
@@ -277,43 +279,27 @@ jobs:
                   $CUSTOM_CONF_MOUNT \
                   --mount type=bind,source=$(realpath ./broker_logs),target=/opt/bitnami/rabbitmq/var/log/rabbitmq/ \
                   bitnami/rabbitmq:latest \
-                  >> broker.out 2>&1 )
+                  >> broker.out 2>&1
           # NATS
           elif [ "${{ matrix.broker_client }}" = "nats" ]; then
               # Download from source b/c snap's version is too old (doesn't have jetstream support)
               curl -L https://github.com/nats-io/nats-server/releases/download/v2.6.6/nats-server-v2.6.6-linux-amd64.zip -o nats-server.zip
               unzip nats-server.zip -d nats-server
-              (nats-server/nats-server-v2.6.6-linux-amd64/nats-server -js >> broker.out 2>&1 &)
+              nats-server/nats-server-v2.6.6-linux-amd64/nats-server -js >> broker.out 2>&1 &
           fi
           
-          echo "before time!"
-          date --rfc-3339=seconds
-          sleep 20  # takes 5 sec to startup $BROKER_CONTAINER_NAME + time to build image
-          echo "after time!"
-          date --rfc-3339=seconds
-          docker network inspect mynet
-          
-          export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
-          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           
           echo "--------------------------------------------------------------"
           echo "running tests..."
           
+          export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
+          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
 
-          #
-          # RUN PYTEST INSIDE PILOT CONTAINER! THAT WAY WE CAN SETTLE REQS
-          #
-          docker build --tag pilot \
-              --build-arg="PYTHON=${{ matrix.version }}" \
-              --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
-              .
-          
+          # iterate each test, starting each in its own container          
           pip install .[test]  # for the for-loop below
           pytest_nodeids="$(pytest --collect-only -q --disable-warnings tests | head -n -2)"
-
-          # iterate each test, starting each in a container
           # https://superuser.com/a/284226
           while IFS= read -r test || [[ -n $test ]]; do
               echo "$test"
@@ -323,7 +309,7 @@ jobs:
                   --hostname=syscont \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                  pilot pytest $test
+                  pilot pytest -vvv $test
           done < <( printf '%s' "$pytest_nodeids" )
           
           exit 0  # TODO 
