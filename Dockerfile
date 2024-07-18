@@ -10,30 +10,31 @@ RUN apt-get update && \
     curl -sSL https://get.docker.com/ | sh
 
 # user
-RUN useradd -m -U app
+# RUN useradd -m -U app
 
 # dirs
 #
 # the WORKDIR
 RUN mkdir /app
-RUN chown -R app /app
+# RUN chown -R app /app
 WORKDIR /app
 #
 # the directory exposed to all tasks
 RUN mkdir -p /ewms-pilot
-RUN chown -R app /ewms-pilot
+# RUN chown -R app /ewms-pilot
 #
 # to startup docker daemon
 RUN touch /var/log/dockerd.log
-RUN chown app /var/log/dockerd.log
+# RUN chown app /var/log/dockerd.log
 
 # entrypoint magic
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # user
-USER app
-COPY --chown=app:app . .
+# USER app
+# COPY --chown=app:app . .
+COPY . .
 
 # python: venv and install
 RUN pip install virtualenv
