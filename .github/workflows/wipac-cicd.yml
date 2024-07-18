@@ -237,23 +237,6 @@ jobs:
         run: |
           set -x
 
-          echo "--------------------------------------------------------------"
-          echo "running tests..."
-
-          export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
-          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
-
-          #
-          # TODO: RUN PYTEST INSIDE PILOT CONTAINER! THAT WAY WE CAN SETTLE REQS
-          #
-          docker build --tag pilot \
-              --build-arg="PYTHON=${{ matrix.version }}" \
-              --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
-              .
-          
-          pip install .[test]  # for the for-loop below
-          pytest_nodeids="$(pytest --collect-only -q --disable-warnings tests | head -n -2)"
-          
           # if this doesn't work, then try using gha service containers
           # https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
@@ -268,8 +251,6 @@ jobs:
                   apachepulsar/pulsar:2.6.0 /bin/bash \
                   -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone" \
                   >> broker.out 2>&1 &
-              dockerize -wait tcp://localhost:8080 -timeout 10m
-              dockerize -wait tcp://localhost:6650 -timeout 10m
           # RabbitMQ
           elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
               DOCKERIZE_VERSION=v0.6.1
@@ -292,8 +273,6 @@ jobs:
                   --mount type=bind,source=$(realpath ./broker_logs),target=/opt/bitnami/rabbitmq/var/log/rabbitmq/ \
                   bitnami/rabbitmq:latest \
                   >> broker.out 2>&1 &
-              dockerize -wait tcp://localhost:5672 -timeout 1m
-              dockerize -wait tcp://localhost:15672 -timeout 1m
           # NATS
           elif [ "${{ matrix.broker_client }}" = "nats" ]; then
               # Download from source b/c snap's version is too old (doesn't have jetstream support)
@@ -301,6 +280,23 @@ jobs:
               unzip nats-server.zip -d nats-server
               nats-server/nats-server-v2.6.6-linux-amd64/nats-server -js >> broker.out 2>&1 &
           fi
+          
+          echo "--------------------------------------------------------------"
+          echo "running tests..."
+          
+          export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
+          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
+
+          #
+          # RUN PYTEST INSIDE PILOT CONTAINER! THAT WAY WE CAN SETTLE REQS
+          #
+          docker build --tag pilot \
+              --build-arg="PYTHON=${{ matrix.version }}" \
+              --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
+              .
+          
+          pip install .[test]  # for the for-loop below
+          pytest_nodeids="$(pytest --collect-only -q --disable-warnings tests | head -n -2)"
 
           # iterate each test, starting each in a container
           # https://superuser.com/a/284226
