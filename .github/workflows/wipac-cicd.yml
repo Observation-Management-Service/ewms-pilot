@@ -230,7 +230,7 @@ jobs:
           docker rm $(docker ps -a -q) -f  |  true
           sudo apt-get install jq
           sudo apt-get install ./sysbox-ce_0.6.4-0.linux_amd64.deb
-          sudo systemctl status sysbox -n20
+          # sudo systemctl status sysbox -n20  # used in actual step
       - name: pre-pull images for testing
         run: |
           docker pull python:alpine
@@ -239,6 +239,8 @@ jobs:
       - name: Integrate
         run: |
           set -x
+          
+          sudo systemctl status sysbox -n20
 
           # if this doesn't work, then try using gha service containers
           # https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
