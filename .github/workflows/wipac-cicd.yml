@@ -244,7 +244,7 @@ jobs:
           if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
               DOCKERIZE_VERSION=v0.6.1
               wget https://github.com/jwilder/dockerize/releases/download/$DOCKERIZE_VERSION/dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && sudo tar -C /usr/local/bin -xzvf dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz && rm dockerize-linux-amd64-$DOCKERIZE_VERSION.tar.gz
-              docker run -i --rm --name $1 \
+              docker run -i --rm --name broker \
                   --net=mynet \
                   apachepulsar/pulsar:2.6.0 /bin/bash \
                   -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone" \
@@ -262,7 +262,7 @@ jobs:
               fi
               set -x
               mkdir ./broker_logs
-              docker run -i --rm --name $1 \
+              docker run -i --rm --name broker \
                   --net=mynet \
                   --env RABBITMQ_USERNAME=guest \
                   --env RABBITMQ_PASSWORD=guest \
