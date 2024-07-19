@@ -139,7 +139,7 @@ def assert_pilot_dirs(
         elif has_init_cmd_subdir and subdir.name.startswith("init"):
             assert sorted(
                 str(p.relative_to(subdir)) for p in subdir.rglob("*")
-            ) == sorted(["outputs/stderrfile", "outputs/stdoutfile", "outputs/"])
+            ) == sorted(["outputs/stderrfile", "outputs/stdoutfile", "outputs"])
             continue
         # now we know this is a task dir
         else:
