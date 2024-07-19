@@ -5,6 +5,8 @@ import base64
 import json
 import logging
 import os
+
+os.makedirs(os.getenv("EWMS_TASK_PILOT_STORE_DIR"), exist_ok=True)
 import pickle
 import re
 import time
@@ -919,6 +921,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image="python:alpine",
             init_args="""python3 -c "
 import os
+os.makedirs(os.getenv('EWMS_TASK_PILOT_STORE_DIR'), exist_ok=True)
 with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
@@ -973,6 +976,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_args="""python3 -c "
 import time
 import os
+os.makedirs(os.getenv('EWMS_TASK_PILOT_STORE_DIR'), exist_ok=True)
 with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
@@ -1010,6 +1014,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image="python:alpine",
             init_args="""python3 -c "
 import os
+os.makedirs(os.getenv('EWMS_TASK_PILOT_STORE_DIR'), exist_ok=True)
 with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
@@ -1053,6 +1058,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image="python:alpine",
             init_args="""python3 -c "
 import os
+os.makedirs(os.getenv('EWMS_TASK_PILOT_STORE_DIR'), exist_ok=True)
 with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     print('writing to a file...')
     print('blue', file=f)
