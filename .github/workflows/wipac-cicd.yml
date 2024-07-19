@@ -311,7 +311,7 @@ jobs:
                   --hostname=syscont \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                  pilot pytest -vvv $test >> $!.test.out 2>&1 & pidlist="$pidlist $!"
+                  pilot pytest -vvv $test >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
           done <<< "$pytest_nodeids"
           
@@ -321,7 +321,8 @@ jobs:
           for pid in $pidlist; do
               echo "waiting for $pid..."
               if ! wait -n $pid; then
-                  cat $pid.test.out
+                  # grab first failure -> may not be the failure from this pid
+                  cat $( grep -l -m 1 *.test.out -e "= FAILURES =" | head -1 )
                   kill $pidlist 2>/dev/null
                   exit 1
               fi
