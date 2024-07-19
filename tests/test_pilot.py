@@ -20,7 +20,7 @@ import mqclient as mq
 import pytest
 
 from ewms_pilot import PilotSubprocessError, config, consume_and_reply
-from ewms_pilot.config import ENV, PILOT_DIR
+from ewms_pilot.config import ENV, PILOT_DIR, PILOT_STORAGE_DIR
 
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger("mqclient").setLevel(logging.INFO)
@@ -106,6 +106,7 @@ async def assert_results(
 def assert_pilot_dirs(
     n_tasks: int,
     task_dir_contents: List[str],
+    store_dir_contents: List[str],
     has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
@@ -122,24 +123,30 @@ def assert_pilot_dirs(
         assert len(list(PILOT_DIR.iterdir())) == n_tasks + 1  # store/
 
     # check each task's dir contents
-    for subdir in [s for s in PILOT_DIR.iterdir() if s.name not in ["store"]]:
+    for subdir in PILOT_DIR.iterdir():
         assert subdir.is_dir()
 
-        # actually, is this an init subdir?
-        if has_init_cmd_subdir and subdir.name.startswith("init"):
+        # is this the store subdir?
+        if subdir.name == "store":
+            assert sorted(
+                str(p.relative_to(subdir)) for p in subdir.rglob("*")
+            ) == sorted(store_dir_contents)
+            continue
+        # is this an init subdir?
+        elif has_init_cmd_subdir and subdir.name.startswith("init"):
             assert sorted(
                 str(p.relative_to(subdir)) for p in subdir.rglob("*")
             ) == sorted(["outputs/stderrfile", "outputs/stdoutfile", "outputs/"])
             continue
-
         # now we know this is a task dir
-        task_id = subdir.name
+        else:
+            task_id = subdir.name
 
-        # look at files -- flattened tree
-        this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
-        assert sorted(this_task_files) == sorted(
-            str(p.relative_to(subdir)) for p in subdir.rglob("*")
-        )
+            # look at files -- flattened tree
+            this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
+            assert sorted(this_task_files) == sorted(
+                str(p.relative_to(subdir)) for p in subdir.rglob("*")
+            )
 
 
 ########################################################################################
@@ -908,7 +915,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
             init_image="python:alpine",
             init_args="""python3 -c "
-with open('initoutput', 'w') as f:
+import os
+with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
 " """,
@@ -921,9 +929,8 @@ with open('initoutput', 'w') as f:
     )
 
     # check init's output
-    with open("initoutput") as f:
+    with open(PILOT_STORAGE_DIR / "initoutput") as f:
         assert f.read().strip() == "hello world!"
-    Path("initoutput").unlink()  # remove so the other checks work
 
     # check task stuff
     await assert_results(queue_outgoing, msgs_outgoing_expected)
@@ -937,6 +944,7 @@ with open('initoutput', 'w') as f:
             "outputs/stdoutfile",
             "outputs/",
         ],
+        ["initoutput"],
         has_init_cmd_subdir=True,
     )
 
@@ -961,7 +969,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image="python:alpine",
             init_args="""python3 -c "
 import time
-with open('initoutput', 'w') as f:
+import os
+with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
 time.sleep(5)
@@ -975,7 +984,7 @@ time.sleep(5)
         )
 
     # check init's output
-    with open("initoutput") as f:
+    with open(PILOT_STORAGE_DIR / "initoutput") as f:
         assert f.read().strip() == "hello world!"
 
 
@@ -997,7 +1006,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
             init_image="python:alpine",
             init_args="""python3 -c "
-with open('initoutput', 'w') as f:
+import os
+with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
 raise ValueError('no good!')
@@ -1010,5 +1020,64 @@ raise ValueError('no good!')
         )
 
     # check init's output
-    with open("initoutput") as f:
+    with open(PILOT_STORAGE_DIR / "initoutput") as f:
         assert f.read().strip() == "hello world!"
+
+
+@pytest.mark.usefixtures("unique_pwd")
+async def test_2000_init__use_in_task(
+    queue_incoming: str,
+    queue_outgoing: str,
+) -> None:
+    """Test a normal init container's outfile in another task."""
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}blue\n" for x in msgs_to_subproc]
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
+        ),
+        consume_and_reply(
+            "python:alpine",
+            """python3 -c "
+import os
+output = open('{{INFILE}}').read().strip() + open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput').read().strip();
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            #
+            init_image="python:alpine",
+            init_args="""python3 -c "
+import os
+with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
+    print('writing to a file...')
+    print('blue', file=f)
+" """,
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            # infile_type=,
+            # outfile_type=,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
+    )
+
+    # check init's output
+    with open(PILOT_STORAGE_DIR / "initoutput") as f:
+        assert f.read().strip() == "blue"
+
+    # check task stuff
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
+    assert_pilot_dirs(
+        len(msgs_outgoing_expected),
+        [
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
+        ],
+        ["initoutput"],
+        has_init_cmd_subdir=True,
+    )

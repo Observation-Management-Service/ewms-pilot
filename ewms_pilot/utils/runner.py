@@ -49,12 +49,13 @@ async def run_container(
     stdoutfile: Path,
     stderrfile: Path,
     mount_bindings: str = "",
+    env_options: str = "",
 ) -> None:
     """Run the container and dump outputs."""
     dump_output = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT
 
     # NOTE: don't add to mount_bindings (WYSIWYG); also avoid intermediate structures
-    cmd = f"docker run --rm -i {mount_bindings} {image} {args}"
+    cmd = f"docker run --rm -i {mount_bindings} {env_options} {image} {args}"
     LOGGER.info(cmd)
 
     # call & check outputs

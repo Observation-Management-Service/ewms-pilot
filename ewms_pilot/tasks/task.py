@@ -58,6 +58,7 @@ async def process_msg_task(
             f"--mount type=bind,source={dirs.task_io.on_host},target={dirs.task_io.in_container} "
             f"--mount type=bind,source={dirs.pilot_store.on_host},target={dirs.pilot_store.in_container} "
         ),
+        f"--env EWMS_TASK_PILOT_STORE_DIR={dirs.pilot_store.in_container}",
     )
     out_data = OutFileInterface.read(dirs.task_io.on_host / outfile_name)
 

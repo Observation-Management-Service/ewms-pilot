@@ -169,6 +169,7 @@ async def run_init_container(
             dirs.outputs_on_host / "stdoutfile",
             dirs.outputs_on_host / "stderrfile",
             f"--mount type=bind,source={dirs.pilot_store.on_host},target={dirs.pilot_store.in_container}",
+            f"--env EWMS_TASK_PILOT_STORE_DIR={dirs.pilot_store.in_container}",
         )
     )
     pending = set([task])

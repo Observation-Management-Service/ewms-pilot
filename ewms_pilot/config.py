@@ -121,6 +121,7 @@ ENV = from_environment_as_dataclass(EnvConfig)
 
 
 PILOT_DIR = Path("/ewms-pilot")
+PILOT_STORAGE_DIR = PILOT_DIR / "store"
 
 
 class DirectoryCatalog:
@@ -137,8 +138,8 @@ class DirectoryCatalog:
 
         # for inter-task/init storage: startup data, init container's output, etc.
         self.pilot_store = self._ContainerBindMountDirPair(
-            PILOT_DIR / "store",
-            PILOT_DIR / "store",
+            PILOT_STORAGE_DIR,
+            PILOT_STORAGE_DIR,
         )
 
         # for persisting stderr and stdout
