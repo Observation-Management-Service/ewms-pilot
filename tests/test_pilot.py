@@ -5,8 +5,6 @@ import base64
 import json
 import logging
 import os
-
-os.makedirs(os.getenv("EWMS_TASK_PILOT_STORE_DIR"), exist_ok=True)
 import pickle
 import re
 import time
