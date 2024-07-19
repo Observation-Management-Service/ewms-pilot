@@ -20,7 +20,7 @@ import mqclient as mq
 import pytest
 
 from ewms_pilot import PilotSubprocessError, config, consume_and_reply
-from ewms_pilot.config import ENV
+from ewms_pilot.config import ENV, PILOT_DIR
 
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger("mqclient").setLevel(logging.INFO)
@@ -53,15 +53,6 @@ def unique_pwd() -> None:
 def queue_outgoing() -> str:
     """Get the name of a queue for talking "from" client(s)."""
     return mq.Queue.make_name()
-
-
-@pytest.fixture
-def debug_dir() -> Path:
-    """Return a unique debug directory Path.
-
-    Don't create since it'll be created by the pilot.
-    """
-    return Path(f"./debug-dir-{time.time()}")
 
 
 @pytest.fixture
@@ -118,8 +109,7 @@ async def assert_results(
         assert set(received) == set(msgs_expected)
 
 
-def assert_debug_dir(
-    debug_dir: Path,
+def assert_task_dirs(
     n_tasks: int,
     task_dir_contents: List[str],
     has_init_cmd_subdir: bool = False,
@@ -129,28 +119,28 @@ def assert_debug_dir(
     assert len(task_dir_contents) == len(set(task_dir_contents))  # no duplicates
 
     if has_init_cmd_subdir:
-        assert len(list(debug_dir.iterdir())) == n_tasks + 1
+        assert len(list(PILOT_DIR.iterdir())) == n_tasks + 1
     else:
-        assert len(list(debug_dir.iterdir())) == n_tasks
+        assert len(list(PILOT_DIR.iterdir())) == n_tasks
 
     # check each task's dir
-    for task_dpath in debug_dir.iterdir():
-        assert task_dpath.is_dir()
+    for subdir in PILOT_DIR.iterdir():
+        assert subdir.is_dir()
 
         # actually, is this an init subdir?
-        if has_init_cmd_subdir and task_dpath.name.startswith("init"):
-            assert sorted(p.name for p in task_dpath.iterdir()) == sorted(
-                ["stderrfile", "stdoutfile"]
-            )
+        if has_init_cmd_subdir and subdir.name.startswith("init"):
+            assert sorted(
+                str(p.relative_to(subdir)) for p in subdir.rglob("*")
+            ) == sorted(["outputs/stderrfile", "outputs/stdoutfile", "outputs/"])
             continue
 
         # now we know this is a task dir
-        task_id = task_dpath.name
+        task_id = subdir.name
 
         # look at files -- flattened tree
         this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
         assert sorted(this_task_files) == sorted(
-            str(p.relative_to(task_dpath)) for p in task_dpath.rglob("*")
+            str(p.relative_to(subdir)) for p in subdir.rglob("*")
         )
 
 
@@ -171,7 +161,6 @@ def assert_versus_file_tree(file_tree: List[Path], persisted_dirs: List[Path]) -
 async def test_000(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial: List[Path],
 ) -> None:
     """Test a normal pilot."""
@@ -199,29 +188,25 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         len(msgs_outgoing_expected),
         [
-            "msgs/infile-{UUID}.in",
-            "msgs/outfile-{UUID}.out",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 async def test_001__txt__str_filetype(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial: List[Path],
 ) -> None:
     """Test a normal .txt-based pilot."""
@@ -249,29 +234,25 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         len(msgs_outgoing_expected),
         [
-            "msgs/infile-{UUID}.txt",
-            "msgs/outfile-{UUID}.txt",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.txt",
+            "task-io/outfile-{UUID}.txt",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 async def test_100__json__objects(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial: List[Path],
 ) -> None:
     """Test a normal (object in, object out) .json-based pilot."""
@@ -304,29 +285,25 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         len(msgs_outgoing_expected),
         [
-            "msgs/infile-{UUID}.json",
-            "msgs/outfile-{UUID}.json",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.json",
+            "task-io/outfile-{UUID}.json",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 async def test_101__json__preserialized(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial: List[Path],
 ) -> None:
     """Test a preserialized (json-string in, object out) .json-based pilot."""
@@ -359,29 +336,25 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         len(msgs_outgoing_expected),
         [
-            "msgs/infile-{UUID}.json",
-            "msgs/outfile-{UUID}.json",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.json",
+            "task-io/outfile-{UUID}.json",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 async def test_200__pkl_b64(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial: List[Path],
 ) -> None:
     """Test a user-defined pickle/b64-based pilot."""
@@ -430,22 +403,19 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
     )
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         len(msgs_outgoing_expected),
         [
-            "msgs/infile-{UUID}.pkl.b64",
-            "msgs/outfile-{UUID}.pkl.b64",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.pkl.b64",
+            "task-io/outfile-{UUID}.pkl.b64",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -453,7 +423,6 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
 async def test_400__exception_quarantine(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial,
     quarantine: Optional[int],
 ) -> None:
@@ -493,28 +462,24 @@ async def test_400__exception_quarantine(
         assert time.time() - start_time <= 6  # no quarantine time # it's a magic number
 
     await assert_results(queue_outgoing, [])
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         1,  # only 1 message was processed before error
         [
-            "msgs/infile-{UUID}.in",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.in",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 async def test_420__timeout(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial: List[Path],
 ) -> None:
     """Test handling on a timeout."""
@@ -552,21 +517,18 @@ async def test_420__timeout(
     assert time.time() - start_time <= 5  # no quarantine time
 
     await assert_results(queue_outgoing, [])
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         1,
         [
-            "msgs/infile-{UUID}.in",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.in",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 MAX_CONCURRENT_TASKS = 4
@@ -590,7 +552,6 @@ PREFETCH_TEST_PARAMETERS = sorted(
 async def test_500__concurrent_load_max_concurrent_tasks(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial,
     prefetch: int,
 ) -> None:
@@ -628,22 +589,19 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     print(time.time() - start_time)
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         len(msgs_outgoing_expected),
         [
-            "msgs/infile-{UUID}.in",
-            "msgs/outfile-{UUID}.out",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 @pytest.mark.flaky(  # https://pypi.org/project/pytest-retry/
@@ -656,7 +614,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial,
     prefetch: int,
 ) -> None:
@@ -684,7 +641,7 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
                     TIMEOUT_INCOMING / 4
                     if not (
                         prefetch == 1
-                        and not use_debug_dir
+                        # and not use_debug_dir  # TODO?
                         and config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE
                         == "rabbitmq"
                     )
@@ -717,22 +674,19 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     print(time.time() - start_time)
 
     await assert_results(queue_outgoing, [])
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         MAX_CONCURRENT_TASKS,
         [
-            "msgs/infile-{UUID}.in",
-            "msgs/outfile-{UUID}.out",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -740,7 +694,6 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 async def test_520__preload_max_concurrent_tasks(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial,
     prefetch: int,
 ) -> None:
@@ -776,22 +729,19 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     print(time.time() - start_time)
 
     await assert_results(queue_outgoing, msgs_outgoing_expected)
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         len(msgs_outgoing_expected),
         [
-            "msgs/infile-{UUID}.in",
-            "msgs/outfile-{UUID}.out",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -799,7 +749,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 async def test_530__preload_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial,
     prefetch: int,
 ) -> None:
@@ -848,22 +797,19 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     print(time.time() - start_time)
 
     await assert_results(queue_outgoing, [])
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         MAX_CONCURRENT_TASKS,
         [
-            "msgs/infile-{UUID}.in",
-            "msgs/outfile-{UUID}.out",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 ########################################################################################
@@ -885,7 +831,6 @@ TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
 async def test_1000__rabbitmq_heartbeat_workaround(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial,
     refresh_interval_rabbitmq_heartbeat_interval: float,
 ) -> None:
@@ -940,55 +885,49 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             ):
                 await _test()
                 await assert_results(queue_outgoing, [])
-                if use_debug_dir:
-                    assert_debug_dir(
-                        debug_dir,
-                        len([]),
-                        [
-                            "msgs/infile-{UUID}.in",
-                            "msgs/outfile-{UUID}.out",
-                            "msgs/",
-                            "stderrfile",
-                            "stdoutfile",
-                        ],
-                    )
+                assert_task_dirs(
+                    len([]),
+                    [
+                        "task-io/infile-{UUID}.in",
+                        "task-io/outfile-{UUID}.out",
+                        "task-io/",
+                        "outputs/stderrfile",
+                        "outputs/stdoutfile",
+                        "outputs/",
+                    ],
+                )
         elif refresh_interval_rabbitmq_heartbeat_interval == TEST_1000_SLEEP:
             with pytest.raises(mq.broker_client_interface.ClosingFailedException):
                 await _test()
                 await assert_results(queue_outgoing, [])
-                if use_debug_dir:
-                    assert_debug_dir(
-                        debug_dir,
-                        len([]),
-                        [
-                            "msgs/infile-{UUID}.in",
-                            "msgs/outfile-{UUID}.out",
-                            "msgs/",
-                            "stderrfile",
-                            "stdoutfile",
-                        ],
-                    )
+                assert_task_dirs(
+                    len([]),
+                    [
+                        "task-io/infile-{UUID}.in",
+                        "task-io/outfile-{UUID}.out",
+                        "task-io/",
+                        "outputs/stderrfile",
+                        "outputs/stdoutfile",
+                        "outputs/",
+                    ],
+                )
         else:  # refresh_interval_rabbitmq_heartbeat_interval < TEST_1000_SLEEP
             await _test()
             await assert_results(queue_outgoing, msgs_outgoing_expected)
-            if use_debug_dir:
-                assert_debug_dir(
-                    debug_dir,
-                    len(msgs_outgoing_expected),
-                    [
-                        "msgs/infile-{UUID}.in",
-                        "msgs/outfile-{UUID}.out",
-                        "msgs/",
-                        "stderrfile",
-                        "stdoutfile",
-                    ],
-                )
+            assert_task_dirs(
+                len(msgs_outgoing_expected),
+                [
+                    "task-io/infile-{UUID}.in",
+                    "task-io/outfile-{UUID}.out",
+                    "task-io/",
+                    "outputs/stderrfile",
+                    "outputs/stdoutfile",
+                    "outputs/",
+                ],
+            )
 
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 ########################################################################################
@@ -998,7 +937,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 async def test_2000_init(
     queue_incoming: str,
     queue_outgoing: str,
-    debug_dir: Path,
     file_tree_initial: List[Path],
 ) -> None:
     """Test a normal init command."""
@@ -1039,23 +977,20 @@ with open('initoutput', 'w') as f:
 
     # check task stuff
     await assert_results(queue_outgoing, msgs_outgoing_expected)
-    assert_debug_dir(
-        debug_dir,
+    assert_task_dirs(
         len(msgs_outgoing_expected),
         [
-            "msgs/infile-{UUID}.in",
-            "msgs/outfile-{UUID}.out",
-            "msgs/",
-            "stderrfile",
-            "stdoutfile",
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
         ],
         has_init_cmd_subdir=True,
     )
     # check for persisted files
-    assert_versus_file_tree(
-        file_tree_initial,
-        [debug_dir if use_debug_dir else Path("./tmp")],
-    )
+    assert_versus_file_tree(file_tree_initial)
 
 
 async def test_2001_init__timeout_error(
