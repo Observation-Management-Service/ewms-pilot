@@ -12,6 +12,7 @@ import time
 import uuid
 from datetime import date, timedelta
 from pathlib import Path
+from pprint import pprint
 from typing import List, Optional
 from unittest.mock import patch
 
@@ -115,6 +116,8 @@ def assert_task_dirs(
     has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
+    pprint(list(PILOT_DIR.rglob("*")))  # for debugging
+
     task_dir_contents = [c.rstrip("/") for c in task_dir_contents]
     assert len(task_dir_contents) == len(set(task_dir_contents))  # no duplicates
 
@@ -144,10 +147,13 @@ def assert_task_dirs(
         )
 
 
-def assert_versus_file_tree(file_tree: List[Path], persisted_dirs: List[Path]) -> None:
-    """Check for persisted files."""
+def assert_versus_file_tree(file_tree: List[Path]) -> None:
+    """Check for persisted files.
+
+    TODO: merge into other
+    """
     current_ftree = copy.deepcopy(file_tree)
-    for dpath in persisted_dirs:  # add all files nested under each dir
+    for dpath in PILOT_DIR:  # add all files nested under each dir
         current_ftree.extend(p.resolve() for p in dpath.rglob("*"))
 
     # use sets for better diffs in pytest logs
@@ -1024,7 +1030,6 @@ time.sleep(5)
             # infile_type=,
             # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
-            debug_dir=None,
         )
 
     # check init's output
@@ -1060,7 +1065,6 @@ raise ValueError('no good!')
             # infile_type=,
             # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
-            debug_dir=None,
         )
 
     # check init's output
