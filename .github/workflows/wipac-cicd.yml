@@ -317,13 +317,15 @@ jobs:
           
           # wait for tests to finish
           # https://stackoverflow.com/a/32604828/13156561
+          sleep 1  # short sleep to help logs
           for pid in $pidlist; do
-              echo "waiting for $pid"
+              echo "waiting for $pid..."
               if ! wait -n $pid; then
-                  kill $pidlist 2>/dev/null
                   cat $pid.test.out
+                  kill $pidlist 2>/dev/null
                   exit 1
               fi
+              echo "PASSED"
           done
           
           exit 0  # TODO 
