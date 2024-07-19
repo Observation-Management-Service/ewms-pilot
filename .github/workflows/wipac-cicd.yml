@@ -215,6 +215,9 @@ jobs:
         version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
         broker_client: [ pulsar, rabbitmq, nats ]
     steps:
+      - uses: jlumbroso/free-disk-space@main  # need space for mq broker and image(s)
+        with:
+          tool-cache: 'true'
       - uses: actions/checkout@v4
       - name: Checkout MQClient repo
         uses: actions/checkout@v4
