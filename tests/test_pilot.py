@@ -106,7 +106,7 @@ async def assert_results(
 def assert_pilot_dirs(
     n_tasks: int,
     task_dir_contents: List[str],
-    store_dir_contents: List[str] = None,
+    store_dir_contents: Optional[List[str]] = None,
     has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
