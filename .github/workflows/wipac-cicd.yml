@@ -258,6 +258,7 @@ jobs:
               docker run -i --rm -d --name $BROKER_CONTAINER_NAME \
                   --net=mynet \
                   --runtime=sysbox-runc \
+                  --shm-size=2g \
                   apachepulsar/pulsar:2.6.0 /bin/bash \
                   -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone" \
                   >> broker.out 2>&1 &
@@ -274,6 +275,7 @@ jobs:
               docker run -i --rm -d --name $BROKER_CONTAINER_NAME \
                   --net=mynet \
                   --runtime=sysbox-runc \
+                  --shm-size=2g \
                   --env RABBITMQ_USERNAME=guest \
                   --env RABBITMQ_PASSWORD=guest \
                   --env BITNAMI_DEBUG=true \
@@ -313,7 +315,6 @@ jobs:
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   pilot pytest -vvv $test >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
-              sleep 5  # sleep so the broker doesn't get overwhelmed  # TODO: try 1s
           done <<< "$pytest_nodeids"
           
           # wait for tests to finish
