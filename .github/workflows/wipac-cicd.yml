@@ -312,13 +312,14 @@ jobs:
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   pilot pytest -vvv $test >> $!.test.out 2>&1 & pidlist="$pidlist $!"
+              sleep .1  # little sleep to help logs
           done <<< "$pytest_nodeids"
           
           # wait for tests to finish
           # https://stackoverflow.com/a/32604828/13156561
           for pid in $pidlist; do
               echo "waiting for $pid"
-              if ! wait -n $pidlist; then
+              if ! wait -n $pid; then
                   kill $pidlist 2>/dev/null
                   cat $pid.test.out
                   exit 1
