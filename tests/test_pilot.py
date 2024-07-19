@@ -59,7 +59,7 @@ def queue_outgoing() -> str:
 def whole_filesystem() -> List[Path]:
     """Return a list of all files in the filesystem."""
     # Path("/").rglob("*") runs into permissions/notadirectory issues
-    all_paths = []
+    all_paths: List[Path] = []
     for root, dir_names, file_names in os.walk("/"):
         all_paths.extend(Path(d) for d in dir_names)
         all_paths.extend(Path(os.path.join(root, f)) for f in file_names)
