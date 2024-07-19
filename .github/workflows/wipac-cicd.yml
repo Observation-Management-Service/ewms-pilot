@@ -304,15 +304,26 @@ jobs:
           pip install .[test]  # for the for-loop below
           pytest_nodeids="$(pytest --collect-only -q --disable-warnings tests | head -n -2)"
           while IFS= read -r test; do
-              echo "$test"
+              echo "starting test $test"
               docker run --rm \
                   --net=mynet \
                   --runtime=sysbox-runc \
                   --hostname=syscont \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                  pilot pytest -vvv $test
+                  pilot pytest -vvv $test >> $!.test.out 2>&1 & pidlist="$pidlist $!"
           done <<< "$pytest_nodeids"
+          
+          # wait for tests to finish
+          # https://stackoverflow.com/a/32604828/13156561
+          for i in $pidlist; do
+              echo "waiting for $pid"
+              if ! wait -n $pidlist; then
+                  kill $pidlist 2>/dev/null
+                  cat $pid.test.out
+                  exit 1
+              fi
+          done
           
           exit 0  # TODO 
 
