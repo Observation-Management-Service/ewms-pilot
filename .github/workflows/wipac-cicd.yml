@@ -255,9 +255,7 @@ jobs:
           echo "starting broker..."
           
           if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
-              docker run -i --rm -d --name $BROKER_CONTAINER_NAME \
-                  --net=mynet \
-                  --runtime=sysbox-runc \
+              docker run --rm -d --name $BROKER_CONTAINER_NAME --net=mynet --runtime=sysbox-runc \
                   --shm-size=2g \
                   apachepulsar/pulsar:2.6.0 /bin/bash \
                   -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone" \
@@ -272,9 +270,7 @@ jobs:
                   CUSTOM_CONF_MOUNT="-v $(realpath $2):/bitnami/rabbitmq/conf/custom.conf:ro"
               fi
               mkdir ./broker_logs
-              docker run -i --rm -d --name $BROKER_CONTAINER_NAME \
-                  --net=mynet \
-                  --runtime=sysbox-runc \
+              docker run --rm -d --name $BROKER_CONTAINER_NAME --net=mynet --runtime=sysbox-runc \
                   --shm-size=2g \
                   --env RABBITMQ_USERNAME=guest \
                   --env RABBITMQ_PASSWORD=guest \
@@ -286,9 +282,7 @@ jobs:
           # NATS
           elif [ "${{ matrix.broker_client }}" = "nats" ]; then
               # Download from source b/c snap's version is too old (doesn't have jetstream support)
-              docker run -it --rm -d --name $BROKER_CONTAINER_NAME \
-                  --net=mynet \
-                  --runtime=sysbox-runc \
+              docker run --rm -d --name $BROKER_CONTAINER_NAME --net=mynet --runtime=sysbox-runc \
                   --shm-size=2g \
                   bash /bin/bash -c " \
                   curl -L https://github.com/nats-io/nats-server/releases/download/v2.6.6/nats-server-v2.6.6-linux-amd64.zip -o nats-server.zip \
@@ -296,6 +290,7 @@ jobs:
                   && nats-server/nats-server-v2.6.6-linux-amd64/nats-server -js \
                   " \
                   >> broker.out 2>&1
+              sleep 60
           fi
           
           sleep 10  # should actually take ~5s
