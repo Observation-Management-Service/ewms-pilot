@@ -56,10 +56,20 @@ def queue_outgoing() -> str:
     return mq.Queue.make_name()
 
 
+def whole_filesystem() -> List[Path]:
+    """Return a list of all files in the filesystem."""
+    # Path("/").rglob("*") runs into permissions/notadirectory issues
+    all_paths = []
+    for root, dir_names, file_names in os.walk("/"):
+        all_paths.extend(Path(d) for d in dir_names)
+        all_paths.extend(Path(os.path.join(root, f)) for f in file_names)
+    return all_paths
+
+
 @pytest.fixture
 def file_tree_initial() -> List[Path]:
     """Get the file systems initial state, aka all the files and paths."""
-    return list(Path("/").rglob("*"))  # no need to resolve since it's from '/'
+    return list(whole_filesystem())  # no need to resolve since it's from '/'
 
 
 async def populate_queue(
@@ -154,7 +164,7 @@ def assert_no_other_files_created(file_tree: List[Path]) -> None:
     expected_non_pilot_fpaths = [
         fpath for fpath in copy.deepcopy(file_tree) if PILOT_DIR not in fpath.parents
     ]
-    assert sorted(expected_non_pilot_fpaths) == sorted(Path("/").rglob("*"))
+    assert sorted(expected_non_pilot_fpaths) == sorted(whole_filesystem())
 
 
 ########################################################################################
