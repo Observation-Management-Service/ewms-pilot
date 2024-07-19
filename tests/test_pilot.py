@@ -127,7 +127,7 @@ def assert_task_dirs(
         assert len(list(PILOT_DIR.iterdir())) == n_tasks + 1  # store/
 
     # check each task's dir
-    for subdir in PILOT_DIR.iterdir():
+    for subdir in [s for s in PILOT_DIR.iterdir() if s.name not in ["store"]]:
         assert subdir.is_dir()
 
         # actually, is this an init subdir?
