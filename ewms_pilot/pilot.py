@@ -159,15 +159,15 @@ async def run_init_container(
     await housekeeper.running_init_container()
 
     dirs = ContainerBindMountDirectoryMapper(f"init-{uuid.uuid4().hex}")
-    dirs.outputs.on_host.mkdir(parents=True, exist_ok=False)
+    dirs.outputs_on_host.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
         run_container(
             init_image,
             init_args,
             init_timeout,
-            dirs.outputs.on_host / "stdoutfile",
-            dirs.outputs.on_host / "stderrfile",
+            dirs.outputs_on_host / "stdoutfile",
+            dirs.outputs_on_host / "stderrfile",
             f"--mount type=bind,source={dirs.pilot_store.on_host},target={dirs.pilot_store.in_container}",
         )
     )

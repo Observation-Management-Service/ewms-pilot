@@ -142,10 +142,7 @@ class ContainerBindMountDirectoryMapper:
         )
 
         # for persisting stderr and stdout
-        self.outputs = self._DirPair(
-            self._namebased_dir / "outputs",
-            None,
-        )
+        self.outputs_on_host = self._namebased_dir / "outputs"
 
         # for message-based task i/o
         self.task_io = self._DirPair(

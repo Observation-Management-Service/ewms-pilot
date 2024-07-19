@@ -153,7 +153,7 @@ def assert_versus_file_tree(file_tree: List[Path]) -> None:
     TODO: merge into other
     """
     current_ftree = copy.deepcopy(file_tree)
-    for dpath in PILOT_DIR:  # add all files nested under each dir
+    for dpath in PILOT_DIR.iterdir():  # add all files nested under each dir
         current_ftree.extend(p.resolve() for p in dpath.rglob("*"))
 
     # use sets for better diffs in pytest logs

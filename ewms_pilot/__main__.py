@@ -4,7 +4,7 @@ import argparse
 import asyncio
 import logging
 
-from wipac_dev_tools import argparse_tools, logging_tools
+from wipac_dev_tools import logging_tools
 
 from .pilot import consume_and_reply
 
@@ -56,15 +56,6 @@ def main() -> None:
         help="the args to run with the init container",
     )
 
-    # logging/debugging args
-    parser.add_argument(
-        "--debug-directory",
-        default="",
-        type=argparse_tools.create_dir,
-        help="a directory to write all the incoming/outgoing .pkl files "
-        "(useful for debugging)",
-    )
-
     args = parser.parse_args()
     logging_tools.set_level(
         args.log.upper(),
@@ -90,9 +81,6 @@ def main() -> None:
             # init
             init_image=args.init_image,
             init_args=args.init_args,
-            #
-            # misc settings
-            debug_dir=args.debug_directory,
         )
     )
     LOGGER.info("Done.")

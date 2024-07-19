@@ -29,7 +29,7 @@ async def process_msg_task(
 
     # staging-dir logic -- includes stderr/stdout files (see below)
     dirs = ContainerBindMountDirectoryMapper(str(in_msg.uuid))
-    dirs.outputs.on_host.mkdir(parents=True, exist_ok=False)
+    dirs.outputs_on_host.mkdir(parents=True, exist_ok=False)
     dirs.task_io.on_host.mkdir(parents=True, exist_ok=False)
 
     # create in/out file *names* -- piggy-back the uuid since it's unique and trackable
@@ -52,8 +52,8 @@ async def process_msg_task(
         task_image,
         task_args,
         task_timeout,
-        dirs.outputs.on_host / "stderrfile",
-        dirs.outputs.on_host / "stdoutfile",
+        dirs.outputs_on_host / "stderrfile",
+        dirs.outputs_on_host / "stdoutfile",
         (
             f"--mount type=bind,source={dirs.task_io.on_host},target={dirs.task_io.in_container} "
             f"--mount type=bind,source={dirs.pilot_store.on_host},target={dirs.pilot_store.in_container} "
