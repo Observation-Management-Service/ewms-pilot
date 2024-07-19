@@ -122,9 +122,9 @@ def assert_task_dirs(
     assert len(task_dir_contents) == len(set(task_dir_contents))  # no duplicates
 
     if has_init_cmd_subdir:
-        assert len(list(PILOT_DIR.iterdir())) == n_tasks + 1
+        assert len(list(PILOT_DIR.iterdir())) == n_tasks + 1 + 1  # store/ & init*/
     else:
-        assert len(list(PILOT_DIR.iterdir())) == n_tasks
+        assert len(list(PILOT_DIR.iterdir())) == n_tasks + 1  # store/
 
     # check each task's dir
     for subdir in PILOT_DIR.iterdir():
