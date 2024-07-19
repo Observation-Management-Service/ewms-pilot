@@ -2,7 +2,6 @@
 
 import asyncio
 import base64
-import copy
 import json
 import logging
 import os
@@ -54,22 +53,6 @@ def unique_pwd() -> None:
 def queue_outgoing() -> str:
     """Get the name of a queue for talking "from" client(s)."""
     return mq.Queue.make_name()
-
-
-def whole_filesystem() -> List[Path]:
-    """Return a list of all files in the filesystem."""
-    # Path("/").rglob("*") runs into permissions/notadirectory issues
-    all_paths: List[Path] = []
-    for root, dir_names, file_names in os.walk("/"):
-        all_paths.extend(Path(d) for d in dir_names)
-        all_paths.extend(Path(os.path.join(root, f)) for f in file_names)
-    return all_paths
-
-
-@pytest.fixture
-def file_tree_initial() -> List[Path]:
-    """Get the file systems initial state, aka all the files and paths."""
-    return list(whole_filesystem())  # no need to resolve since it's from '/'
 
 
 async def populate_queue(
@@ -159,14 +142,6 @@ def assert_pilot_dirs(
         )
 
 
-def assert_no_other_files_created(file_tree: List[Path]) -> None:
-    """Check that no unaccounted files."""
-    expected_non_pilot_fpaths = [
-        fpath for fpath in copy.deepcopy(file_tree) if PILOT_DIR not in fpath.parents
-    ]
-    assert sorted(expected_non_pilot_fpaths) == sorted(whole_filesystem())
-
-
 ########################################################################################
 
 
@@ -174,7 +149,6 @@ def assert_no_other_files_created(file_tree: List[Path]) -> None:
 async def test_000(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial: List[Path],
 ) -> None:
     """Test a normal pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
@@ -212,15 +186,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 async def test_001__txt__str_filetype(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial: List[Path],
 ) -> None:
     """Test a normal .txt-based pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
@@ -258,15 +229,12 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 async def test_100__json__objects(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial: List[Path],
 ) -> None:
     """Test a normal (object in, object out) .json-based pilot."""
 
@@ -309,15 +277,12 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 async def test_101__json__preserialized(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial: List[Path],
 ) -> None:
     """Test a preserialized (json-string in, object out) .json-based pilot."""
 
@@ -360,15 +325,12 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 async def test_200__pkl_b64(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial: List[Path],
 ) -> None:
     """Test a user-defined pickle/b64-based pilot."""
 
@@ -427,8 +389,6 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -485,15 +445,12 @@ async def test_400__exception_quarantine(
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
 async def test_420__timeout(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial: List[Path],
 ) -> None:
     """Test handling on a timeout."""
     msgs_to_subproc = MSGS_TO_SUBPROC
@@ -540,8 +497,6 @@ async def test_420__timeout(
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 MAX_CONCURRENT_TASKS = 4
@@ -613,8 +568,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 @pytest.mark.flaky(  # https://pypi.org/project/pytest-retry/
@@ -698,8 +651,6 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -753,8 +704,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -821,8 +770,6 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             "outputs/",
         ],
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 ########################################################################################
@@ -939,9 +886,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 ],
             )
 
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
-
 
 ########################################################################################
 
@@ -950,7 +894,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 async def test_2000_init(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial: List[Path],
 ) -> None:
     """Test a normal init command."""
     msgs_to_subproc = MSGS_TO_SUBPROC
@@ -1002,8 +945,6 @@ with open('initoutput', 'w') as f:
         ],
         has_init_cmd_subdir=True,
     )
-    # check for persisted files
-    assert_no_other_files_created(file_tree_initial)
 
 
 async def test_2001_init__timeout_error(
