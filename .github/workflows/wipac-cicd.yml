@@ -305,6 +305,13 @@ jobs:
           pytest_nodeids="$(pytest --collect-only -q --disable-warnings tests | head -n -2)"
           while IFS= read -r test; do
               echo "$test"
+              docker run --rm \
+                  --net=mynet \
+                  --runtime=sysbox-runc \
+                  --hostname=syscont \
+                  --mount type=bind,source=$(pwd),target=/repo/,readonly \
+                  $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                  pilot pytest -vvv $test
           done <<< "$pytest_nodeids"
           
           exit 0  # TODO 
