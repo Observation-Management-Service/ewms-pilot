@@ -396,7 +396,6 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
 async def test_400__exception_quarantine(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial,
     quarantine: Optional[int],
 ) -> None:
     """Test handling for exception w/ and w/o quarantine."""
@@ -520,7 +519,6 @@ PREFETCH_TEST_PARAMETERS = sorted(
 async def test_500__concurrent_load_max_concurrent_tasks(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial,
     prefetch: int,
 ) -> None:
     """Test max_concurrent_tasks within the pilot."""
@@ -580,7 +578,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial,
     prefetch: int,
 ) -> None:
     """Test max_concurrent_tasks within the pilot."""
@@ -658,7 +655,6 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 async def test_520__preload_max_concurrent_tasks(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial,
     prefetch: int,
 ) -> None:
     """Test max_concurrent_tasks within the pilot."""
@@ -711,7 +707,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 async def test_530__preload_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial,
     prefetch: int,
 ) -> None:
     """Test max_concurrent_tasks within the pilot."""
@@ -791,7 +786,6 @@ TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
 async def test_1000__rabbitmq_heartbeat_workaround(
     queue_incoming: str,
     queue_outgoing: str,
-    file_tree_initial,
     refresh_interval_rabbitmq_heartbeat_interval: float,
 ) -> None:
     """Test a normal .txt-based pilot."""
