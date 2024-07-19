@@ -106,7 +106,7 @@ async def assert_results(
 def assert_pilot_dirs(
     n_tasks: int,
     task_dir_contents: List[str],
-    store_dir_contents: List[str],
+    store_dir_contents: List[str] = None,
     has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
@@ -115,6 +115,9 @@ def assert_pilot_dirs(
     # validate args
     task_dir_contents = [c.rstrip("/") for c in task_dir_contents]
     assert len(task_dir_contents) == len(set(task_dir_contents))  # no duplicates
+    #
+    if not store_dir_contents:
+        store_dir_contents = []
 
     # check num of dirs
     if has_init_cmd_subdir:
