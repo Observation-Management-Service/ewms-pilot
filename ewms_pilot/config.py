@@ -123,11 +123,11 @@ ENV = from_environment_as_dataclass(EnvConfig)
 PILOT_DIR = Path("/ewms-pilot")
 
 
-class ContainerBindMountDirectoryMapper:
+class DirectoryCatalog:
     """Handles the naming and mapping logic for a task's directories."""
 
     @dc.dataclass
-    class _DirPair:
+    class _ContainerBindMountDirPair:
         on_host: Path
         in_container: Path
 
@@ -136,7 +136,7 @@ class ContainerBindMountDirectoryMapper:
         self._namebased_dir = PILOT_DIR / name
 
         # for inter-task/init storage: startup data, init container's output, etc.
-        self.pilot_store = self._DirPair(
+        self.pilot_store = self._ContainerBindMountDirPair(
             PILOT_DIR / "store",
             PILOT_DIR / "store",
         )
@@ -145,7 +145,7 @@ class ContainerBindMountDirectoryMapper:
         self.outputs_on_host = self._namebased_dir / "outputs"
 
         # for message-based task i/o
-        self.task_io = self._DirPair(
+        self.task_io = self._ContainerBindMountDirPair(
             self._namebased_dir / "task-io",
             PILOT_DIR / "task-io",
         )

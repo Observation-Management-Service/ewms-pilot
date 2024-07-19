@@ -7,7 +7,7 @@ from mqclient.broker_client_interface import Message
 
 from .io import FileExtension, InFileInterface, OutFileInterface
 from ..config import (
-    ContainerBindMountDirectoryMapper,
+    DirectoryCatalog,
     ENV,
 )
 from ..utils.runner import run_container
@@ -28,7 +28,7 @@ async def process_msg_task(
     """Process the message's task in a subprocess using `cmd` & respond."""
 
     # staging-dir logic -- includes stderr/stdout files (see below)
-    dirs = ContainerBindMountDirectoryMapper(str(in_msg.uuid))
+    dirs = DirectoryCatalog(str(in_msg.uuid))
     dirs.outputs_on_host.mkdir(parents=True, exist_ok=False)
     dirs.task_io.on_host.mkdir(parents=True, exist_ok=False)
 

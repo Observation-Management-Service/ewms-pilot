@@ -9,7 +9,7 @@ import mqclient as mq
 
 from . import htchirp_tools
 from .config import (
-    ContainerBindMountDirectoryMapper,
+    DirectoryCatalog,
     ENV,
     LOGGER,
     REFRESH_INTERVAL,
@@ -158,7 +158,7 @@ async def run_init_container(
     """Run the init container with the given arguments."""
     await housekeeper.running_init_container()
 
-    dirs = ContainerBindMountDirectoryMapper(f"init-{uuid.uuid4().hex}")
+    dirs = DirectoryCatalog(f"init-{uuid.uuid4().hex}")
     dirs.outputs_on_host.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
