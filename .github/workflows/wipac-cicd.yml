@@ -241,6 +241,7 @@ jobs:
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
               .
+          docker pull nats
       - name: Integrate
         run: |
           set -x
@@ -284,11 +285,7 @@ jobs:
               # Download from source b/c snap's version is too old (doesn't have jetstream support)
               docker run --rm -d --name $BROKER_CONTAINER_NAME --net=mynet --runtime=sysbox-runc \
                   --shm-size=2g \
-                  bash /bin/bash -c " \
-                  curl -L https://github.com/nats-io/nats-server/releases/download/v2.6.6/nats-server-v2.6.6-linux-amd64.zip -o nats-server.zip \
-                  && unzip nats-server.zip -d nats-server \
-                  && nats-server/nats-server-v2.6.6-linux-amd64/nats-server -js \
-                  " \
+                  nats \
                   >> broker.out 2>&1
               sleep 60
           fi
