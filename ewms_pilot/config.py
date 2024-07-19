@@ -129,7 +129,7 @@ class ContainerBindMountDirectoryMapper:
     @dc.dataclass
     class _DirPair:
         on_host: Path
-        in_container: Optional[Path]
+        in_container: Path
 
     def __init__(self, name: str):
         """Directories are not pre-created; you must `mkdir -p` to use."""
