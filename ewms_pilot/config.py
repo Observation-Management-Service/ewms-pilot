@@ -9,7 +9,7 @@ from typing import Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
 
-LOGGER = logging.getLogger("ewms-pilot")
+LOGGER = logging.getLogger(__name__)
 
 
 REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main loop
