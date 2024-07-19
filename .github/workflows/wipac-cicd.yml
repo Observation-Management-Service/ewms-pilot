@@ -316,7 +316,7 @@ jobs:
           
           # wait for tests to finish
           # https://stackoverflow.com/a/32604828/13156561
-          for i in $pidlist; do
+          for pid in $pidlist; do
               echo "waiting for $pid"
               if ! wait -n $pidlist; then
                   kill $pidlist 2>/dev/null
