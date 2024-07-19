@@ -59,7 +59,7 @@ def queue_outgoing() -> str:
 @pytest.fixture
 def file_tree_initial() -> List[Path]:
     """Get the file systems initial state, aka all the files and paths."""
-    return [p.resolve() for p in Path("/").rglob("*")]
+    return list(Path("/").rglob("*"))  # no need to resolve since it's from '/'
 
 
 async def populate_queue(
@@ -154,11 +154,7 @@ def assert_no_other_files_created(file_tree: List[Path]) -> None:
     expected_non_pilot_fpaths = [
         fpath for fpath in copy.deepcopy(file_tree) if PILOT_DIR not in fpath.parents
     ]
-
-    # use sets for better diffs in pytest logs
-    assert set(expected_non_pilot_fpaths) == set(
-        p.resolve() for p in Path("/").rglob("*")
-    )
+    assert sorted(expected_non_pilot_fpaths) == sorted(Path("/").rglob("*"))
 
 
 ########################################################################################
