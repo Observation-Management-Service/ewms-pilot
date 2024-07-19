@@ -958,7 +958,7 @@ async def test_2001_init__timeout_error(
     queue_outgoing: str,
 ) -> None:
     """Test a init command with error."""
-    init_timeout = 2
+    init_timeout = 10  # something long enough to account for docker time
 
     with pytest.raises(
         TimeoutError,
@@ -971,14 +971,14 @@ output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
             init_image="python:alpine",
-            init_args="""python3 -c "
+            init_args=f"""python3 -c "
 import time
 import os
 os.makedirs(os.getenv('EWMS_TASK_PILOT_STORE_DIR'), exist_ok=True)
 with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
-time.sleep(5)
+time.sleep({init_timeout})
 " """,
             init_timeout=init_timeout,
             queue_incoming=queue_incoming,
