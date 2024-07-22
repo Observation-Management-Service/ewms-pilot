@@ -242,14 +242,15 @@ jobs:
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
               .
           docker pull nats
+      - run: |
+          # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
+          docker network create mynet
       - name: Integrate
         run: |
           set -x
           
           # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
           sudo systemctl status sysbox -n20
-          # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
-          docker network create mynet
           
           
           echo "--------------------------------------------------------------"
