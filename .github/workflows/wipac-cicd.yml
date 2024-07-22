@@ -296,6 +296,7 @@ jobs:
           sleep 10  # should actually take ~5s
           
           
+          set +x  # lots of output in these loops
           echo "--------------------------------------------------------------"
           echo "running tests..."
           
@@ -310,6 +311,7 @@ jobs:
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo "starting test $test"
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              set -x  # lets see the command
               docker run --rm \
                   --net=mynet \
                   --runtime=sysbox-runc \
@@ -321,6 +323,7 @@ jobs:
                   >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
               sleep 5  # sleep so the broker doesn't get overwhelmed
+              set +x
               cat $(basename $test).test.out  # get a preview of the test output
           done < $SORTED_LIST_OF_TESTS_FILE
           
