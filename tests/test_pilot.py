@@ -585,7 +585,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 )
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
-async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
+async def test_510__concurrent_load_max_concurrent_tasks_exceptions__rabbitmq_only(
     queue_incoming: str,
     queue_outgoing: str,
     prefetch: int,
