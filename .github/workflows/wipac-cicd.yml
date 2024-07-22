@@ -245,9 +245,7 @@ jobs:
       - name: get list of pytest tests
         run: |
           pip install .[test]  # for the for-loop below
-          pytest_nodeids="$(pytest --collect-only -q --disable-warnings tests | head -n -2)"
-          echo $pytest_nodeids
-          echo $pytest_nodeids > list-of-tests.txt
+          pytest --collect-only -q --disable-warnings tests | head -n -2 > list-of-tests.txt
       - run: |
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
