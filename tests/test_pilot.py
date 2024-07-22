@@ -27,9 +27,30 @@ logging.getLogger("mqclient").setLevel(logging.INFO)
 logging.getLogger("pika").setLevel(logging.WARNING)
 
 
+########################################################################################
+
+
 TIMEOUT_INCOMING = 3
 
 MSGS_TO_SUBPROC = ["item" + str(i) for i in range(30)]
+
+MAX_CONCURRENT_TASKS = 4
+PREFETCH_TEST_PARAMETERS = sorted(
+    set(
+        [
+            ENV.EWMS_PILOT_PREFETCH,
+            1,
+            2,
+            MAX_CONCURRENT_TASKS - 1,
+            MAX_CONCURRENT_TASKS,
+            MAX_CONCURRENT_TASKS + 1,
+            77,
+        ]
+    )
+)
+
+
+########################################################################################
 
 
 @pytest.fixture
@@ -152,6 +173,33 @@ def assert_pilot_dirs(
             )
 
 
+########################################################################################
+# LONG RUNNING TESTS THAT NEED TO BE EXECUTED FIRST (TESTS RUN IN PARALLEL)
+########################################################################################
+
+
+@pytest.mark.flaky(  # https://pypi.org/project/pytest-retry/
+    retries=3,
+    delay=1,
+    condition=config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE == "rabbitmq",
+)
+@pytest.mark.usefixtures("unique_pwd")
+@pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
+async def test_510__concurrent_load_max_concurrent_tasks_exceptions__rabbitmq_only(
+    queue_incoming: str,
+    queue_outgoing: str,
+    prefetch: int,
+) -> None:
+    """See comment above in code block."""
+    await _test_510__concurrent_load_max_concurrent_tasks_exceptions__rabbitmq_only(
+        queue_incoming,
+        queue_outgoing,
+        prefetch,
+    )
+
+
+########################################################################################
+# REGULAR TESTS
 ########################################################################################
 
 
@@ -508,22 +556,6 @@ async def test_420__timeout(
     )
 
 
-MAX_CONCURRENT_TASKS = 4
-PREFETCH_TEST_PARAMETERS = sorted(
-    set(
-        [
-            ENV.EWMS_PILOT_PREFETCH,
-            1,
-            2,
-            MAX_CONCURRENT_TASKS - 1,
-            MAX_CONCURRENT_TASKS,
-            MAX_CONCURRENT_TASKS + 1,
-            77,
-        ]
-    )
-)
-
-
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_500__concurrent_load_max_concurrent_tasks(
@@ -578,19 +610,17 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
-@pytest.mark.flaky(  # https://pypi.org/project/pytest-retry/
-    retries=3,
-    delay=1,
-    condition=config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE == "rabbitmq",
-)
-@pytest.mark.usefixtures("unique_pwd")
-@pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
-async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
+async def _test_510__concurrent_load_max_concurrent_tasks_exceptions__rabbitmq_only(
     queue_incoming: str,
     queue_outgoing: str,
     prefetch: int,
 ) -> None:
-    """Test max_concurrent_tasks within the pilot."""
+    """Test max_concurrent_tasks within the pilot.
+
+    NOTE: test_510__concurrent_load_max_concurrent_tasks_exceptions__rabbitmq_only
+            is at top of file, so it runs first (which when parallelized will speed
+            up all tests)
+    """
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
