@@ -241,9 +241,6 @@ jobs:
           set -x
           mkdir saved-images/
           docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
-          docker pull $RABBITMQ_IMAGE_TAG
-          docker pull $PULSAR_IMAGE_TAG
-          docker pull $NATS_IMAGE_TAG
           docker build --tag pilot \
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
