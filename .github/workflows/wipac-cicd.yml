@@ -310,7 +310,7 @@ jobs:
 
           # iterate each test, starting each in its own container
           cat list-of-tests.txt
-          while IFS= read -r test; do
+          while read test; do
               echo "starting test $test"
               docker run --rm \
                   --net=mynet \
@@ -321,7 +321,7 @@ jobs:
                   pilot pytest -vvv $test >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
               sleep 5  # sleep so the broker doesn't get overwhelmed  # TODO: try 1s
-          done <<< "$(cat list-of-tests.txt)"
+          done < list-of-tests.txt
           
           # wait for tests to finish
           # https://stackoverflow.com/a/32604828/13156561
@@ -351,12 +351,12 @@ jobs:
         if: always()
         run: |
           cat list-of-tests.txt
-          while IFS= read -r test; do
+          while read test; do
+              cat $(basename $test).test.out
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo $test
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-              cat $(basename $test).test.out
-          done <<< "$(cat list-of-tests.txt)"
+          done < list-of-tests.txt
       - name: broker output
         if: always()
         run: |
