@@ -323,7 +323,7 @@ jobs:
           sleep 1  # short sleep to help logs
           for pid in $pidlist; do
               echo "waiting for $pid..."
-              if ! $(wait -n $pid); then
+              if ! wait -n $pid; then
                   sleep 5  # may need to wait for file to be written
                   # grab first failure -> may not be the failure from this pid
                   cat $( grep -l -m 1 *.test.out -e "= FAILURES =" | head -1 )
