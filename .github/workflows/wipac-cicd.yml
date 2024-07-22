@@ -331,6 +331,7 @@ jobs:
           # https://stackoverflow.com/a/32604828/13156561
           sleep 1  # short sleep to help logs
           for pid in $pidlist; do
+              date --rfc-3339=seconds
               echo "waiting for $pid..."
               if ! wait -n $pid; then
                   sleep 5  # may need to wait for file to be written
@@ -341,15 +342,6 @@ jobs:
               fi
               echo "-> PASSED"
           done
-          
-          exit 0  # TODO 
-
-          if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
-            # occasionally has connection errors
-            python -m pytest -vvv tests --retries 3 --retry-delay 5 --exitfirst  -n 32
-          else
-            python -m pytest -vvv tests --exitfirst  -n 32
-          fi
 
       - name: pytest container outputs
         if: always()
