@@ -342,6 +342,10 @@ jobs:
             python -m pytest -vvv tests --exitfirst  -n 32
           fi
 
+      - name: pytest container outputs
+        if: always()
+        run: |
+          more *.test.out | cat
       - name: broker output
         if: always()
         run: |
