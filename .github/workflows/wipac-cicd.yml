@@ -8,7 +8,10 @@ concurrency:
   cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 
 env:
-  PULSAR_CONTAINER: pulsar_local
+  RABBITMQ_IMAGE_TAG: bitnami/rabbitmq:3.13.5
+  PULSAR_IMAGE_TAG: apachepulsar/pulsar:2.6.0
+  NATS_IMAGE_TAG: nats:2.10.18
+  #
   SORTED_LIST_OF_TESTS_FILE: list-of-tests-sorted.txt
   #
   BROKER_CONTAINER_NAME: broker
@@ -238,9 +241,9 @@ jobs:
           set -x
           mkdir saved-images/
           docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
-          docker pull bitnami/rabbitmq:latest
-          docker pull apachepulsar/pulsar:2.6.0
-          docker pull nats:2.10.18
+          docker pull $RABBITMQ_IMAGE_TAG
+          docker pull $PULSAR_IMAGE_TAG
+          docker pull $NATS_IMAGE_TAG
           docker build --tag pilot \
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
@@ -266,7 +269,7 @@ jobs:
           if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
               docker run --rm -d --name $BROKER_CONTAINER_NAME --net=mynet --runtime=sysbox-runc \
                   --shm-size=2g \
-                  apachepulsar/pulsar:2.6.0 /bin/bash \
+                  $PULSAR_IMAGE_TAG /bin/bash \
                   -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone" \
                   >> broker.out 2>&1
           # RabbitMQ
@@ -281,14 +284,14 @@ jobs:
                   --env BITNAMI_DEBUG=true \
                   -v $(realpath './rabbitmq-custom.conf'):/bitnami/rabbitmq/conf/custom.conf:ro \
                   --mount type=bind,source=$(realpath ./broker_logs),target=/opt/bitnami/rabbitmq/var/log/rabbitmq/ \
-                  bitnami/rabbitmq:latest \
+                  $RABBITMQ_IMAGE_TAG \
                   >> broker.out 2>&1
               sleep 10
           # NATS
           elif [ "${{ matrix.broker_client }}" = "nats" ]; then
               docker run --rm -d --name $BROKER_CONTAINER_NAME --net=mynet --runtime=sysbox-runc \
                   --shm-size=2g \
-                  nats:2.10.18 -js \
+                  $NATS_IMAGE_TAG -js \
                   >> broker.out 2>&1
               sleep 60
           fi
