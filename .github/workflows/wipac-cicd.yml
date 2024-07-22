@@ -350,10 +350,10 @@ jobs:
         run: |
           cat list-of-tests-sorted.txt
           while read test; do
-              cat $(basename $test).test.out
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo $test
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              cat $(basename $test).test.out
           done < list-of-tests-sorted.txt
       - name: broker output
         if: always()
