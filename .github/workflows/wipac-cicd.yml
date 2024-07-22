@@ -244,10 +244,10 @@ jobs:
           docker pull nats
       - name: get list of pytest tests
         run: |
-          # iterate each test, starting each in its own container          
           pip install .[test]  # for the for-loop below
           pytest_nodeids="$(pytest --collect-only -q --disable-warnings tests | head -n -2)"
-          echo "PYTEST_TESTS=$pytest_nodeids" >> $GITHUB_ENV
+          echo $pytest_nodeids
+          echo $pytest_nodeids > list-of-tests.txt
       - run: |
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
@@ -308,7 +308,8 @@ jobs:
           export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
 
-          echo $PYTEST_TESTS
+          # iterate each test, starting each in its own container
+          cat list-of-tests.txt
           while IFS= read -r test; do
               echo "starting test $test"
               docker run --rm \
@@ -320,7 +321,7 @@ jobs:
                   pilot pytest -vvv $test >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
               sleep 5  # sleep so the broker doesn't get overwhelmed  # TODO: try 1s
-          done <<< "$PYTEST_TESTS"
+          done <<< "$(cat list-of-tests.txt)"
           
           # wait for tests to finish
           # https://stackoverflow.com/a/32604828/13156561
@@ -349,12 +350,13 @@ jobs:
       - name: pytest container outputs
         if: always()
         run: |
+          cat list-of-tests.txt
           while IFS= read -r test; do
-              echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo $test
-              echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               cat $(basename $test).test.out
-          done <<< "$PYTEST_TESTS"
+          done <<< "$(cat list-of-tests.txt)"
       - name: broker output
         if: always()
         run: |
