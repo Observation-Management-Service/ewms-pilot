@@ -245,7 +245,7 @@ jobs:
       - name: get list of pytest tests
         run: |
           pip install .[test]  # for the for-loop below
-          pytest --collect-only -q --disable-warnings tests | head -n -2 > list-of-tests.txt
+          pytest --collect-only -q --disable-warnings tests | head -n -2 > list-of-tests-sorted.txt
       - run: |
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
@@ -307,7 +307,7 @@ jobs:
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
 
           # iterate each test, starting each in its own container
-          cat list-of-tests.txt
+          cat list-of-tests-sorted.txt
           while read test; do
               echo "starting test $test"
               docker run --rm \
@@ -319,7 +319,7 @@ jobs:
                   pilot pytest -vvv $test >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
               sleep 5  # sleep so the broker doesn't get overwhelmed  # TODO: try 1s
-          done < list-of-tests.txt
+          done < list-of-tests-sorted.txt
           
           # wait for tests to finish
           # https://stackoverflow.com/a/32604828/13156561
@@ -348,13 +348,13 @@ jobs:
       - name: pytest container outputs
         if: always()
         run: |
-          cat list-of-tests.txt
+          cat list-of-tests-sorted.txt
           while read test; do
               cat $(basename $test).test.out
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo $test
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-          done < list-of-tests.txt
+          done < list-of-tests-sorted.txt
       - name: broker output
         if: always()
         run: |
