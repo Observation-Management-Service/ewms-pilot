@@ -307,6 +307,8 @@ jobs:
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
 
           # iterate each test, starting each in its own container
+          mkdir $(pwd)/image-cache
+          first="true"
           cat list-of-tests-sorted.txt
           while read test; do
               echo "starting test $test"
@@ -315,10 +317,16 @@ jobs:
                   --runtime=sysbox-runc \
                   --hostname=syscont \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
+                  --mount type=bind,source=$(pwd)/image-cache,target=/var/lib/docker \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   pilot pytest -vvv $test >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
               sleep 5  # sleep so the broker doesn't get overwhelmed
+              if [[ "$first" == "true" ]]; then
+                  sleep 30
+                  ls $(pwd)/image-cache 
+              fi
+              first="false"
           done < list-of-tests-sorted.txt
           
           # wait for tests to finish
@@ -333,7 +341,7 @@ jobs:
                   kill $pidlist 2>/dev/null
                   exit 1
               fi
-              echo "PASSED"
+              echo "-> PASSED"
           done
           
           exit 0  # TODO 
