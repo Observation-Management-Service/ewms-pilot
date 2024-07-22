@@ -237,11 +237,11 @@ jobs:
           docker pull python:alpine
           docker pull bitnami/rabbitmq:latest
           docker pull apachepulsar/pulsar:2.6.0
+          docker pull nats:2.10.18
           docker build --tag pilot \
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
               .
-          docker pull nats
       - name: get list of pytest tests
         run: |
           pip install .[test]  # for the for-loop below
@@ -281,17 +281,16 @@ jobs:
                   --env RABBITMQ_USERNAME=guest \
                   --env RABBITMQ_PASSWORD=guest \
                   --env BITNAMI_DEBUG=true \
-                  $CUSTOM_CONF_MOUNT \
+                  -v $(realpath './rabbitmq-custom.conf'):/bitnami/rabbitmq/conf/custom.conf:ro \
                   --mount type=bind,source=$(realpath ./broker_logs),target=/opt/bitnami/rabbitmq/var/log/rabbitmq/ \
                   bitnami/rabbitmq:latest \
                   >> broker.out 2>&1
               sleep 10
           # NATS
           elif [ "${{ matrix.broker_client }}" = "nats" ]; then
-              # Download from source b/c snap's version is too old (doesn't have jetstream support)
               docker run --rm -d --name $BROKER_CONTAINER_NAME --net=mynet --runtime=sysbox-runc \
                   --shm-size=2g \
-                  nats \
+                  nats:2.10.18 -js \
                   >> broker.out 2>&1
               sleep 60
           fi
