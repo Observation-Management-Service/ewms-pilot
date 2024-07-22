@@ -307,7 +307,9 @@ jobs:
           # iterate each test, starting each in its own container
           cat $SORTED_LIST_OF_TESTS_FILE
           while read test; do
+              echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo "starting test $test"
+              echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               docker run --rm \
                   --net=mynet \
                   --runtime=sysbox-runc \
@@ -319,6 +321,7 @@ jobs:
                   >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
               sleep 5  # sleep so the broker doesn't get overwhelmed
+              cat $(basename $test).test.out  # get a preview of the test output
           done < $SORTED_LIST_OF_TESTS_FILE
           
           # wait for tests to finish
