@@ -9,6 +9,7 @@ concurrency:
 
 env:
   PULSAR_CONTAINER: pulsar_local
+  SORTED_LIST_OF_TESTS_FILE: list-of-tests-sorted.txt
   #
   BROKER_CONTAINER_NAME: broker
   #
@@ -247,7 +248,7 @@ jobs:
       - name: get list of pytest tests
         run: |
           pip install .[test]  # for the for-loop below
-          pytest --collect-only -q --disable-warnings tests | head -n -2 > list-of-tests-sorted.txt
+          pytest --collect-only -q --disable-warnings tests | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
       - run: |
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
@@ -304,7 +305,7 @@ jobs:
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
 
           # iterate each test, starting each in its own container
-          cat list-of-tests-sorted.txt
+          cat $SORTED_LIST_OF_TESTS_FILE
           while read test; do
               echo "starting test $test"
               docker run --rm \
@@ -318,7 +319,7 @@ jobs:
                   >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
               sleep 5  # sleep so the broker doesn't get overwhelmed
-          done < list-of-tests-sorted.txt
+          done < $SORTED_LIST_OF_TESTS_FILE
           
           # wait for tests to finish
           # https://stackoverflow.com/a/32604828/13156561
@@ -347,13 +348,13 @@ jobs:
       - name: pytest container outputs
         if: always()
         run: |
-          cat list-of-tests-sorted.txt
+          cat $SORTED_LIST_OF_TESTS_FILE
           while read test; do
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo $test
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               cat $(basename $test).test.out
-          done < list-of-tests-sorted.txt
+          done < $SORTED_LIST_OF_TESTS_FILE
       - name: broker output
         if: always()
         run: |
