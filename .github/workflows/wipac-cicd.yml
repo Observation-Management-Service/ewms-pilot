@@ -324,7 +324,7 @@ jobs:
               sleep 5  # sleep so the broker doesn't get overwhelmed
               if [[ "$first" == "true" ]]; then
                   sleep 30
-                  ls $(pwd)/image-cache 
+                  sudo ls $(pwd)/image-cache 
               fi
               first="false"
           done < list-of-tests-sorted.txt
