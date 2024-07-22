@@ -234,8 +234,9 @@ jobs:
           # sudo systemctl status sysbox -n20  # used below
       - name: pre-pull/build images for testing
         run: |
+          set -x
           mkdir saved-images/
-          docker save -o saved-images/python-alpine.tar python:alpine
+          docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
           docker pull bitnami/rabbitmq:latest
           docker pull apachepulsar/pulsar:2.6.0
           docker pull nats:2.10.18
