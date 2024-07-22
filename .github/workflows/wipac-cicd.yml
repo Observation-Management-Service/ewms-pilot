@@ -329,7 +329,7 @@ jobs:
           
           # wait for tests to finish
           # https://stackoverflow.com/a/32604828/13156561
-          sleep 1  # short sleep to help logs
+          sleep 3  # short sleep to help logs
           for pid in $pidlist; do
               date --rfc-3339=seconds
               echo "waiting for $pid..."
