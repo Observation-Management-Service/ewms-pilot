@@ -285,6 +285,7 @@ jobs:
                   --mount type=bind,source=$(realpath ./broker_logs),target=/opt/bitnami/rabbitmq/var/log/rabbitmq/ \
                   bitnami/rabbitmq:latest \
                   >> broker.out 2>&1
+              sleep 10
           # NATS
           elif [ "${{ matrix.broker_client }}" = "nats" ]; then
               # Download from source b/c snap's version is too old (doesn't have jetstream support)
@@ -318,7 +319,6 @@ jobs:
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   pilot pytest -vvv $test >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
-              sleep 5  # sleep so the broker doesn't get overwhelmed  # TODO: try 1s
           done < list-of-tests-sorted.txt
           
           # wait for tests to finish
