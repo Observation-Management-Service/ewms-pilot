@@ -22,4 +22,6 @@ source /app/entrypoint_venv/bin/activate
 
 echo "----"
 echo "entrypoint: executing command: $@"
+
+echo "----"
 exec "$@"
