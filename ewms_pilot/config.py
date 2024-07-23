@@ -162,8 +162,8 @@ class DirectoryCatalog:
         string = f"--mount type=bind,source={self.pilot_store.on_host},target={self.pilot_store.in_container} "
 
         if external_directories:
-            string += " ".join(
-                f"--mount type=bind,source={dpath},target={dpath},readonly"
+            string += "".join(
+                f"--mount type=bind,source={dpath},target={dpath},readonly "
                 for dpath in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
             )
 
