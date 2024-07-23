@@ -11,9 +11,7 @@ echo "╠═══════════════════════�
 echo "║  Source: https://github.com/Observation-Management-Service/ewms-pilot                ║"
 echo "║  Today:  $(date --rfc-3339=seconds)                                                   ║"
 echo "╚══════════════════════════════════════════════════════════════════════════════════════╝"
-echo ""
 
-echo "----"
 echo "entrypoint: activating docker daemon..."
 dockerd > /var/log/dockerd.log 2>&1 || echo "WARNING: docker-in-docker setup failed (error suppressed)" &
 sleep 1
