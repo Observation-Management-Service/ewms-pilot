@@ -335,6 +335,7 @@ jobs:
               sleep 5  # sleep so the broker doesn't get overwhelmed
               set +x
               cat $(basename $test).test.out  # get a preview of the test output
+              sleep .1  # little sleep to help logs
           done < $SORTED_LIST_OF_TESTS_FILE
           
           # wait for tests to finish
