@@ -54,14 +54,7 @@ async def process_msg_task(
         task_timeout,
         dirs.outputs_on_host / "stderrfile",
         dirs.outputs_on_host / "stdoutfile",
-        (
-            f"--mount type=bind,source={dirs.task_io.on_host},target={dirs.task_io.in_container} "
-            f"--mount type=bind,source={dirs.pilot_store.on_host},target={dirs.pilot_store.in_container} "
-            " ".join(
-                f"--mount type=bind,source={a.on_host},target={b.in_container},readonly"
-                for a, b in dirs.external_directories
-            )
-        ),
+        dirs.assemble_bind_mounts(external_directories=True, task_io=True),
         f"--env EWMS_TASK_PILOT_STORE_DIR={dirs.pilot_store.in_container}",
     )
     out_data = OutFileInterface.read(dirs.task_io.on_host / outfile_name)

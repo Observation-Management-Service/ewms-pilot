@@ -5,7 +5,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import List, Optional
+from typing import Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -153,18 +153,24 @@ class DirectoryCatalog:
             PILOT_DIR / "task-io",
         )
 
-    @property
-    def external_directories(self) -> List[_ContainerBindMountDirPair]:
-        """Get list of external directories, each paired with container equivalent."""
-        listo = []
-        for dpath in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(","):
-            listo.append(
-                DirectoryCatalog._ContainerBindMountDirPair(
-                    Path(dpath),
-                    Path(dpath),
-                )
+    def assemble_bind_mounts(
+        self,
+        external_directories: bool = False,
+        task_io: bool = False,
+    ) -> str:
+        """Get the docker bind mount string containing the wanted directories."""
+        string = f"--mount type=bind,source={self.pilot_store.on_host},target={self.pilot_store.in_container} "
+
+        if external_directories:
+            string += " ".join(
+                f"--mount type=bind,source={dpath},target={dpath},readonly"
+                for dpath in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
             )
-        return listo
+
+        if task_io:
+            string += f"--mount type=bind,source={self.task_io.on_host},target={self.task_io.in_container} "
+
+        return string
 
     def rm_unique_dirs(self) -> None:
         """Remove all directories (on host) created for use only by this container."""
