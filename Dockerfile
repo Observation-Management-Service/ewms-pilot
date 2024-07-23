@@ -12,38 +12,28 @@ FROM python:${PYTHON}
 #           this was not explored as it seemed like "too much extra runtime config", and I'm not sure
 #           how this would translate to apptainer.
 
-# installs
-# RUN sudo apt  install docker.io
+# docker-in-docker
 RUN apt-get update && \
     apt-get -qy full-upgrade && \
     apt-get install -qy curl && \
-    curl -sSL https://get.docker.com/ | sh
-
-# user
-# RUN useradd -m -U app
+    curl -sSL https://get.docker.com/ | sh \
+# for starting up docker daemon
+RUN touch /var/log/dockerd.log
 
 # dirs
 #
 # the WORKDIR
 RUN mkdir /app
-# RUN chown -R app /app
 WORKDIR /app
 #
 # the directory exposed to all tasks
 RUN mkdir -p /ewms-pilot/store
-# RUN chown -R app /ewms-pilot/store
-#
-# to startup docker daemon
-RUN touch /var/log/dockerd.log
-# RUN chown app /var/log/dockerd.log
 
 # entrypoint magic
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
 # user
-# USER app
-# COPY --chown=app:app . .
 COPY . .
 
 # python: venv and install
