@@ -1,18 +1,21 @@
 #!/bin/bash
 
 echo ""
-echo "ENTRYPOINT: activating docker daemon..."
+echo "Activating the EWMS Task Pilot Container Environment..."
+
+echo "----"
+echo "TASK-PILOT: activating docker daemon..."
 dockerd > /var/log/dockerd.log 2>&1 || echo "WARNING: docker-in-docker setup failed (error suppressed)" &
 sleep 1
 
 echo "----"
-echo "ENTRYPOINT: activating venv"
+echo "TASK-PILOT: activating venv"
 source /app/entrypoint_venv/bin/activate
 
 echo ""
 echo "╔══════════════════════════════════════════════════════════════════════════════════════╗"
 echo "║                                                                                      ║"
-echo "║                    Entering the Task Pilot Container Environment                     ║"
+echo "║                   Activated the Task Pilot Container Environment                     ║"
 echo "║                                                                                      ║"
 echo "║                      for the Event Workflow Management System                        ║"
 echo "║                                                                                      ║"
@@ -23,7 +26,7 @@ echo "╠═══════════════════════�
 while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(pip show ewms-pilot)"  # pip-supplied info
 echo "╚══════════════════════════════════════════════════════════════════════════════════════╝"
 
-echo "ENTRYPOINT: executing command: $@"
+echo "TASK-PILOT: executing command: $@"
 
 echo "----"
 exec "$@"
