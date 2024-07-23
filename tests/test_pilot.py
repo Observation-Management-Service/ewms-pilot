@@ -153,6 +153,39 @@ def assert_pilot_dirs(
 
 
 ########################################################################################
+# SPECIAL (SLOW) TESTS -- RAN FIRST SO WHEN TESTS ARE PARALLELIZED, THINGS GO FASTER
+########################################################################################
+
+
+TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
+
+
+@pytest.mark.skipif(config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq")
+@pytest.mark.usefixtures("unique_pwd")
+@pytest.mark.parametrize(
+    "refresh_interval_rabbitmq_heartbeat_interval",
+    [
+        # note -- the broker hb timeout is ~1 min and is triggered after ~2x
+        TEST_1000_SLEEP * 10,  # won't actually wait this long
+        TEST_1000_SLEEP,  # ~= to ~2x (see above)
+        TEST_1000_SLEEP / 10,  # will have no hb issues
+    ],
+)
+async def test_1000__heartbeat_workaround__rabbitmq_only(
+    queue_incoming: str,
+    queue_outgoing: str,
+    refresh_interval_rabbitmq_heartbeat_interval: float,
+) -> None:
+    await _test_1000__heartbeat_workaround__rabbitmq_only(
+        queue_incoming,
+        queue_outgoing,
+        refresh_interval_rabbitmq_heartbeat_interval,
+    )
+
+
+########################################################################################
+# REGULAR TESTS
+########################################################################################
 
 
 @pytest.mark.usefixtures("unique_pwd")
@@ -579,13 +612,14 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 
 @pytest.mark.flaky(  # https://pypi.org/project/pytest-retry/
+    # retry ONLY RABBITMQ -- run test on all
     retries=3,
     delay=1,
     condition=config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE == "rabbitmq",
 )
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
-async def test_510__concurrent_load_max_concurrent_tasks_exceptions__rabbitmq_only(
+async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
     prefetch: int,
@@ -780,28 +814,15 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 ########################################################################################
 
 
-TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
-
-
-@pytest.mark.usefixtures("unique_pwd")
-@pytest.mark.parametrize(
-    "refresh_interval_rabbitmq_heartbeat_interval",
-    [
-        # note -- the broker hb timeout is ~1 min and is triggered after ~2x
-        TEST_1000_SLEEP * 10,  # won't actually wait this long
-        TEST_1000_SLEEP,  # ~= to ~2x (see above)
-        TEST_1000_SLEEP / 10,  # will have no hb issues
-    ],
-)
-async def test_1000__rabbitmq_heartbeat_workaround(
+async def _test_1000__heartbeat_workaround__rabbitmq_only(
     queue_incoming: str,
     queue_outgoing: str,
     refresh_interval_rabbitmq_heartbeat_interval: float,
 ) -> None:
-    """Test a normal .txt-based pilot."""
-    if config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq":
-        return
+    """Test just for rabbitmq.
 
+    NOTE: CALLED IN TOP-MOST FUNCTION -- SEE SECTION'S BLOCK COMMENT THERE FOR WHY
+    """
     msgs_to_subproc = MSGS_TO_SUBPROC[:2]
     # ^^^ should be sufficient plus avoids waiting for all to send
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
