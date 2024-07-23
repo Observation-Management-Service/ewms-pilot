@@ -55,5 +55,5 @@ RUN . /app/entrypoint_venv/bin/activate && \
     pip install --no-cache-dir .[${FLAVOR}]
 
 # go
-ENTRYPOINT ["/bin/sh", "-c", "/entrypoint.sh | ts '[%Y-%m-%d %H:%M:%S]'"]
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "-m", "ewms_pilot"]
