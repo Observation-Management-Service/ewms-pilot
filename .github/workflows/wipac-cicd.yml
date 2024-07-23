@@ -20,7 +20,7 @@ env:
   EWMS_PILOT_TIMEOUT_OUTGOING: 1
   EWMS_PILOT_KEEP_ALL_TASK_FILES: True
   #
-  DOCKER_IMAGE_NAME: pilot-test/example
+  DOCKER_IMAGE_NAME: pilot/local
 
 
 jobs:
@@ -241,7 +241,7 @@ jobs:
           set -x
           mkdir saved-images/
           docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
-          docker build --tag pilot \
+          docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
               .
@@ -319,7 +319,7 @@ jobs:
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                  pilot /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test" \
+                  ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test" \
                   >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
               sleep 5  # sleep so the broker doesn't get overwhelmed
