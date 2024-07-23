@@ -99,7 +99,7 @@ jobs:
       - uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile_example
+          file: Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
@@ -113,7 +113,7 @@ jobs:
       - uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile_example
+          file: Dockerfile
           cache-from: type=gha
           # cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
