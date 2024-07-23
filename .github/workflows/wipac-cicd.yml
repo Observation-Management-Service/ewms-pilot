@@ -308,10 +308,10 @@ jobs:
           
           # make external directories -- used in like 1 test
           export EWMS_PILOT_EXTERNAL_DIRECTORIES="/cvmfs/dummy-1/dir-A,/cvmfs/dummy-2/dir-B"
-          mkdir -p /cvmfs/dummy-1/dir-A
-          echo "alpha" > /cvmfs/dummy-1/dir-A/file.txt
-          mkdir -p /cvmfs/dummy-2/dir-B
-          echo "beta" > /cvmfs/dummy-2/dir-B/file.txt
+          mkdir -p $(pwd)/cvmfs/dummy-1/dir-A
+          echo "alpha" > $(pwd)/cvmfs/dummy-1/dir-A/file.txt
+          mkdir -p $(pwd)/cvmfs/dummy-2/dir-B
+          echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
 
           # iterate each test, starting each in its own container
           cat $SORTED_LIST_OF_TESTS_FILE
@@ -326,8 +326,8 @@ jobs:
                   --hostname=syscont \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
-                  --mount type=bind,source=/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
-                  --mount type=bind,source=/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
+                  --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
+                  --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test --retries 1 --retry-delay 5" \
                   >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
