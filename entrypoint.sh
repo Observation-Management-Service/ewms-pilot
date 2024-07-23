@@ -11,7 +11,7 @@ echo "╠═══════════════════════�
 echo "║  Source: https://github.com/Observation-Management-Service/ewms-pilot                ║"
 echo "║  Today:  $(date --rfc-3339=seconds)                                                   ║"  # spacing for command
 echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
-while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(pip show ewms-pilot)"  # pip-supplied info
+while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(pip freeze)"  # pip-supplied info
 echo "╚══════════════════════════════════════════════════════════════════════════════════════╝"
 
 echo "entrypoint: activating docker daemon..."
