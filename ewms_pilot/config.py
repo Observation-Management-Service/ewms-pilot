@@ -5,7 +5,7 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Optional
+from typing import List, Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -44,6 +44,8 @@ class EnvConfig:
     EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN: str = ""  # auth token for queue
     EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
     EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
+
+    EWMS_PILOT_EXTERNAL_DIRECTORIES: str = ""  # comma-delimited
 
     # logging -- only used when running via command line
     EWMS_PILOT_CL_LOG: str = "INFO"  # level for 1st-party loggers
@@ -150,6 +152,19 @@ class DirectoryCatalog:
             self._namebased_dir / "task-io",
             PILOT_DIR / "task-io",
         )
+
+    @property
+    def external_directories(self) -> List[_ContainerBindMountDirPair]:
+        """Get list of external directories, each paired with container equivalent."""
+        listo = []
+        for dpath in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(","):
+            listo.append(
+                DirectoryCatalog._ContainerBindMountDirPair(
+                    Path(dpath),
+                    Path(dpath),
+                )
+            )
+        return listo
 
     def rm_unique_dirs(self) -> None:
         """Remove all directories (on host) created for use only by this container."""

@@ -168,7 +168,13 @@ async def run_init_container(
             init_timeout,
             dirs.outputs_on_host / "stdoutfile",
             dirs.outputs_on_host / "stderrfile",
-            f"--mount type=bind,source={dirs.pilot_store.on_host},target={dirs.pilot_store.in_container}",
+            (
+                f"--mount type=bind,source={dirs.pilot_store.on_host},target={dirs.pilot_store.in_container} "
+                " ".join(
+                    f"--mount type=bind,source={a.on_host},target={b.in_container},readonly"
+                    for a, b in dirs.external_directories
+                )
+            ),
             f"--env EWMS_TASK_PILOT_STORE_DIR={dirs.pilot_store.in_container}",
         )
     )

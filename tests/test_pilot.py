@@ -1055,7 +1055,7 @@ raise ValueError('no good!')
 
 
 @pytest.mark.usefixtures("unique_pwd")
-async def test_2000_init__use_in_task(
+async def test_2010_init__use_in_task(
     queue_incoming: str,
     queue_outgoing: str,
 ) -> None:
@@ -1110,5 +1110,67 @@ with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
             "outputs/",
         ],
         ["initoutput"],
+        has_init_cmd_subdir=True,
+    )
+
+
+########################################################################################
+
+
+@pytest.mark.usefixtures("unique_pwd")
+async def test_3000_external_directories(
+    queue_incoming: str,
+    queue_outgoing: str,
+) -> None:
+    """Test accessing user-supplied external directories."""
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}alphabeta\n" for x in msgs_to_subproc]
+
+    assert os.getenv("EWMS_PILOT_EXTERNAL_DIRECTORIES")
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
+        ),
+        consume_and_reply(
+            "python:alpine",
+            """python3 -c "
+import os
+file_one='/cvmfs/dummy-1/dir-A/file.txt'
+file_two='/cvmfs/dummy-2/dir-B/file.txt'
+output = open('{{INFILE}}').read().strip() + open(file_one).read().strip() + open(file_two).read().strip();
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            #
+            init_image="python:alpine",
+            init_args="""python3 -c "
+file_one='/cvmfs/dummy-1/dir-A/file.txt'
+assert open(file_one).read().strip() == 'alpha'
+file_two='/cvmfs/dummy-2/dir-B/file.txt'
+assert open(file_two).read().strip() == 'beta'
+" """,
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            # infile_type=,
+            # outfile_type=,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
+    )
+
+    # check task stuff
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
+    assert_pilot_dirs(
+        len(msgs_outgoing_expected),
+        [
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
+        ],
+        [],
         has_init_cmd_subdir=True,
     )
