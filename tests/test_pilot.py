@@ -160,7 +160,10 @@ def assert_pilot_dirs(
 TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
 
 
-@pytest.mark.skipif(config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq")
+@pytest.mark.skipif(
+    config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq",
+    reason="test is only for rabbitmq tests",
+)
 @pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize(
     "refresh_interval_rabbitmq_heartbeat_interval",
