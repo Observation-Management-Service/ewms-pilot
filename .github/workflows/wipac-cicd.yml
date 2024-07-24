@@ -84,6 +84,10 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
+        uses: jlumbroso/free-disk-space@main  # need space for images to build
+        with:
+          tool-cache: 'true'
+      - if: github.actor != 'dependabot[bot]'
         run: |
           set -x
           
