@@ -84,10 +84,34 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
         run: |
-          for opt in 3.10 3.11 3.12; do
-            docker build --tag "image-$opt" \
-                --build-arg="PYTHON=$opt" \
-                .
+          # build all dockerfiles
+          for py in 3.10 3.11 3.12; do
+              for flavor1 in rabbitmq pulsar nats; do
+                    # normal
+                    tag="$py-$flavor:py-dep-this"
+                    docker build --tag $tag \
+                        --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor" \
+                        . \
+                        >> $tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+                    # another with 'tests'
+                    tag="$py-$flavor-test:py-dep-this"
+                    docker build --tag $tag \
+                        --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor,test" \
+                        . \
+                        >> $tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+              done
+          done
+          
+          # wait for all them
+          for pid in $pidlist; do
+              echo "waiting for $pid..."
+              if ! wait -n $pid; then
+                  sleep 5  # may need to wait for file to be written
+                  kill $pidlist 2>/dev/null
+                  sleep 5
+                  more *.docker-build.out | cat  # cats with filenames (delimited by :::::::)
+                  exit 1
+              fi
           done
       - if: github.actor != 'dependabot[bot]'
         uses: WIPACrepo/wipac-dev-py-dependencies-action@image
