@@ -87,13 +87,10 @@ jobs:
         run: |
           set -x
           
-          echo ${{ needs.py-versions.outputs.matrix }}
-          
           mkdir docker-build-logs/ && trap 'rm -rf docker-build-logs/' EXIT
           
           # build all dockerfiles
-          # for py in 3.10 3.11 3.12; do
-          for py in 3.10; do
+          for py in $(echo ${{ needs.py-versions.outputs.matrix }} | sed 's/[][]//g; s/,/ /g'); do
               for flavor in rabbitmq pulsar nats; do
                     # normal
                     tag="$py-$flavor:py-dep-this"
