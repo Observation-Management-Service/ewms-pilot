@@ -87,7 +87,7 @@ jobs:
         run: |
           set -x
           
-          echo ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+          echo ${{ needs.py-versions.outputs.matrix }}
           
           mkdir docker-build-logs/ && trap 'rm -rf docker-build-logs/' EXIT
           
