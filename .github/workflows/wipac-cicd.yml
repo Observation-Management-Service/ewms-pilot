@@ -84,8 +84,11 @@ jobs:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
         run: |
+          set -x
+          
           # build all dockerfiles
-          for py in 3.10 3.11 3.12; do
+          # for py in 3.10 3.11 3.12; do
+          for py in 3.10; do
               for flavor in rabbitmq pulsar nats; do
                     # normal
                     tag="$py-$flavor:py-dep-this"
@@ -94,11 +97,11 @@ jobs:
                         . \
                         >> $tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
                     # another with 'tests'
-                    tag="$py-$flavor-test:py-dep-this"
-                    docker build --tag $tag \
-                        --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor,test" \
-                        . \
-                        >> $tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+                    #tag="$py-$flavor-test:py-dep-this"
+                    #docker build --tag $tag \
+                    #    --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor,test" \
+                    #    . \
+                    #    >> $tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
               done
           done
           
