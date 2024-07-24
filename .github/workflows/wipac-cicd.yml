@@ -73,6 +73,7 @@ jobs:
           base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Management Service"
 
   py-dependencies:
+    needs: [ py-versions ]
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
@@ -86,6 +87,10 @@ jobs:
         run: |
           set -x
           
+          echo ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+          
+          mkdir docker-build-logs/ && trap 'rm -rf docker-build-logs/' EXIT
+          
           # build all dockerfiles
           # for py in 3.10 3.11 3.12; do
           for py in 3.10; do
@@ -95,13 +100,13 @@ jobs:
                     docker build --tag $tag \
                         --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor" \
                         . \
-                        >> $tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+                        >> docker-build-logs/$tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
                     # another with 'tests'
                     #tag="$py-$flavor-test:py-dep-this"
                     #docker build --tag $tag \
                     #    --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor,test" \
                     #    . \
-                    #    >> $tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+                    #    >> docker-build-logs/$tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
               done
           done
           
@@ -112,7 +117,7 @@ jobs:
                   sleep 5  # may need to wait for file to be written
                   kill $pidlist 2>/dev/null
                   sleep 5
-                  more *.docker-build.out | cat  # cats with filenames (delimited by :::::::)
+                  more docker-build-logs/* | cat  # cats with filenames (delimited by :::::::)
                   exit 1
               fi
           done
