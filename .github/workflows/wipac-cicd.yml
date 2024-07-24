@@ -86,7 +86,7 @@ jobs:
         run: |
           # build all dockerfiles
           for py in 3.10 3.11 3.12; do
-              for flavor1 in rabbitmq pulsar nats; do
+              for flavor in rabbitmq pulsar nats; do
                     # normal
                     tag="$py-$flavor:py-dep-this"
                     docker build --tag $tag \
