@@ -98,17 +98,20 @@ jobs:
                         --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor" \
                         . \
                         >> docker-build-logs/$tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+                    sleep .1  # little sleep to help logs
                     # another with 'tests'
-                    #tag="$py-$flavor-test:py-dep-this"
-                    #docker build --tag $tag \
-                    #    --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor,test" \
-                    #    . \
-                    #    >> docker-build-logs/$tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+                    tag="$py-$flavor-test:py-dep-this"
+                    docker build --tag $tag \
+                        --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor,test" \
+                        . \
+                        >> docker-build-logs/$tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+                    sleep .1  # little sleep to help logs
               done
           done
           
           # wait for all them
           for pid in $pidlist; do
+              sleep .1  # little sleep to help logs
               echo "waiting for $pid..."
               if ! wait -n $pid; then
                   sleep 5  # may need to wait for file to be written
