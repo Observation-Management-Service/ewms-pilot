@@ -83,7 +83,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.0
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@image
 
 
   ############################################################################
