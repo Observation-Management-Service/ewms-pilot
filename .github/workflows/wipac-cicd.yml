@@ -91,6 +91,7 @@ jobs:
           
           # build all dockerfiles
           for py in $(echo ${{ needs.py-versions.outputs.matrix }} | sed 's/[][]//g; s/,/ /g'); do
+              docker pull python:py  # pre-pull to speed up dependent images
               for flavor in rabbitmq pulsar nats; do
                     # normal
                     tag="$py-$flavor:py-dep-this"
