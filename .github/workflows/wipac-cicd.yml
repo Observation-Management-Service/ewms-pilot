@@ -89,6 +89,10 @@ jobs:
           
           mkdir docker-build-logs/ && trap 'rm -rf docker-build-logs/' EXIT
           
+          # first, build the vanilla/default image
+          docker build --tag "default:py-dep-this" . \
+              >> docker-build-logs/$tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+          
           # build all dockerfiles
           for py in $(echo ${{ needs.py-versions.outputs.matrix }} | sed 's/[][]//g; s/,/ /g'); do
               docker pull python:$py  # pre-pull to speed up dependent images
