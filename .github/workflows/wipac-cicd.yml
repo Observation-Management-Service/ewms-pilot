@@ -127,6 +127,8 @@ jobs:
 
       - if: github.actor != 'dependabot[bot]'
         uses: WIPACrepo/wipac-dev-py-dependencies-action@image
+        with:
+          use_directory: true
 
 
   ############################################################################
