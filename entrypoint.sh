@@ -15,9 +15,9 @@ source /app/entrypoint_venv/bin/activate
 echo ""
 echo "╔══════════════════════════════════════════════════════════════════════════════════════╗"
 echo "║                                                                                      ║"
-echo "║         ----       Welcome to the Task Pilot Container Environment       ----        ║"
+echo "║        - - -       Welcome to the Task Pilot Container Environment       - - -       ║"
 echo "║                                                                                      ║"
-echo "║         ----     Part of the Event Workflow Management System (EWMS)     ----        ║"
+echo "║        - - -     Part of the Event Workflow Management System (EWMS)     - - -       ║"
 echo "║                                                                                      ║"
 echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
 echo "║  Source: https://github.com/Observation-Management-Service/ewms-pilot                ║"
@@ -30,3 +30,4 @@ echo "TASK-PILOT: executing command: $@"
 
 echo "----"
 exec "$@"
+
