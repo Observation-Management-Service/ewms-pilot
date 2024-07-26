@@ -211,27 +211,42 @@ jobs:
 
           export EWMS_PILOT_QUEUE_INCOMING="a012"
           export EWMS_PILOT_QUEUE_OUTGOING="b345"
-          python examples/do_task.py
+          
+          # start pilot
+          python examples/do_task.py &
 
           # read messages
           out=$(python -c '
           import mqclient as mq
           import os, asyncio
-          queue = mq.Queue(
+          
+          incoming = mq.Queue(
+              os.environ["EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE"],
+              address=os.environ["EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS"],
+              name=os.environ["EWMS_PILOT_QUEUE_INCOMING"],
+          )
+          outgoing = mq.Queue(
               os.environ["EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE"],
               address=os.environ["EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS"],
-              name="b345",
+              name=os.environ["EWMS_PILOT_QUEUE_OUTGOING"],
           )
+          
           async def go():
-            async with queue.open_sub() as sub:
-                async for msg in sub:
-                    print(msg)
+              async with incoming.open_pub() as pub:
+                  for msg in ["ee", "double-u", "em", "es"]:
+                      await pub.send(msg)
+              async with outgoing.open_sub() as sub:
+                  async for msg in sub:
+                      print(msg)
+          
           asyncio.run(go())
           ')
+          
           echo "$out"
 
           if [ -z "$out" ]; then
-            echo "no messages"
+              echo "no messages"
+              exit 1
           fi
 
       - name: broker output
