@@ -23,7 +23,7 @@ pytest-retry==1.6.3
 requests==2.32.3
 typing_extensions==4.12.2
 urllib3==2.2.2
-wipac-dev-tools==1.10.6
+wipac-dev-tools==1.10.7
 zstd==1.5.5.1
 ########################################################################
 #  pipdeptree
@@ -33,7 +33,7 @@ ewms-pilot
 ├── htchirp [required: Any, installed: 3.0]
 ├── htcondor [required: Any, installed: 23.8.1]
 └── oms-mqclient [required: Any, installed: 2.6.0]
-    ├── wipac-dev-tools [required: Any, installed: 1.10.6]
+    ├── wipac-dev-tools [required: Any, installed: 1.10.7]
     │   ├── requests [required: Any, installed: 2.32.3]
     │   │   ├── certifi [required: >=2017.4.17, installed: 2024.7.4]
     │   │   ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
