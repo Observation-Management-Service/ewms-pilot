@@ -1,9 +1,9 @@
 """Common utilities."""
 
-
+import logging
 from typing import List
 
-from ..config import LOGGER
+LOGGER = logging.getLogger(__name__)
 
 
 def all_task_errors_string(task_errors: List[BaseException]) -> str:

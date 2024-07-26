@@ -3,11 +3,13 @@
 import dataclasses as dc
 import logging
 import os
+import shutil
+from pathlib import Path
 from typing import Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
 
-LOGGER = logging.getLogger("ewms-pilot")
+LOGGER = logging.getLogger(__name__)
 
 
 REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main loop
@@ -43,6 +45,8 @@ class EnvConfig:
     EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
     EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
 
+    EWMS_PILOT_EXTERNAL_DIRECTORIES: str = ""  # comma-delimited
+
     # logging -- only used when running via command line
     EWMS_PILOT_CL_LOG: str = "INFO"  # level for 1st-party loggers
     EWMS_PILOT_CL_LOG_THIRD_PARTY: str = "WARNING"  # level for 3rd-party loggers
@@ -66,6 +70,7 @@ class EnvConfig:
     EWMS_PILOT_MAX_CONCURRENT_TASKS: int = 1  # max no. of tasks to process in parallel
 
     # misc settings
+    EWMS_PILOT_KEEP_ALL_TASK_FILES: bool = False
     EWMS_PILOT_DUMP_TASK_OUTPUT: bool = (
         False  # dump each task's stderr to stderr and stdout to stdout
     )
@@ -110,3 +115,63 @@ class EnvConfig:
 
 
 ENV = from_environment_as_dataclass(EnvConfig)
+
+
+#
+# --------------------------------------------------------------------------------------
+#
+
+
+PILOT_DIR = Path("/ewms-pilot")
+PILOT_STORAGE_DIR = PILOT_DIR / "store"
+
+
+class DirectoryCatalog:
+    """Handles the naming and mapping logic for a task's directories."""
+
+    @dc.dataclass
+    class _ContainerBindMountDirPair:
+        on_host: Path
+        in_container: Path
+
+    def __init__(self, name: str):
+        """Directories are not pre-created; you must `mkdir -p` to use."""
+        self._namebased_dir = PILOT_DIR / name
+
+        # for inter-task/init storage: startup data, init container's output, etc.
+        self.pilot_store = self._ContainerBindMountDirPair(
+            PILOT_STORAGE_DIR,
+            PILOT_STORAGE_DIR,
+        )
+
+        # for persisting stderr and stdout
+        self.outputs_on_host = self._namebased_dir / "outputs"
+
+        # for message-based task i/o
+        self.task_io = self._ContainerBindMountDirPair(
+            self._namebased_dir / "task-io",
+            PILOT_DIR / "task-io",
+        )
+
+    def assemble_bind_mounts(
+        self,
+        external_directories: bool = False,
+        task_io: bool = False,
+    ) -> str:
+        """Get the docker bind mount string containing the wanted directories."""
+        string = f"--mount type=bind,source={self.pilot_store.on_host},target={self.pilot_store.in_container} "
+
+        if external_directories:
+            string += "".join(
+                f"--mount type=bind,source={dpath},target={dpath},readonly "
+                for dpath in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
+            )
+
+        if task_io:
+            string += f"--mount type=bind,source={self.task_io.on_host},target={self.task_io.in_container} "
+
+        return string
+
+    def rm_unique_dirs(self) -> None:
+        """Remove all directories (on host) created for use only by this container."""
+        shutil.rmtree(self._namebased_dir)  # rm -r

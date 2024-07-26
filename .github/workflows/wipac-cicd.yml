@@ -8,15 +8,19 @@ concurrency:
   cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 
 env:
-  PULSAR_CONTAINER: pulsar_local
+  RABBITMQ_IMAGE_TAG: bitnami/rabbitmq:3.13.5
+  PULSAR_IMAGE_TAG: apachepulsar/pulsar:2.6.0
+  NATS_IMAGE_TAG: nats:2.10.18
   #
-  EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS: localhost
+  SORTED_LIST_OF_TESTS_FILE: list-of-tests-sorted.txt
+  #
+  BROKER_CONTAINER_NAME: broker
+  #
   EWMS_PILOT_TIMEOUT_INCOMING: 1
-  #
-  EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: localhost
   EWMS_PILOT_TIMEOUT_OUTGOING: 1
+  EWMS_PILOT_KEEP_ALL_TASK_FILES: True
   #
-  DOCKER_IMAGE_NAME: pilot-test/example
+  DOCKER_IMAGE_NAME: pilot/local
 
 
 jobs:
@@ -69,6 +73,7 @@ jobs:
           base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Management Service"
 
   py-dependencies:
+    needs: [ py-versions ]
     runs-on: ubuntu-latest
     concurrency:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
@@ -79,7 +84,55 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-dependencies-action@v1.0
+        run: |
+          set -x
+          
+          mkdir docker-build-logs/ && trap 'rm -rf docker-build-logs/' EXIT
+          
+          # first, build the vanilla/default image
+          docker build --tag "default:py-dep-this" . \
+              >> docker-build-logs/$tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+          
+          # build all dockerfiles
+          for py in $(echo ${{ needs.py-versions.outputs.matrix }} | sed 's/[][]//g; s/,/ /g'); do
+              docker pull python:$py  # pre-pull to speed up dependent images
+              for flavor in rabbitmq pulsar nats; do
+                    # normal
+                    tag="$py-$flavor:py-dep-this"
+                    docker build --tag $tag \
+                        --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor" \
+                        . \
+                        >> docker-build-logs/$tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+                    sleep .1  # little sleep to help logs
+                    # another with 'tests'
+                    tag="$py-$flavor-test:py-dep-this"
+                    docker build --tag $tag \
+                        --build-arg="PYTHON=$py" --build-arg="FLAVOR=$flavor,test" \
+                        . \
+                        >> docker-build-logs/$tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+                    sleep .1  # little sleep to help logs
+              done
+          done
+          
+          # wait for all them
+          for pid in $pidlist; do
+              sleep .1  # little sleep to help logs
+              echo "waiting for $pid..."
+              if ! wait -n $pid; then
+                  sleep 5  # may need to wait for file to be written
+                  kill $pidlist 2>/dev/null
+                  sleep 5
+                  more docker-build-logs/* | cat  # cats with filenames (delimited by :::::::)
+                  exit 1
+              fi
+          done
+          
+          docker system prune --force  # save disk space
+
+      - if: github.actor != 'dependabot[bot]'
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@v2.0
+        with:
+          use_directory: true
 
 
   ############################################################################
@@ -95,7 +148,7 @@ jobs:
       - uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile_example
+          file: Dockerfile
           cache-from: type=gha
           cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
@@ -109,7 +162,7 @@ jobs:
       - uses: docker/build-push-action@v5
         with:
           context: .
-          file: Dockerfile_example
+          file: Dockerfile
           cache-from: type=gha
           # cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
@@ -126,84 +179,6 @@ jobs:
           singularity run $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
             ls
 
-  examples:
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        broker_client: [ pulsar, rabbitmq, nats ]
-    steps:
-      - uses: actions/checkout@v4
-      - name: Checkout MQClient repo
-        uses: actions/checkout@v4
-        with:
-          repository: Observation-Management-Service/MQClient
-          path: MQClient
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.11'
-      - name: run
-        run: |
-          set -x
-
-          # Pulsar
-          if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
-            ./MQClient/resources/docker-pulsar.sh "${{ matrix.broker_client }}"
-          # RabbitMQ
-          elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
-            ./MQClient/resources/docker-rabbitmq.sh "${{ matrix.broker_client }}"
-          # NATS
-          elif [ "${{ matrix.broker_client }}" = "nats" ]; then
-            ./MQClient/resources/local-nats-js.sh
-          fi
-
-          echo "--------------------------------------------------------------"
-          echo "running examples..."
-
-          pip install --upgrade pip wheel setuptools pytest
-          export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
-          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
-          pip install .[test,${{ matrix.broker_client }}]
-
-          export EWMS_PILOT_QUEUE_INCOMING="a012"
-          export EWMS_PILOT_QUEUE_OUTGOING="b345"
-          python examples/do_task.py
-
-          # read messages
-          out=$(python -c '
-          import mqclient as mq
-          import os, asyncio
-          queue = mq.Queue(
-              os.environ["EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE"],
-              address=os.environ["EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS"],
-              name="b345",
-          )
-          async def go():
-            async with queue.open_sub() as sub:
-                async for msg in sub:
-                    print(msg)
-          asyncio.run(go())
-          ')
-          echo "$out"
-
-          if [ -z "$out" ]; then
-            echo "no messages"
-          fi
-
-      - name: broker output
-        if: always()
-        run: |
-          set -x
-          cat ./broker.out
-          if [ -n "$(ls -A ./broker_logs/ 2>/dev/null)" ]; then
-            ls ./broker_logs/
-            more ./broker_logs/* | cat  # cats with filenames (delimited by :::::::)
-          fi
-      - name: broker docker logs
-        if: always()
-        run: |
-          docker logs "${{ matrix.broker_client }}" || true
-
   tests:
     needs: [ py-versions ]
     runs-on: ubuntu-latest
@@ -214,44 +189,114 @@ jobs:
         broker_client: [ pulsar, rabbitmq, nats ]
     steps:
       - uses: actions/checkout@v4
-      - name: Checkout MQClient repo
-        uses: actions/checkout@v4
-        with:
-          repository: Observation-Management-Service/MQClient
-          path: MQClient
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.version }}
+      - name: install sysbox (needed for docker-in-docker)
+        run: |
+          temp_dir=$(mktemp -d) && cd $temp_dir && trap 'rm -rf $temp_dir' EXIT  # save disk space
+          # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
+          wget https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_amd64.deb
+          docker rm $(docker ps -a -q) -f  ||  echo "ok: no docker containers to remove"
+          sudo apt-get install jq
+          sudo apt-get install ./sysbox-ce_0.6.4-0.linux_amd64.deb
+          # sudo systemctl status sysbox -n20  # used below
+      - name: pre-pull/build images for testing
+        run: |
+          set -x
+          mkdir saved-images/
+          docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
+          docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
+              --build-arg="PYTHON=${{ matrix.version }}" \
+              --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
+              .
+      - name: get list of pytest tests
+        run: |
+          pip install .[test]  # for the for-loop below
+          pytest --collect-only -q --disable-warnings tests | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
+      - run: |
+          # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
+          docker network create mynet
       - name: Integrate
         run: |
           set -x
-
-          # Pulsar
-          if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
-            ./MQClient/resources/docker-pulsar.sh "${{ matrix.broker_client }}"
-          # RabbitMQ
-          elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
-            ./MQClient/resources/docker-rabbitmq.sh "${{ matrix.broker_client }}"
-          # NATS
-          elif [ "${{ matrix.broker_client }}" = "nats" ]; then
-            ./MQClient/resources/local-nats-js.sh
-          fi
-
+          
+          # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
+          sudo systemctl status sysbox -n20
+          
+          # startup broker
+          source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
+              "--net=mynet --runtime=sysbox-runc"
+          docker ps
+          
+          set +x  # lots of output in these loops
           echo "--------------------------------------------------------------"
           echo "running tests..."
-
-          pip install --upgrade pip wheel setuptools pytest
+          
+          # set queue env vars
+          export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
+          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
-          pip install .[test,${{ matrix.broker_client }}]
+          
+          # make external directories -- used in like 1 test
+          export EWMS_PILOT_EXTERNAL_DIRECTORIES="/cvmfs/dummy-1/dir-A,/cvmfs/dummy-2/dir-B"
+          mkdir -p $(pwd)/cvmfs/dummy-1/dir-A
+          echo "alpha" > $(pwd)/cvmfs/dummy-1/dir-A/file.txt
+          mkdir -p $(pwd)/cvmfs/dummy-2/dir-B
+          echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
 
-          if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
-            # occasionally has connection errors
-            python -m pytest -vvv tests -n 32 --retries 3 --retry-delay 5 --maxfail=1
-          else
-            python -m pytest -vvv tests -n 32 --maxfail=1
-          fi
+          # iterate each test, starting each in its own container
+          cat $SORTED_LIST_OF_TESTS_FILE
+          while read test; do
+              echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              echo "starting test $test"
+              echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              set -x  # lets see the command
+              docker run --rm \
+                  --net=mynet \
+                  --runtime=sysbox-runc \
+                  --hostname=syscont \
+                  --mount type=bind,source=$(pwd),target=/repo/,readonly \
+                  --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
+                  --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
+                  --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
+                  $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                  ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test --retries 1 --retry-delay 5" \
+                  >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+              sleep .1  # little sleep to help logs
+              sleep 5  # sleep so the broker doesn't get overwhelmed
+              set +x
+              cat $(basename $test).test.out  # get a preview of the test output
+              sleep .1  # little sleep to help logs
+          done < $SORTED_LIST_OF_TESTS_FILE
+          
+          # wait for tests to finish
+          # https://stackoverflow.com/a/32604828/13156561
+          sleep 3  # short sleep to help logs
+          for pid in $pidlist; do
+              date --rfc-3339=seconds
+              echo "waiting for $pid..."
+              if ! wait -n $pid; then
+                  sleep 5  # may need to wait for file to be written
+                  # grab first failure -> may not be the failure from this pid
+                  cat $( grep -l -m 1 *.test.out -e "= FAILURES =" | head -1 )
+                  kill $pidlist 2>/dev/null
+                  exit 1
+              fi
+              echo "-> PASSED"
+          done
 
+      - name: pytest container outputs
+        if: always()
+        run: |
+          cat $SORTED_LIST_OF_TESTS_FILE
+          while read test; do
+              echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              echo $test
+              echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+              cat $(basename $test).test.out || true
+          done < $SORTED_LIST_OF_TESTS_FILE
       - name: broker output
         if: always()
         run: |
@@ -264,7 +309,7 @@ jobs:
       - name: broker docker logs
         if: always()
         run: |
-          docker logs "${{ matrix.broker_client }}" || true
+          docker logs $BROKER_CONTAINER_NAME || true
 
 
   #############################################################################
@@ -282,7 +327,6 @@ jobs:
       py-dependencies,
       test-build-docker,
       test-build-singularity,
-      examples,
       tests
     ]
     runs-on: ubuntu-latest

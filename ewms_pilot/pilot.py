@@ -1,16 +1,15 @@
 """API for launching an MQ-task pilot."""
 
 import asyncio
-import shutil
 import sys
 import uuid
-from pathlib import Path
 from typing import List, Optional
 
 import mqclient as mq
 
 from . import htchirp_tools
 from .config import (
+    DirectoryCatalog,
     ENV,
     LOGGER,
     REFRESH_INTERVAL,
@@ -19,7 +18,7 @@ from .housekeeping import Housekeeping
 from .tasks.io import FileExtension
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
-from .utils.subproc import run_subproc
+from .utils.runner import run_container
 from .utils.utils import all_task_errors_string
 
 # fmt:off
@@ -36,7 +35,8 @@ _EXCEPT_ERRORS = False
 
 @htchirp_tools.async_htchirp_error_wrapper
 async def consume_and_reply(
-    cmd: str,
+    task_image: str,
+    task_args: str = "",
     task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     max_concurrent_tasks: int = ENV.EWMS_PILOT_MAX_CONCURRENT_TASKS,
     #
@@ -63,12 +63,11 @@ async def consume_and_reply(
     outfile_type: str = ".out",
     #
     # init
-    init_cmd: str = "",
+    init_image: str = "",
+    init_args: str = "",
     init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
     #
     # misc settings
-    debug_dir: Optional[Path] = None,
-    dump_task_output: bool = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT,
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
 ) -> None:
     """Communicate with server and outsource processing to subprocesses.
@@ -84,17 +83,15 @@ async def consume_and_reply(
         raise RuntimeError("Must define an incoming and an outgoing queue")
 
     housekeeper = Housekeeping(chirper)
-    staging_dir = debug_dir if debug_dir else Path("./tmp")
 
     try:
         # Init command
-        if init_cmd:
-            await run_init_command(
-                init_cmd,
+        if init_image:
+            await run_init_container(
+                init_image,
+                init_args,
                 init_timeout,
                 housekeeper,
-                staging_dir,
-                bool(debug_dir),
             )
 
         # connect queues
@@ -118,7 +115,8 @@ async def consume_and_reply(
 
         # MQ tasks
         await _consume_and_reply(
-            cmd,
+            task_image,
+            task_args,
             in_queue,
             out_queue,
             FileExtension(infile_type),
@@ -127,19 +125,11 @@ async def consume_and_reply(
             timeout_wait_for_first_message,
             timeout_incoming,
             #
-            staging_dir,
-            bool(debug_dir),
-            dump_task_output,
-            #
             task_timeout,
             max_concurrent_tasks,
             #
             housekeeper,
         )
-
-        # cleanup
-        if not list(staging_dir.iterdir()):  # if empty
-            shutil.rmtree(staging_dir)  # rm -r
 
     # ERROR -> Quarantine
     except Exception as e:
@@ -159,26 +149,27 @@ async def consume_and_reply(
 
 
 @htchirp_tools.async_htchirp_error_wrapper
-async def run_init_command(
-    init_cmd: str,
+async def run_init_container(
+    init_image: str,
+    init_args: str,
     init_timeout: Optional[int],
     housekeeper: Housekeeping,
-    staging_dir: Path,
-    keep_debug_dir: bool,
 ) -> None:
-    """Run the init command."""
-    await housekeeper.running_init_command()
+    """Run the init container with the given arguments."""
+    await housekeeper.running_init_container()
 
-    staging_subdir = staging_dir / f"init-{uuid.uuid4().hex}"
-    staging_subdir.mkdir(parents=True, exist_ok=False)
+    dirs = DirectoryCatalog(f"init-{uuid.uuid4().hex}")
+    dirs.outputs_on_host.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
-        run_subproc(
-            init_cmd,
+        run_container(
+            init_image,
+            init_args,
             init_timeout,
-            staging_subdir / "stdoutfile",
-            staging_subdir / "stderrfile",
-            dump_output=True,
+            dirs.outputs_on_host / "stdoutfile",
+            dirs.outputs_on_host / "stderrfile",
+            dirs.assemble_bind_mounts(external_directories=True),
+            f"--env EWMS_TASK_PILOT_STORE_DIR={dirs.pilot_store.in_container}",
         )
     )
     pending = set([task])
@@ -200,8 +191,8 @@ async def run_init_command(
         raise
 
     # cleanup -- on success only
-    if not keep_debug_dir:
-        shutil.rmtree(staging_subdir)  # rm -r
+    if not ENV.EWMS_PILOT_KEEP_ALL_TASK_FILES:
+        dirs.rm_unique_dirs()
 
     await housekeeper.finished_init_command()
 
@@ -223,7 +214,8 @@ def listener_loop_exit(
 
 @htchirp_tools.async_htchirp_error_wrapper
 async def _consume_and_reply(
-    cmd: str,
+    task_image: str,
+    task_args: str,
     #
     in_queue: mq.Queue,
     out_queue: mq.Queue,
@@ -234,10 +226,6 @@ async def _consume_and_reply(
     #
     timeout_wait_for_first_message: Optional[int],
     timeout_incoming: int,
-    #
-    staging_dir: Path,
-    keep_debug_dir: bool,
-    dump_task_output: bool,
     #
     task_timeout: Optional[int],
     max_concurrent_tasks: int,
@@ -310,13 +298,11 @@ async def _consume_and_reply(
                     task = asyncio.create_task(
                         process_msg_task(
                             in_msg,
-                            cmd,
+                            task_image,
+                            task_args,
                             task_timeout,
                             infile_ext,
                             outfile_ext,
-                            staging_dir,
-                            keep_debug_dir,
-                            dump_task_output,
                         )
                     )
                     pending[task] = in_msg

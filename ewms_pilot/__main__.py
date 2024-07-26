@@ -2,11 +2,13 @@
 
 import argparse
 import asyncio
+import logging
 
-from wipac_dev_tools import argparse_tools, logging_tools
+from wipac_dev_tools import logging_tools
 
-from .config import LOGGER
 from .pilot import consume_and_reply
+
+LOGGER = logging.getLogger(__package__)
 
 
 def main() -> None:
@@ -17,11 +19,20 @@ def main() -> None:
         epilog="",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
+
+    # task definition
     parser.add_argument(
-        "--cmd",  # alternatively we can go with a condor-like --executable and --arguments
+        "--task-image",
         required=True,
-        help="the command to run for each task",
+        help="the image build (and container to run) for each task",
     )
+    parser.add_argument(
+        "--task-args",
+        required=True,
+        help="the args to run with the task container",
+    )
+
+    # I/O config
     parser.add_argument(
         "--infile-type",
         required=True,
@@ -32,19 +43,17 @@ def main() -> None:
         required=True,
         help="the file type (extension) of the output file from the pilot's task",
     )
-    parser.add_argument(
-        "--init-cmd",  # alternatively we can go with a condor-like --executable and --arguments
-        default="",
-        help="the init command run once before processing any tasks",
-    )
 
-    # logging/debugging args
+    # init definition
     parser.add_argument(
-        "--debug-directory",
-        default="",
-        type=argparse_tools.create_dir,
-        help="a directory to write all the incoming/outgoing .pkl files "
-        "(useful for debugging)",
+        "--init-image",
+        required=True,
+        help="the image build (and container to run) once before processing any tasks",
+    )
+    parser.add_argument(
+        "--init-args",
+        required=True,
+        help="the args to run with the init container",
     )
 
     args = parser.parse_args()
@@ -62,17 +71,16 @@ def main() -> None:
     )
     asyncio.run(
         consume_and_reply(
-            cmd=args.cmd,
+            task_image=args.task_image,
+            task_args=args.task_args,
             #
             # to subprocess
             infile_type=args.infile_type,
             outfile_type=args.outfile_type,
             #
             # init
-            init_cmd=args.init_cmd,
-            #
-            # misc settings
-            debug_dir=args.debug_directory,
+            init_image=args.init_image,
+            init_args=args.init_args,
         )
     )
     LOGGER.info("Done.")

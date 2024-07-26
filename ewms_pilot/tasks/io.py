@@ -1,12 +1,13 @@
 """Tools for controlling sub-processes' input/output."""
 
 import json
+import logging
 from pathlib import Path
 from typing import Any
 
 from mqclient.broker_client_interface import Message
 
-from ..config import LOGGER
+LOGGER = logging.getLogger(__name__)
 
 
 class InvalidDataForInfileException(Exception):
@@ -79,6 +80,9 @@ class OutFileInterface:
     @classmethod
     def read(cls, fpath: Path) -> Any:
         """Read and return contents of `fpath`."""
+        if not fpath.exists():
+            raise FileNotFoundError(f"Outfile was not found: {fpath}")
+
         LOGGER.info(f"OUTFILE :: {fpath} ({fpath.stat().st_size} bytes)")
         data = cls._read(fpath)
         LOGGER.debug(data)
