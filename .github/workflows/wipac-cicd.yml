@@ -195,7 +195,7 @@ jobs:
           set -x
 
           # startup broker
-          ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME
+          source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME
 
           echo "--------------------------------------------------------------"
           echo "running examples..."
@@ -292,7 +292,7 @@ jobs:
           sudo systemctl status sysbox -n20
           
           # startup broker
-          ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
+          source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
               "--net=mynet --runtime=sysbox-runc"
           
           
