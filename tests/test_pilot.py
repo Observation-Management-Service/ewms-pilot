@@ -651,7 +651,6 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
                     TIMEOUT_INCOMING / 4
                     if not (
                         prefetch == 1
-                        # and not use_debug_dir  # TODO?
                         and config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE
                         == "rabbitmq"
                     )
@@ -668,8 +667,6 @@ print(output, file=open('{{OUTFILE}}','w'))
 raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                # infile_type=,
-                # outfile_type=,
                 timeout_incoming=TIMEOUT_INCOMING,
                 prefetch=prefetch,
                 max_concurrent_tasks=MAX_CONCURRENT_TASKS,
