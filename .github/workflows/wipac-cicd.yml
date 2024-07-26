@@ -196,10 +196,8 @@ jobs:
 
           # startup broker
           source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME
-          
           docker ps
-          exit 1
-
+          
           echo "--------------------------------------------------------------"
           echo "running examples..."
 
@@ -297,7 +295,7 @@ jobs:
           # startup broker
           source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
               "--net=mynet --runtime=sysbox-runc"
-          
+          docker ps
           
           set +x  # lots of output in these loops
           echo "--------------------------------------------------------------"
