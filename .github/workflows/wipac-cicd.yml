@@ -309,41 +309,11 @@ jobs:
           # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
           sudo systemctl status sysbox -n20
           
-          
-          echo "--------------------------------------------------------------"
-          echo "starting broker..."
-          
-          if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
-              docker run --rm -d --name $BROKER_CONTAINER_NAME --net=mynet --runtime=sysbox-runc \
-                  --shm-size=2g \
-                  $PULSAR_IMAGE_TAG /bin/bash \
-                  -c "sed -i s/brokerDeleteInactiveTopicsEnabled=.*/brokerDeleteInactiveTopicsEnabled=false/ /pulsar/conf/standalone.conf && bin/pulsar standalone" \
-                  >> broker.out 2>&1
-          # RabbitMQ
-          elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
-              echo -e "log.console.level = debug\n" >> "./rabbitmq-custom.conf"
-              echo -e "loopback_users = none\n" >> "./rabbitmq-custom.conf"  # allows guest/guest from non-localhost
-              mkdir ./broker_logs
-              docker run --rm -d --name $BROKER_CONTAINER_NAME --net=mynet --runtime=sysbox-runc \
-                  --shm-size=2g \
-                  --env RABBITMQ_USERNAME=guest \
-                  --env RABBITMQ_PASSWORD=guest \
-                  --env BITNAMI_DEBUG=true \
-                  -v $(realpath './rabbitmq-custom.conf'):/bitnami/rabbitmq/conf/custom.conf:ro \
-                  --mount type=bind,source=$(realpath ./broker_logs),target=/opt/bitnami/rabbitmq/var/log/rabbitmq/ \
-                  $RABBITMQ_IMAGE_TAG \
-                  >> broker.out 2>&1
-              sleep 10
-          # NATS
-          elif [ "${{ matrix.broker_client }}" = "nats" ]; then
-              docker run --rm -d --name $BROKER_CONTAINER_NAME --net=mynet --runtime=sysbox-runc \
-                  --shm-size=2g \
-                  $NATS_IMAGE_TAG -js \
-                  >> broker.out 2>&1
-              sleep 60
-          fi
-          
-          sleep 10  # should actually take ~5s
+          # startup broker
+          ./tests/run-broker.sh \
+              "${{ matrix.broker_client }}" \
+              $BROKER_CONTAINER_NAME \
+              "--net=mynet --runtime=sysbox-runc"
           
           
           set +x  # lots of output in these loops
