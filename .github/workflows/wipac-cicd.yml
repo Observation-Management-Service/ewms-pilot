@@ -195,7 +195,8 @@ jobs:
           set -x
 
           # startup broker
-          source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME
+          source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
+              "--network=host"
           docker ps
           
           echo "--------------------------------------------------------------"
