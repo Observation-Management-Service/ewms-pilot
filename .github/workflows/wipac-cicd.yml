@@ -196,6 +196,9 @@ jobs:
 
           # startup broker
           source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME
+          
+          docker ps
+          exit 1
 
           echo "--------------------------------------------------------------"
           echo "running examples..."
