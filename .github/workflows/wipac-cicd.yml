@@ -245,7 +245,7 @@ jobs:
       - name: broker docker logs
         if: always()
         run: |
-          docker logs "${{ matrix.broker_client }}" || true
+          docker logs $BROKER_CONTAINER_NAME || true
 
   tests:
     needs: [ py-versions ]
