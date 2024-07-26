@@ -187,11 +187,6 @@ jobs:
         broker_client: [ pulsar, rabbitmq, nats ]
     steps:
       - uses: actions/checkout@v4
-      - name: Checkout MQClient repo
-        uses: actions/checkout@v4
-        with:
-          repository: Observation-Management-Service/MQClient
-          path: MQClient
       - uses: actions/setup-python@v4
         with:
           python-version: '3.11'
@@ -199,16 +194,8 @@ jobs:
         run: |
           set -x
 
-          # Pulsar
-          if [ "${{ matrix.broker_client }}" = "pulsar" ]; then
-            ./MQClient/resources/docker-pulsar.sh "${{ matrix.broker_client }}"
-          # RabbitMQ
-          elif [ "${{ matrix.broker_client }}" = "rabbitmq" ]; then
-            ./MQClient/resources/docker-rabbitmq.sh "${{ matrix.broker_client }}"
-          # NATS
-          elif [ "${{ matrix.broker_client }}" = "nats" ]; then
-            ./MQClient/resources/local-nats-js.sh
-          fi
+          # startup broker
+          ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME
 
           echo "--------------------------------------------------------------"
           echo "running examples..."
@@ -269,11 +256,6 @@ jobs:
         broker_client: [ pulsar, rabbitmq, nats ]
     steps:
       - uses: actions/checkout@v4
-      - name: Checkout MQClient repo
-        uses: actions/checkout@v4
-        with:
-          repository: Observation-Management-Service/MQClient
-          path: MQClient
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.version }}
@@ -310,9 +292,7 @@ jobs:
           sudo systemctl status sysbox -n20
           
           # startup broker
-          ./tests/run-broker.sh \
-              "${{ matrix.broker_client }}" \
-              $BROKER_CONTAINER_NAME \
+          ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
               "--net=mynet --runtime=sysbox-runc"
           
           
