@@ -2,6 +2,13 @@
 
 
 
+## v0.22.2 (2024-07-29)
+
+###  
+
+* Fix CVMFS Publishing - 2 ([`cefd4ee`](https://github.com/Observation-Management-Service/ewms-pilot/commit/cefd4ee7c50b24387452ad70c8fe06c88dacb86a))
+
+
 ## v0.22.1 (2024-07-29)
 
 ###  
