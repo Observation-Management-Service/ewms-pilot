@@ -322,6 +322,7 @@ jobs:
 
 
   release:
+    # only run on main/master/default
     if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
     needs: [
       py-versions,
@@ -334,15 +335,23 @@ jobs:
       tests
     ]
     runs-on: ubuntu-latest
-    concurrency: release
+    concurrency: release  # prevent any possible race conditions
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-      - name: Python Semantic Release
-        uses: python-semantic-release/python-semantic-release@v7.34.6
+      # Python-Package Version Bump
+      - uses: python-semantic-release/python-semantic-release@v9.8.1
+        id: psr-psr
         with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
-          repository_username: __token__
-          repository_password: ${{ secrets.PYPI_TOKEN }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+      # PyPI Release
+      - uses: pypa/gh-action-pypi-publish@v1.8.14
+        if: steps.psr-psr.outputs.released == 'true'
+        with:
+          password: ${{ secrets.PYPI_TOKEN }}
+      # GitHub Release
+      - uses: python-semantic-release/upload-to-gh-release@v9.8.1
+        if: steps.psr-psr.outputs.released == 'true'
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
