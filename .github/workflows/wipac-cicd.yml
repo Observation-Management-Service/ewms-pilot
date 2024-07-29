@@ -68,7 +68,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-setup-action@v3.0
+        uses: WIPACrepo/wipac-dev-py-setup-action@v4.0
         with:
           base-keywords: WIPAC IceCube "Observation Management Service" "Event Workflow Management Service"
 
