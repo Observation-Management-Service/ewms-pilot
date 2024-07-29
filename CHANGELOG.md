@@ -2,6 +2,13 @@
 
 
 
+## v0.22.4 (2024-07-29)
+
+###  
+
+* Set CL Args Defaults ([`207925f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/207925f40e48e5ea91a039d355313794880475c5))
+
+
 ## v0.22.3 (2024-07-29)
 
 ###  
