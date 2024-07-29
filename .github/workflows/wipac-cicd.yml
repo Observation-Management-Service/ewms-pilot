@@ -68,7 +68,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-setup-action@auto-create-toml
+        uses: WIPACrepo/wipac-dev-py-setup-action@v4.1
         with:
           python_min: 3.9
           keywords: pilot "Observation Management Service" "Event Workflow Management Service" EWMS "message passing" MQ task
