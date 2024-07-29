@@ -6,6 +6,7 @@ import logging
 
 from wipac_dev_tools import logging_tools
 
+from .config import ENV
 from .pilot import consume_and_reply
 
 LOGGER = logging.getLogger(__package__)
@@ -58,16 +59,16 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        args.log.upper(),
+        ENV.EWMS_PILOT_CL_LOG.upper(),
         first_party_loggers=[LOGGER],
-        third_party_level=args.log_third_party,
+        third_party_level=ENV.EWMS_PILOT_CL_LOG_THIRD_PARTY,
         use_coloredlogs=True,
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
 
     # GO!
     LOGGER.info(
-        f"Starting up an EWMS Pilot for MQ task: {args.queue_incoming} -> {args.queue_outgoing}"
+        f"Starting up an EWMS Pilot for MQ task: {args.task_image} w/ {args.task_args}"
     )
     asyncio.run(
         consume_and_reply(
