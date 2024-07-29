@@ -2,6 +2,15 @@
 
 
 
+## v0.22.3 (2024-07-29)
+
+###  
+
+* Fix CL Args - 2 ([`8538c71`](https://github.com/Observation-Management-Service/ewms-pilot/commit/8538c71850820ce5b8d78ba6d5ec73096d85ba16))
+
+* Fix CL Args ([`0b91a17`](https://github.com/Observation-Management-Service/ewms-pilot/commit/0b91a178508e154ba4ab386b4a83d6e904abe13c))
+
+
 ## v0.22.2 (2024-07-29)
 
 ###  
