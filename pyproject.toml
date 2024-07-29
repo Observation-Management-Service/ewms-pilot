@@ -1,11 +1,16 @@
-# WIPACrepo/wipac-dev-py-setup-action@v4+ Migration Helper:
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
 
-# set these fields:
 [project]
 version = "0.21.0"
-dependencies = ["htchirp", "htcondor", "oms-mqclient"]  # leave empty if there are no dependencies
+dependencies = ["htchirp", "htcondor", "oms-mqclient"]
+name = "ewms-pilot"
+keywords = ["pilot", "Observation Management Service", "Event Workflow Management Service", "EWMS", "message passing", "MQ", "task"]
 
-# optional sections:
+[[project.authors]]
+name = "WIPAC Developers"
+email = "developers@icecube.wisc.edu"
 
 [project.optional-dependencies]
 pulsar = ["oms-mqclient[pulsar]"]
@@ -14,3 +19,21 @@ nats = ["oms-mqclient[nats]"]
 all = ["oms-mqclient[all]"]
 test = ["asyncstdlib", "pytest", "pytest-asyncio", "pytest-retry"]
 mypy = ["oms-mqclient[all]", "asyncstdlib", "pytest", "pytest-asyncio", "pytest-retry"]
+
+[tool.semantic_release]
+version_toml = ["pyproject.toml:project.version"]
+version_variables = ["ewms_pilot/__init__.py:__version__"]
+commit_parser = "emoji"
+build_command = "pip install build && python -m build"
+
+[tool.semantic_release.commit_parser_options]
+major_tags = ["[major]"]
+minor_tags = ["[minor]", "[feature]"]
+patch_tags = ["[patch]", "[fix]", " ", "!", "#", "$", "%", "&", "'", "(", ")", "*", "+", "-", ".", "/", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", ":", ";", "<", "=", ">", "?", "@", "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z", "[", "]", "^", "_", "`", "a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m", "n", "o", "p", "q", "r", "s", "t", "u", "v", "w", "x", "y", "z", "{", "|", "}", "~"]
+
+[tool.setuptools.package-data]
+"*" = ["py.typed"]
+
+[tool.setuptools.packages.find]
+namespaces = false
+exclude = ["test", "tests", "doc", "docs", "resource", "resources", "example", "examples"]
