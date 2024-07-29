@@ -11,7 +11,9 @@ from . import htchirp_tools
 from .config import (
     DirectoryCatalog,
     ENV,
+    INFILE_TYPE_DEFAULT,
     LOGGER,
+    OUTFILE_TYPE_DEFAULT,
     REFRESH_INTERVAL,
 )
 from .housekeeping import Housekeeping
@@ -59,8 +61,8 @@ async def consume_and_reply(
     queue_outgoing_broker_address: str = ENV.EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS,
     #
     # for subprocess
-    infile_type: str = ".in",
-    outfile_type: str = ".out",
+    infile_type: str = INFILE_TYPE_DEFAULT,
+    outfile_type: str = OUTFILE_TYPE_DEFAULT,
     #
     # init
     init_image: str = "",

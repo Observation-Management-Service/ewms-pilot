@@ -14,6 +14,9 @@ LOGGER = logging.getLogger(__name__)
 
 REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main loop
 
+INFILE_TYPE_DEFAULT = ".in"
+OUTFILE_TYPE_DEFAULT = ".out"
+
 
 #
 # Env var constants: set as constants & typecast

@@ -6,7 +6,7 @@ import logging
 
 from wipac_dev_tools import logging_tools
 
-from .config import ENV
+from .config import ENV, INFILE_TYPE_DEFAULT, OUTFILE_TYPE_DEFAULT
 from .pilot import consume_and_reply
 
 LOGGER = logging.getLogger(__package__)
@@ -29,31 +29,31 @@ def main() -> None:
     )
     parser.add_argument(
         "--task-args",
-        required=True,
+        default="",
         help="the args to run with the task container",
     )
 
     # I/O config
     parser.add_argument(
         "--infile-type",
-        required=True,
+        default=INFILE_TYPE_DEFAULT,
         help="the file type (extension) of the input file for the pilot's task",
     )
     parser.add_argument(
         "--outfile-type",
-        required=True,
+        default=OUTFILE_TYPE_DEFAULT,
         help="the file type (extension) of the output file from the pilot's task",
     )
 
     # init definition
     parser.add_argument(
         "--init-image",
-        required=True,
+        default="",
         help="the image build (and container to run) once before processing any tasks",
     )
     parser.add_argument(
         "--init-args",
-        required=True,
+        default="",
         help="the args to run with the init container",
     )
 
