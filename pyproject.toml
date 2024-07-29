@@ -2,11 +2,15 @@
 
 # set these fields:
 [project]
-version = "0.0.0"
-dependencies = []  # leave empty if there are no dependencies
+version = "0.21.0"
+dependencies = ["htchirp", "htcondor", "oms-mqclient"]  # leave empty if there are no dependencies
 
 # optional sections:
 
-# [project.optional-dependencies]
-# foo = []
-# bar = []
+[project.optional-dependencies]
+pulsar = ["oms-mqclient[pulsar]"]
+rabbitmq = ["oms-mqclient[rabbitmq]"]
+nats = ["oms-mqclient[nats]"]
+all = ["oms-mqclient[all]"]
+test = ["asyncstdlib", "pytest", "pytest-asyncio", "pytest-retry"]
+mypy = ["oms-mqclient[all]", "asyncstdlib", "pytest", "pytest-asyncio", "pytest-retry"]
