@@ -59,9 +59,9 @@ def main() -> None:
 
     args = parser.parse_args()
     logging_tools.set_level(
-        ENV.EWMS_PILOT_CL_LOG.upper(),
+        ENV.EWMS_PILOT_CL_LOG,  # type: ignore[arg-type]
         first_party_loggers=[LOGGER],
-        third_party_level=ENV.EWMS_PILOT_CL_LOG_THIRD_PARTY,
+        third_party_level=ENV.EWMS_PILOT_CL_LOG_THIRD_PARTY,  # type: ignore[arg-type]
         use_coloredlogs=True,
     )
     logging_tools.log_argparse_args(args, logger=LOGGER, level="WARNING")
