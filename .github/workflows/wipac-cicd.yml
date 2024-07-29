@@ -73,7 +73,7 @@ jobs:
           python_min: 3.9
           author: WIPAC Developers
           author_email: developers@icecube.wisc.edu
-          keywords: WIPAC python tools utilities IceCube "Observation Management Service" "Event Workflow Management Service"
+          keywords: "Observation Management Service" "Event Workflow Management Service" "EWMS" "pilot" "message passing" "MQ" "task"
 
   py-dependencies:
     needs: [ py-versions ]
