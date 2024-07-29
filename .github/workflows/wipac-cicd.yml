@@ -340,6 +340,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # using 'GITHUB_TOKEN' does not trigger ci on push
       # Python-Package Version Bump
       - uses: python-semantic-release/python-semantic-release@v9.8.1
         id: psr-psr
