@@ -7,6 +7,7 @@ version = "0.21.0"
 dependencies = ["htchirp", "htcondor", "oms-mqclient"]
 name = "ewms-pilot"
 keywords = ["pilot", "Observation Management Service", "Event Workflow Management Service", "EWMS", "message passing", "MQ", "task"]
+requires-python = ">=3.9, <3.13"
 
 [[project.authors]]
 name = "WIPAC Developers"
