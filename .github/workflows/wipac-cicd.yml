@@ -70,7 +70,7 @@ jobs:
       - if: github.actor != 'dependabot[bot]'
         uses: WIPACrepo/wipac-dev-py-setup-action@auto-create-toml
         with:
-          python_min: 3.9
+          python_min: "3.9"
           keywords: "Observation Management Service" "Event Workflow Management Service" "EWMS" "pilot" "message passing" "MQ" "task"
           author: WIPAC Developers
           author_email: developers@icecube.wisc.edu
