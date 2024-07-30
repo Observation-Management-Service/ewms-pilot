@@ -2,6 +2,23 @@
 
 
 
+## v0.23.0 (2024-07-30)
+
+###  
+
+* make some env vars required ([`3473a2b`](https://github.com/Observation-Management-Service/ewms-pilot/commit/3473a2ba2d26f905ac014366b2c75a2427395b74))
+
+### [minor]
+
+* Remove CL Args [minor] (#82)
+
+* no more cl args
+
+* flake8
+
+* misc ([`7ebc53a`](https://github.com/Observation-Management-Service/ewms-pilot/commit/7ebc53af9f15bf86ce5be5937040e57e4a716415))
+
+
 ## v0.22.4 (2024-07-29)
 
 ###  
