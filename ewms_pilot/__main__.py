@@ -22,7 +22,7 @@ def main() -> None:
     )
 
     # GO!
-    LOGGER.info(f"Running from CL: starting up an EWMS Pilot...")
+    LOGGER.info("Running from CL: starting up an EWMS Pilot...")
     asyncio.run(consume_and_reply())
     LOGGER.info("Done.")
 
