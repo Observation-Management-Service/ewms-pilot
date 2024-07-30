@@ -29,9 +29,7 @@ class EnvConfig:
     #
 
     # task
-    EWMS_PILOT_TASK_IMAGE: str = (
-        ""  # the image build (and container to run) for each task
-    )
+    EWMS_PILOT_TASK_IMAGE: str = ""  # the image to run for each task
     EWMS_PILOT_TASK_ARGS: str = ""  # the args to run with the task container
 
     # init
