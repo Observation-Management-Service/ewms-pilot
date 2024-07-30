@@ -27,11 +27,25 @@ OUTFILE_TYPE_DEFAULT = ".out"
 class EnvConfig:
     """For storing environment variables, typed."""
 
+    #
+    # REQUIRED
+    #
+
     # incoming queue
-    EWMS_PILOT_QUEUE_INCOMING: str = ""  # name of the incoming queue
-    EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN: str = ""  # auth token for queue
-    EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
-    EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
+    EWMS_PILOT_QUEUE_INCOMING: str  # name of the incoming queue
+    EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN: str  # auth token for queue
+    EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE: str  # broker type: pulsar, rabbitmq...
+    EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS: str  # MQ broker URL to connect to
+
+    # outgoing queue
+    EWMS_PILOT_QUEUE_OUTGOING: str  # name of the outgoing queue
+    EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN: str  # auth token for queue
+    EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE: str  # broker type: pulsar, rabbitmq...
+    EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: str  # MQ broker URL to connect to
+
+    #
+    # OPTIONAL
+    #
 
     # incoming queue - settings
     EWMS_PILOT_PREFETCH: int = (
@@ -42,12 +56,7 @@ class EnvConfig:
     )
     EWMS_PILOT_TIMEOUT_QUEUE_INCOMING: int = 1  # timeout (sec) for messages TO pilot
 
-    # outgoing queue
-    EWMS_PILOT_QUEUE_OUTGOING: str = ""  # name of the outgoing queue
-    EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN: str = ""  # auth token for queue
-    EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
-    EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
-
+    # files
     EWMS_PILOT_EXTERNAL_DIRECTORIES: str = ""  # comma-delimited
 
     # logging -- only used when running via command line
