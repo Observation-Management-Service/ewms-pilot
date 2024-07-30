@@ -14,9 +14,6 @@ LOGGER = logging.getLogger(__name__)
 
 REFRESH_INTERVAL = 1  # sec -- the time between transitioning phases of the main loop
 
-INFILE_TYPE_DEFAULT = ".in"
-OUTFILE_TYPE_DEFAULT = ".out"
-
 
 #
 # Env var constants: set as constants & typecast
@@ -31,21 +28,35 @@ class EnvConfig:
     # REQUIRED
     #
 
+    # task
+    EWMS_PILOT_TASK_IMAGE: str = (
+        ""  # the image build (and container to run) for each task
+    )
+    EWMS_PILOT_TASK_ARGS: str = ""  # the args to run with the task container
+
+    # init
+    EWMS_PILOT_INIT_IMAGE: str = ""  # the image to run once before processing any tasks
+    EWMS_PILOT_INIT_ARGS: str = ""  # the args to run with the init container
+
     # incoming queue
-    EWMS_PILOT_QUEUE_INCOMING: str  # name of the incoming queue
-    EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN: str  # auth token for queue
-    EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE: str  # broker type: pulsar, rabbitmq...
-    EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS: str  # MQ broker URL to connect to
+    EWMS_PILOT_QUEUE_INCOMING: str = ""  # name of the incoming queue
+    EWMS_PILOT_QUEUE_INCOMING_AUTH_TOKEN: str = ""  # auth token for queue
+    EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
+    EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
 
     # outgoing queue
-    EWMS_PILOT_QUEUE_OUTGOING: str  # name of the outgoing queue
-    EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN: str  # auth token for queue
-    EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE: str  # broker type: pulsar, rabbitmq...
-    EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: str  # MQ broker URL to connect to
+    EWMS_PILOT_QUEUE_OUTGOING: str = ""  # name of the outgoing queue
+    EWMS_PILOT_QUEUE_OUTGOING_AUTH_TOKEN: str = ""  # auth token for queue
+    EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE: str = ""  # broker type: pulsar, rabbitmq...
+    EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: str = ""  # MQ broker URL to connect to
 
     #
     # OPTIONAL
     #
+
+    # I/O to subprocess -- the file type (extension) of the input/output file from the pilot's task
+    EWMS_PILOT_INFILE_TYPE: str = ".in"  # ''
+    EWMS_PILOT_OUTFILE_TYPE: str = ".out"  # ''
 
     # incoming queue - settings
     EWMS_PILOT_PREFETCH: int = (

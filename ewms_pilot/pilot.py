@@ -11,9 +11,7 @@ from . import htchirp_tools
 from .config import (
     DirectoryCatalog,
     ENV,
-    INFILE_TYPE_DEFAULT,
     LOGGER,
-    OUTFILE_TYPE_DEFAULT,
     REFRESH_INTERVAL,
 )
 from .housekeeping import Housekeeping
@@ -37,8 +35,8 @@ _EXCEPT_ERRORS = False
 
 @htchirp_tools.async_htchirp_error_wrapper
 async def consume_and_reply(
-    task_image: str,
-    task_args: str = "",
+    task_image: str = ENV.EWMS_PILOT_TASK_IMAGE,
+    task_args: str = ENV.EWMS_PILOT_TASK_ARGS,
     task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
     max_concurrent_tasks: int = ENV.EWMS_PILOT_MAX_CONCURRENT_TASKS,
     #
@@ -61,22 +59,18 @@ async def consume_and_reply(
     queue_outgoing_broker_address: str = ENV.EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS,
     #
     # for subprocess
-    infile_type: str = INFILE_TYPE_DEFAULT,
-    outfile_type: str = OUTFILE_TYPE_DEFAULT,
+    infile_type: str = ENV.EWMS_PILOT_INFILE_TYPE,
+    outfile_type: str = ENV.EWMS_PILOT_OUTFILE_TYPE,
     #
     # init
-    init_image: str = "",
-    init_args: str = "",
+    init_image: str = ENV.EWMS_PILOT_INIT_IMAGE,
+    init_args: str = ENV.EWMS_PILOT_INIT_ARGS,
     init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
     #
     # misc settings
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
 ) -> None:
-    """Communicate with server and outsource processing to subprocesses.
-
-    Arguments:
-        `timeout_wait_for_first_message`: if None, use 'timeout_incoming'
-    """
+    """Communicate with server and outsource processing to subprocesses."""
     LOGGER.info("Making MQClient queue connections...")
     chirper = htchirp_tools.Chirper()
     chirper.initial_chirp()
