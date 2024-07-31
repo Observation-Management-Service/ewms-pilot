@@ -2,6 +2,13 @@
 
 
 
+## v0.23.2 (2024-07-31)
+
+###  
+
+* File Permissions for `/ewms-pilot/` ([`f4521cc`](https://github.com/Observation-Management-Service/ewms-pilot/commit/f4521cc83cf5079bc40e3e4c4b12a4bf37948c49))
+
+
 ## v0.23.1 (2024-07-31)
 
 ###  
