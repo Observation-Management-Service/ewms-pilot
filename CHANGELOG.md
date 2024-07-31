@@ -2,6 +2,13 @@
 
 
 
+## v0.23.1 (2024-07-31)
+
+###  
+
+* Update `entrypoint.sh` Startup Dump ([`749736c`](https://github.com/Observation-Management-Service/ewms-pilot/commit/749736c9bf009b77cdb1effa098232ae808c10f8))
+
+
 ## v0.23.0 (2024-07-30)
 
 ###  
