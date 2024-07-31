@@ -27,6 +27,9 @@ RUN mkdir /app
 WORKDIR /app
 #
 # the directory exposed to all tasks
+RUN mkdir -p /ewms-pilot/
+RUN chmod -R 777 /ewms-pilot/
+#
 RUN mkdir -p /ewms-pilot/store
 
 # entrypoint magic
