@@ -3,16 +3,23 @@
 echo ""
 echo "Setting up the EWMS Task Pilot Container Environment..."
 
+# inspect the file system
 echo "----"
-echo "TASK-PILOT: activating docker daemon..."
+ls -ld $PWD/*
+echo "----"
+ls -ld /*
+echo "----"
+ls -ld /ewms-pilot/*
+
+echo "----"
+echo "Activating docker daemon..."
 dockerd > /var/log/dockerd.log 2>&1 || echo "WARNING: docker-in-docker setup failed (error suppressed)" &
 sleep 1
 
 echo "----"
-echo "TASK-PILOT: activating venv..."
+echo "Activating venv..."
 source /app/entrypoint_venv/bin/activate
 
-echo ""
 echo "╔══════════════════════════════════════════════════════════════════════════════════════╗"
 echo "║                                                                                      ║"
 echo "║        - - -       Welcome to the Task Pilot Container Environment       - - -       ║"
@@ -26,8 +33,7 @@ echo "╠═══════════════════════�
 while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(pip show ewms-pilot)"  # pip-supplied info
 echo "╚══════════════════════════════════════════════════════════════════════════════════════╝"
 
-echo "TASK-PILOT: executing command: $@"
+echo "Executing command: $@"
 
 echo "----"
 exec "$@"
-
