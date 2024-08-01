@@ -4,13 +4,12 @@ echo ""
 echo "Setting up the EWMS Task Pilot Container Environment..."
 
 # inspect the file system
-chmod -R 777 /ewms-pilot/
 echo "----"
-ls -ld $PWD/*
+echo "$PWD"
+ls -l $PWD
 echo "----"
-ls -ld /*
-echo "----"
-ls -ld /ewms-pilot/*
+echo "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
+ls -lR $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST  # recursive
 
 echo "----"
 echo "Activating docker daemon..."
