@@ -3,6 +3,10 @@
 echo ""
 echo "Setting up the EWMS Task Pilot Container Environment..."
 
+echo "----"
+printenv
+echo "----"
+
 # setup the directory exposed to all tasks -- this is done here instead of in Dockerfile so to work with singularity
 # SINGULARITY_TARGET_DIR is given by condor when run via singularity / apptainer
 export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$SINGULARITY_TARGET_DIR"
@@ -16,6 +20,8 @@ ls -l $PWD
 echo "----"
 echo "EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST: $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
 ls -lR $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST  # recursive
+echo "----"
+ls -lR /
 
 echo "----"
 echo "Activating docker daemon..."
