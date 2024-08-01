@@ -2,6 +2,13 @@
 
 
 
+## v0.23.7 (2024-08-01)
+
+###  
+
+* Add Debugging Info to `entrypoint.sh` - 2 ([`73f8dbd`](https://github.com/Observation-Management-Service/ewms-pilot/commit/73f8dbdf5bac2ba28e724cca7cfa85fb3efe767d))
+
+
 ## v0.23.6 (2024-08-01)
 
 ###  
