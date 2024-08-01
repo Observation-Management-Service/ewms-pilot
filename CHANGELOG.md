@@ -2,6 +2,13 @@
 
 
 
+## v0.23.5 (2024-08-01)
+
+###  
+
+* Move `ewms-pilot-data/` Setup to `entrypoint.sh` ([`c9143b9`](https://github.com/Observation-Management-Service/ewms-pilot/commit/c9143b976ffb3b5084f999d468cf8a829e46877c))
+
+
 ## v0.23.4 (2024-08-01)
 
 ###  
