@@ -11,6 +11,7 @@ from . import htchirp_tools
 from .config import (
     DirectoryCatalog,
     ENV,
+    INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR,
     LOGGER,
     REFRESH_INTERVAL,
 )
@@ -165,7 +166,7 @@ async def run_init_container(
             dirs.outputs_on_host / "stdoutfile",
             dirs.outputs_on_host / "stderrfile",
             dirs.assemble_bind_mounts(external_directories=True),
-            f"--env EWMS_TASK_PILOT_DATA_HUB_DIR={dirs.pilot_data_hub.in_container}",
+            f"--env {INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR}={dirs.pilot_data_hub.in_container}",
         )
     )
     pending = set([task])

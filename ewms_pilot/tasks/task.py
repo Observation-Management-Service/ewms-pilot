@@ -9,6 +9,7 @@ from .io import FileExtension, InFileInterface, OutFileInterface
 from ..config import (
     DirectoryCatalog,
     ENV,
+    INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR,
 )
 from ..utils.runner import run_container
 
@@ -55,7 +56,7 @@ async def process_msg_task(
         dirs.outputs_on_host / "stderrfile",
         dirs.outputs_on_host / "stdoutfile",
         dirs.assemble_bind_mounts(external_directories=True, task_io=True),
-        f"--env EWMS_TASK_PILOT_DATA_HUB_DIR={dirs.pilot_data_hub.in_container}",
+        f"--env {INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR}={dirs.pilot_data_hub.in_container}",
     )
     out_data = OutFileInterface.read(dirs.task_io.on_host / outfile_name)
 

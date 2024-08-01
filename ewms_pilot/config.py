@@ -150,6 +150,8 @@ PILOT_DATA_DIR = Path(
 )
 PILOT_DATA_HUB_DIR = PILOT_DATA_DIR / "data-hub"
 
+INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR = "EWMS_TASK_DATA_HUB_DIR"
+
 
 class DirectoryCatalog:
     """Handles the naming and mapping logic for a task's directories."""
