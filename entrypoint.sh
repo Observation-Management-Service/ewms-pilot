@@ -8,8 +8,7 @@ printenv
 echo "----"
 
 # setup the directory exposed to all tasks -- this is done here instead of in Dockerfile so to work with singularity
-# SINGULARITY_TARGET_DIR is given by condor when run via singularity / apptainer
-export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$SINGULARITY_TARGET_DIR"
+export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="${EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST:-$HOME}"
 mkdir -p "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/"
 mkdir -p "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
 
