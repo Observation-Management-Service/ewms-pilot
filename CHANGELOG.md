@@ -2,6 +2,13 @@
 
 
 
+## v0.23.9 (2024-08-01)
+
+###  
+
+* Root `ewms-pilot-data/` at `$PWD` (`entrypoint.sh`) ([`b7decf5`](https://github.com/Observation-Management-Service/ewms-pilot/commit/b7decf551af3b54f366ae82c88cd385fe2bb32fe))
+
+
 ## v0.23.8 (2024-08-01)
 
 ###  
