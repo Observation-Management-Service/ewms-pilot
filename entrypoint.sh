@@ -21,7 +21,8 @@ echo "----"
 echo "EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST: $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
 ls -lR $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST  # recursive
 echo "----"
-ls -lR /
+echo "PWD: $PWD"
+ls -lR $PWD
 
 echo "----"
 echo "Activating docker daemon..."
