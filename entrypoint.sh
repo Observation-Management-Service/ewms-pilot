@@ -8,7 +8,7 @@ printenv
 echo "----"
 
 # setup the directory exposed to all tasks -- this is done here instead of in Dockerfile so to work with singularity
-export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="${EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST:-$HOME}"
+export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="${EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST:-$PWD}"
 mkdir -p "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/"
 mkdir -p "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
 
