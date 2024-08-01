@@ -2,6 +2,21 @@
 
 
 
+## v0.23.4 (2024-08-01)
+
+###  
+
+* Add Env Var for Setting Pilot Root Dir on Host (#83)
+
+* Add Env Var for Setting Pilot Root Dir on Host
+
+* call it the data hub
+
+* now, in task containers
+
+* use var ([`f1bcdc1`](https://github.com/Observation-Management-Service/ewms-pilot/commit/f1bcdc1f84c37564b95afeec1e7017e37b6d7db6))
+
+
 ## v0.23.3 (2024-07-31)
 
 ###  
