@@ -52,6 +52,8 @@ class EnvConfig:
     # OPTIONAL
     #
 
+    EWMS_PILOT_ROOT_DIR_PARENT_DIR_ON_HOST: str = ""
+
     # I/O to subprocess -- the file type (extension) of the input/output file from the pilot's task
     EWMS_PILOT_INFILE_TYPE: str = ".in"  # ''
     EWMS_PILOT_OUTFILE_TYPE: str = ".out"  # ''
@@ -143,8 +145,10 @@ ENV = from_environment_as_dataclass(EnvConfig)
 #
 
 
-PILOT_DIR = Path("/ewms-pilot")
-PILOT_STORAGE_DIR = PILOT_DIR / "store"
+PILOT_ROOT_DIR = Path(
+    f"{ENV.EWMS_PILOT_ROOT_DIR_PARENT_DIR_ON_HOST.rstrip('/')}/ewms-pilot"
+)
+PILOT_STORE_DIR = PILOT_ROOT_DIR / "store"
 
 
 class DirectoryCatalog:
@@ -157,12 +161,12 @@ class DirectoryCatalog:
 
     def __init__(self, name: str):
         """Directories are not pre-created; you must `mkdir -p` to use."""
-        self._namebased_dir = PILOT_DIR / name
+        self._namebased_dir = PILOT_ROOT_DIR / name
 
         # for inter-task/init storage: startup data, init container's output, etc.
         self.pilot_store = self._ContainerBindMountDirPair(
-            PILOT_STORAGE_DIR,
-            PILOT_STORAGE_DIR,
+            PILOT_STORE_DIR,
+            PILOT_STORE_DIR,
         )
 
         # for persisting stderr and stdout
@@ -171,7 +175,7 @@ class DirectoryCatalog:
         # for message-based task i/o
         self.task_io = self._ContainerBindMountDirPair(
             self._namebased_dir / "task-io",
-            PILOT_DIR / "task-io",
+            PILOT_ROOT_DIR / "task-io",
         )
 
     def assemble_bind_mounts(

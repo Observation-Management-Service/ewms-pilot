@@ -20,7 +20,7 @@ import mqclient as mq
 import pytest
 
 from ewms_pilot import PilotSubprocessError, config, consume_and_reply
-from ewms_pilot.config import ENV, PILOT_DIR, PILOT_STORAGE_DIR
+from ewms_pilot.config import ENV, PILOT_ROOT_DIR, PILOT_STORE_DIR
 
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger("mqclient").setLevel(logging.INFO)
@@ -110,7 +110,7 @@ def assert_pilot_dirs(
     has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
-    pprint(list(PILOT_DIR.rglob("*")))  # for debugging
+    pprint(list(PILOT_ROOT_DIR.rglob("*")))  # for debugging
 
     # validate args
     task_dir_contents = [c.rstrip("/") for c in task_dir_contents]
@@ -121,12 +121,12 @@ def assert_pilot_dirs(
 
     # check num of dirs
     if has_init_cmd_subdir:
-        assert len(list(PILOT_DIR.iterdir())) == n_tasks + 1 + 1  # store/ & init*/
+        assert len(list(PILOT_ROOT_DIR.iterdir())) == n_tasks + 1 + 1  # store/ & init*/
     else:
-        assert len(list(PILOT_DIR.iterdir())) == n_tasks + 1  # store/
+        assert len(list(PILOT_ROOT_DIR.iterdir())) == n_tasks + 1  # store/
 
     # check each task's dir contents
-    for subdir in PILOT_DIR.iterdir():
+    for subdir in PILOT_ROOT_DIR.iterdir():
         assert subdir.is_dir()
 
         # is this the store subdir?
@@ -854,12 +854,15 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         )
 
     # run producer & consumer concurrently
-    with patch(
-        "ewms_pilot.pilot.REFRESH_INTERVAL",  # patch at 'ewms_pilot.pilot' bc using from-import
-        refresh_interval_rabbitmq_heartbeat_interval,
-    ), patch(
-        "ewms_pilot.housekeeping.Housekeeping.RABBITMQ_HEARTBEAT_INTERVAL",
-        refresh_interval_rabbitmq_heartbeat_interval,
+    with (
+        patch(
+            "ewms_pilot.pilot.REFRESH_INTERVAL",  # patch at 'ewms_pilot.pilot' bc using from-import
+            refresh_interval_rabbitmq_heartbeat_interval,
+        ),
+        patch(
+            "ewms_pilot.housekeeping.Housekeeping.RABBITMQ_HEARTBEAT_INTERVAL",
+            refresh_interval_rabbitmq_heartbeat_interval,
+        ),
     ):
         if refresh_interval_rabbitmq_heartbeat_interval > TEST_1000_SLEEP:
             with pytest.raises(
@@ -954,7 +957,7 @@ with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     )
 
     # check init's output
-    with open(PILOT_STORAGE_DIR / "initoutput") as f:
+    with open(PILOT_STORE_DIR / "initoutput") as f:
         assert f.read().strip() == "hello world!"
 
     # check task stuff
@@ -1010,7 +1013,7 @@ time.sleep({init_timeout})
         )
 
     # check init's output
-    with open(PILOT_STORAGE_DIR / "initoutput") as f:
+    with open(PILOT_STORE_DIR / "initoutput") as f:
         assert f.read().strip() == "hello world!"
 
 
@@ -1047,7 +1050,7 @@ raise ValueError('no good!')
         )
 
     # check init's output
-    with open(PILOT_STORAGE_DIR / "initoutput") as f:
+    with open(PILOT_STORE_DIR / "initoutput") as f:
         assert f.read().strip() == "hello world!"
 
 
@@ -1091,7 +1094,7 @@ with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     )
 
     # check init's output
-    with open(PILOT_STORAGE_DIR / "initoutput") as f:
+    with open(PILOT_STORE_DIR / "initoutput") as f:
         assert f.read().strip() == "blue"
 
     # check task stuff

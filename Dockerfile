@@ -27,10 +27,13 @@ RUN mkdir /app
 WORKDIR /app
 #
 # the directory exposed to all tasks
-RUN mkdir -p /ewms-pilot/
-RUN chmod -R 777 /ewms-pilot/
 #
-RUN mkdir -p /ewms-pilot/store
+# given by condor when run via singularity / apptainer
+ENV SINGULARITY_TARGET_DIR=""
+# overridable -- and by default, it's "" (aka the root dir)
+ENV EWMS_PILOT_ROOT_DIR_PARENT_DIR_ON_HOST="$SINGULARITY_TARGET_DIR"
+RUN mkdir -p "$EWMS_PILOT_ROOT_DIR_PARENT_DIR_ON_HOST/ewms-pilot/"
+RUN mkdir -p "$EWMS_PILOT_ROOT_DIR_PARENT_DIR_ON_HOST/ewms-pilot/store"
 
 # entrypoint magic
 COPY entrypoint.sh /entrypoint.sh

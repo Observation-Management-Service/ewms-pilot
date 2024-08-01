@@ -6,10 +6,8 @@ echo "Setting up the EWMS Task Pilot Container Environment..."
 # inspect the file system
 chmod -R 777 /ewms-pilot/
 echo "----"
+echo "$PWD"
 ls -ld $PWD/*
-echo "----"
-ls -ld /*
-echo "----"
 ls -ld /ewms-pilot/*
 
 echo "----"
