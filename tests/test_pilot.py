@@ -945,8 +945,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image="python:alpine",
             init_args="""python3 -c "
 import os
-os.makedirs(os.getenv('EWMS_TASK_PILOT_STORE_DIR'), exist_ok=True)
-with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
+os.makedirs(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR'), exist_ok=True)
+with open(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR') + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
 " """,
@@ -1000,8 +1000,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_args=f"""python3 -c "
 import time
 import os
-os.makedirs(os.getenv('EWMS_TASK_PILOT_STORE_DIR'), exist_ok=True)
-with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
+os.makedirs(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR'), exist_ok=True)
+with open(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR') + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
 time.sleep({init_timeout})
@@ -1038,8 +1038,8 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image="python:alpine",
             init_args="""python3 -c "
 import os
-os.makedirs(os.getenv('EWMS_TASK_PILOT_STORE_DIR'), exist_ok=True)
-with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
+os.makedirs(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR'), exist_ok=True)
+with open(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR') + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
 raise ValueError('no good!')
@@ -1076,14 +1076,14 @@ async def test_2010_init__use_in_task(
             "python:alpine",
             """python3 -c "
 import os
-output = open('{{INFILE}}').read().strip() + open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput').read().strip();
+output = open('{{INFILE}}').read().strip() + open(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR') + '/initoutput').read().strip();
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
             init_image="python:alpine",
             init_args="""python3 -c "
 import os
-os.makedirs(os.getenv('EWMS_TASK_PILOT_STORE_DIR'), exist_ok=True)
-with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
+os.makedirs(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR'), exist_ok=True)
+with open(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR') + '/initoutput', 'w') as f:
     print('writing to a file...')
     print('blue', file=f)
 " """,
