@@ -31,9 +31,9 @@ WORKDIR /app
 # given by condor when run via singularity / apptainer
 ENV SINGULARITY_TARGET_DIR=""
 # overridable -- and by default, it's "" (aka the root dir)
-ENV EWMS_PILOT_ROOT_DIR_PARENT_DIR_ON_HOST="$SINGULARITY_TARGET_DIR"
-RUN mkdir -p "$EWMS_PILOT_ROOT_DIR_PARENT_DIR_ON_HOST/ewms-pilot/"
-RUN mkdir -p "$EWMS_PILOT_ROOT_DIR_PARENT_DIR_ON_HOST/ewms-pilot/store"
+ENV EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$SINGULARITY_TARGET_DIR"
+RUN mkdir -p "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/"
+RUN mkdir -p "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
 
 # entrypoint magic
 COPY entrypoint.sh /entrypoint.sh

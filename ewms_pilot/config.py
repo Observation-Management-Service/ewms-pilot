@@ -52,7 +52,7 @@ class EnvConfig:
     # OPTIONAL
     #
 
-    EWMS_PILOT_ROOT_DIR_PARENT_DIR_ON_HOST: str = ""
+    EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST: str = ""
 
     # I/O to subprocess -- the file type (extension) of the input/output file from the pilot's task
     EWMS_PILOT_INFILE_TYPE: str = ".in"  # ''
@@ -145,10 +145,10 @@ ENV = from_environment_as_dataclass(EnvConfig)
 #
 
 
-PILOT_ROOT_DIR = Path(
-    f"{ENV.EWMS_PILOT_ROOT_DIR_PARENT_DIR_ON_HOST.rstrip('/')}/ewms-pilot"
+PILOT_DATA_DIR = Path(
+    f"{ENV.EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST.rstrip('/')}/ewms-pilot-data"
 )
-PILOT_STORE_DIR = PILOT_ROOT_DIR / "store"
+PILOT_DATA_HUB_DIR = PILOT_DATA_DIR / "data-hub"
 
 
 class DirectoryCatalog:
@@ -161,12 +161,12 @@ class DirectoryCatalog:
 
     def __init__(self, name: str):
         """Directories are not pre-created; you must `mkdir -p` to use."""
-        self._namebased_dir = PILOT_ROOT_DIR / name
+        self._namebased_dir = PILOT_DATA_DIR / name
 
         # for inter-task/init storage: startup data, init container's output, etc.
-        self.pilot_store = self._ContainerBindMountDirPair(
-            PILOT_STORE_DIR,
-            PILOT_STORE_DIR,
+        self.pilot_data_hub = self._ContainerBindMountDirPair(
+            PILOT_DATA_HUB_DIR,
+            PILOT_DATA_HUB_DIR,
         )
 
         # for persisting stderr and stdout
@@ -175,7 +175,7 @@ class DirectoryCatalog:
         # for message-based task i/o
         self.task_io = self._ContainerBindMountDirPair(
             self._namebased_dir / "task-io",
-            PILOT_ROOT_DIR / "task-io",
+            PILOT_DATA_DIR / "task-io",
         )
 
     def assemble_bind_mounts(
@@ -184,7 +184,7 @@ class DirectoryCatalog:
         task_io: bool = False,
     ) -> str:
         """Get the docker bind mount string containing the wanted directories."""
-        string = f"--mount type=bind,source={self.pilot_store.on_host},target={self.pilot_store.in_container} "
+        string = f"--mount type=bind,source={self.pilot_data_hub.on_host},target={self.pilot_data_hub.in_container} "
 
         if external_directories:
             string += "".join(

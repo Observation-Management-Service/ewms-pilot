@@ -20,7 +20,7 @@ import mqclient as mq
 import pytest
 
 from ewms_pilot import PilotSubprocessError, config, consume_and_reply
-from ewms_pilot.config import ENV, PILOT_ROOT_DIR, PILOT_STORE_DIR
+from ewms_pilot.config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR
 
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger("mqclient").setLevel(logging.INFO)
@@ -106,34 +106,36 @@ async def assert_results(
 def assert_pilot_dirs(
     n_tasks: int,
     task_dir_contents: List[str],
-    store_dir_contents: Optional[List[str]] = None,
+    data_hub_dir_contents: Optional[List[str]] = None,
     has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
-    pprint(list(PILOT_ROOT_DIR.rglob("*")))  # for debugging
+    pprint(list(PILOT_DATA_DIR.rglob("*")))  # for debugging
 
     # validate args
     task_dir_contents = [c.rstrip("/") for c in task_dir_contents]
     assert len(task_dir_contents) == len(set(task_dir_contents))  # no duplicates
     #
-    if not store_dir_contents:
-        store_dir_contents = []
+    if not data_hub_dir_contents:
+        data_hub_dir_contents = []
 
     # check num of dirs
     if has_init_cmd_subdir:
-        assert len(list(PILOT_ROOT_DIR.iterdir())) == n_tasks + 1 + 1  # store/ & init*/
+        assert (
+            len(list(PILOT_DATA_DIR.iterdir())) == n_tasks + 1 + 1
+        )  # data-hub/ & init*/
     else:
-        assert len(list(PILOT_ROOT_DIR.iterdir())) == n_tasks + 1  # store/
+        assert len(list(PILOT_DATA_DIR.iterdir())) == n_tasks + 1  # data-hub/
 
     # check each task's dir contents
-    for subdir in PILOT_ROOT_DIR.iterdir():
+    for subdir in PILOT_DATA_DIR.iterdir():
         assert subdir.is_dir()
 
-        # is this the store subdir?
-        if subdir.name == "store":
+        # is this the data-hub subdir?
+        if subdir.name == "data-hub":
             assert sorted(
                 str(p.relative_to(subdir)) for p in subdir.rglob("*")
-            ) == sorted(store_dir_contents)
+            ) == sorted(data_hub_dir_contents)
             continue
         # is this an init subdir?
         elif has_init_cmd_subdir and subdir.name.startswith("init"):
@@ -957,7 +959,7 @@ with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     )
 
     # check init's output
-    with open(PILOT_STORE_DIR / "initoutput") as f:
+    with open(PILOT_DATA_HUB_DIR / "initoutput") as f:
         assert f.read().strip() == "hello world!"
 
     # check task stuff
@@ -1013,7 +1015,7 @@ time.sleep({init_timeout})
         )
 
     # check init's output
-    with open(PILOT_STORE_DIR / "initoutput") as f:
+    with open(PILOT_DATA_HUB_DIR / "initoutput") as f:
         assert f.read().strip() == "hello world!"
 
 
@@ -1050,7 +1052,7 @@ raise ValueError('no good!')
         )
 
     # check init's output
-    with open(PILOT_STORE_DIR / "initoutput") as f:
+    with open(PILOT_DATA_HUB_DIR / "initoutput") as f:
         assert f.read().strip() == "hello world!"
 
 
@@ -1094,7 +1096,7 @@ with open(os.getenv('EWMS_TASK_PILOT_STORE_DIR') + '/initoutput', 'w') as f:
     )
 
     # check init's output
-    with open(PILOT_STORE_DIR / "initoutput") as f:
+    with open(PILOT_DATA_HUB_DIR / "initoutput") as f:
         assert f.read().strip() == "blue"
 
     # check task stuff
