@@ -272,18 +272,17 @@ jobs:
               set +x
               sleep .1  # little sleep to help logs
           
-              # sleep so the broker doesn't get overwhelmed
-          
               # wait for N seconds then, if pid didn't exit with a non-0, continue on
-              sleep 5 & sleeper_pid="$!"  # this should never fail (always exits 0)
-              echo "waiting to submit the next test, in the meantime will check on already-running tests..."
-              if ! wait -n $pidlist $sleeper_pid; then
-                  # ^^^^^^ this returns on FIRST done
-                  echo "ERROR: test(s) failed"
-                  sleep 5  # may need to wait for output files to be written
-                  kill $pidlist 2>/dev/null
-                  exit 1
-              fi
+              sleep 5 # sleep so the broker doesn't get overwhelmed
+              for pid in $pidlist; do
+                  if ! kill -0 $pid; then
+                      # ^^^^^^ worst named command/option, this returns 1 if pid failed, else 0
+                      echo "ERROR: test(s) failed"
+                      sleep 5  # may need to wait for output files to be written
+                      kill $pidlist 2>/dev/null
+                      exit 1
+                  fi
+              done
           
               cat $(basename $test).test.out  # get a preview of the test output
               sleep .1  # little sleep to help logs
