@@ -30,14 +30,9 @@ mkdir -p "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
 echo "----"
 echo "PWD: $PWD"
 ls -l $PWD
-echo "----"
-echo "EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST: $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
-ls -lR $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST  # recursive
-echo "----"
-echo "PWD: $PWD"
-ls -lR $PWD
 
-if [[ $_EWMS_PILOT_CONTAINER_PLATFORM == "docker" ]]; then
+
+if [[ "$_EWMS_PILOT_CONTAINER_PLATFORM" == "docker" ]]; then
 # check docker -- https://stackoverflow.com/a/48843074/13156561
     echo "----"
     if (! docker stats --no-stream ); then
