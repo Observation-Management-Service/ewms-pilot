@@ -20,6 +20,14 @@ RUN apt-get update && \
 # for starting up docker daemon
 RUN touch /var/log/dockerd.log
 
+# TODO: install according to build arg
+# apptainer-in-apptainer
+RUN apt update && \
+    apt install -y software-properties-common && \
+    add-apt-repository -y ppa:apptainer/ppa && \
+    apt update && \
+    apt install -y apptainer
+
 # dirs
 #
 # the WORKDIR
