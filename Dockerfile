@@ -22,20 +22,21 @@ RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
         apt-get -qy full-upgrade && \
         apt-get install -qy curl && \
         curl -sSL https://get.docker.com/ | sh && \
-        touch /var/log/dockerd.log; \
+        touch /var/log/dockerd.log ; \
     else \
-        echo "not installing docker"; \
+        echo "not installing docker" ; \
     fi
 # ^^^ 'touch' is for starting up docker daemon
 
 # apptainer-in-apptainer
 RUN if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
         apt update && \
-        add-apt-repository -y ppa:apptainer/ppa && \
-        apt update && \
-        apt install -y apptainer; \
+        apt install -y wget && \
+        cd /tmp && \
+        wget https://github.com/apptainer/apptainer/releases/download/v1.3.3/apptainer_1.3.3_amd64.deb && \
+        apt install -y ./apptainer_1.3.3_amd64.deb ; \
     else \
-        echo "not installing apptainer"; \
+        echo "not installing apptainer" ; \
     fi
 
 
