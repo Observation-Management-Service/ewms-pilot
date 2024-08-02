@@ -2,6 +2,13 @@
 
 
 
+## v0.23.10 (2024-08-02)
+
+###  
+
+* In-Task Docker Fixes ([`63dac58`](https://github.com/Observation-Management-Service/ewms-pilot/commit/63dac582e5d06cc50e9f3b423aeec2bc9e32853a))
+
+
 ## v0.23.9 (2024-08-01)
 
 ###  
