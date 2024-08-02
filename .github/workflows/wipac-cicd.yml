@@ -167,6 +167,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
+          build-args: CONTAINER_PLATFORM=singularity
           cache-from: type=gha
           # cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
