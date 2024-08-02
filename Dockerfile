@@ -31,7 +31,6 @@ RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
 # apptainer-in-apptainer
 RUN if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
         apt update && \
-        apt install -y software-properties-common && \
         add-apt-repository -y ppa:apptainer/ppa && \
         apt update && \
         apt install -y apptainer; \
