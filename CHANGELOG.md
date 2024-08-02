@@ -2,6 +2,17 @@
 
 
 
+## v0.23.11 (2024-08-02)
+
+###  
+
+* Only Run `dockerd` If Needed - 3 ([`9fdba69`](https://github.com/Observation-Management-Service/ewms-pilot/commit/9fdba69365119ec8bbf5e2b95b5108d40da79c63))
+
+* Only Run `dockerd` If Needed - 2 ([`b87961a`](https://github.com/Observation-Management-Service/ewms-pilot/commit/b87961a44e232cf776a73b1c328e627c64b0870c))
+
+* Only Run `dockerd` If Needed ([`7fcafbc`](https://github.com/Observation-Management-Service/ewms-pilot/commit/7fcafbc73228666737265cb23e11d47d00ab87fc))
+
+
 ## v0.23.10 (2024-08-02)
 
 ###  
