@@ -17,23 +17,23 @@ FROM python:${PYTHON}
 ARG CONTAINER_PLATFORM='docker'
 
 # docker-in-docker -- see NOTE above
-# aka if $CONTAINER_PLATFORM == 'docker', then...
-RUN ("$CONTAINER_PLATFORM" != 'docker') || \
-    apt-get update && \
-    apt-get -qy full-upgrade && \
-    apt-get install -qy curl && \
-    curl -sSL https://get.docker.com/ | sh
-# for starting up docker daemon
-RUN ("$CONTAINER_PLATFORM" != 'docker') || touch /var/log/dockerd.log
+RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
+        apt-get update && \
+        apt-get -qy full-upgrade && \
+        apt-get install -qy curl && \
+        curl -sSL https://get.docker.com/ | sh && \
+        touch /var/log/dockerd.log \
+    fi
+# ^^^ 'touch' is for starting up docker daemon
 
 # apptainer-in-apptainer
-# aka if $CONTAINER_PLATFORM == 'apptainer', then ...
-RUN ("$CONTAINER_PLATFORM" != 'apptainer') || \
-    apt update && \
-    apt install -y software-properties-common && \
-    add-apt-repository -y ppa:apptainer/ppa && \
-    apt update && \
-    apt install -y apptainer
+RUN if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
+        apt update && \
+        apt install -y software-properties-common && \
+        add-apt-repository -y ppa:apptainer/ppa && \
+        apt update && \
+        apt install -y apptainer \
+    fi
 
 
 # dirs
