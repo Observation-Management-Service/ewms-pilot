@@ -6,6 +6,7 @@
 #
 ########################################################################
 
+echo "ENTRYPOINT: $@"
 if [ -z "$1" ]; then
     echo "Usage: entrypoint.sh CONTAINER_PLATFORM"
     exit 1
