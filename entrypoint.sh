@@ -29,11 +29,15 @@ if (! docker stats --no-stream ); then
     echo "Activating docker daemon..."
     dockerd > ./dockerd.log 2>&1 &
     # dockerd > /var/log/dockerd.log 2>&1 || echo "WARNING: docker-in-docker setup failed (error suppressed)" &
+    i=0
     while (! docker stats --no-stream ); do
         # Docker takes a few seconds to initialize
         echo "Waiting for docker daemon to initialize..."
-        cat ./dockerd.log  # TODO - trim down
         sleep 1
+        i=$((i+1))
+        if [[ "$i" == "60" ]]; then
+            break
+        fi
     done
     cat ./dockerd.log  # TODO - trim down?
 fi
