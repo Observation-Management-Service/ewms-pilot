@@ -279,9 +279,9 @@ jobs:
               echo "waiting to submit the next test, in the meantime will check on already-running tests..."
               if ! wait -n $pidlist $sleeper_pid; then
                   # ^^^^^^ this returns on FIRST done
+                  echo "ERROR: test(s) failed"
                   sleep 5  # may need to wait for output files to be written
                   kill $pidlist 2>/dev/null
-                  echo "ERROR: test(s) failed"
                   exit 1
               fi
           
@@ -296,9 +296,9 @@ jobs:
               date --rfc-3339=seconds
               echo "waiting for $pid..."
               if ! wait -n $pid; then
+                  echo "ERROR: test(s) failed"
                   sleep 5  # may need to wait for output files to be written
                   kill $pidlist 2>/dev/null
-                  echo "ERROR: test(s) failed"
                   exit 1
               fi
               echo "-> PASSED"
