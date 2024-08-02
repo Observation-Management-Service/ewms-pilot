@@ -27,6 +27,9 @@ echo "----"
 echo "Activating docker daemon..."
 dockerd > /var/log/dockerd.log 2>&1 || echo "WARNING: docker-in-docker setup failed (error suppressed)" &
 sleep 1
+docker info || echo "ERROR: docker info"  # TODO - keep, but think about timing (put in above?)
+sudo docker info || echo "ERROR: sudo docker info"  # TODO - remove, sudo is not prefered
+
 
 echo "----"
 echo "Activating venv..."
