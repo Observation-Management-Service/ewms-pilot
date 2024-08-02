@@ -97,6 +97,9 @@ class EnvConfig:
     )
     EWMS_PILOT_QUARANTINE_TIME: int = 0  # how long to sleep after error (useful for preventing blackhole scenarios on condor)
 
+    # non-user set settings
+    _EWMS_PILOT_CONTAINER_PLATFORM: str = "docker"
+
     def __post_init__(self) -> None:
         if timeout := os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT"):
             LOGGER.warning(

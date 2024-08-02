@@ -157,8 +157,7 @@ jobs:
           cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
 
-  test-build-singularity:
-    needs: test-build-docker
+  test-build-apptainer:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -167,6 +166,7 @@ jobs:
         with:
           context: .
           file: Dockerfile
+          build-args: CONTAINER_PLATFORM=apptainer
           cache-from: type=gha
           # cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
@@ -174,11 +174,11 @@ jobs:
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.2
-      - name: build singularity image
+      - name: build apptainer image
         run: |
           sudo singularity build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:local
           ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
-      - name: run singularity container
+      - name: run apptainer container
         run: |
           singularity run $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
             ls
@@ -256,6 +256,7 @@ jobs:
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo "starting test $test"
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+          
               set -x  # lets see the command
               docker run --rm \
                   --net=mynet \
@@ -282,14 +283,18 @@ jobs:
               date --rfc-3339=seconds
               echo "waiting for $pid..."
               if ! wait -n $pid; then
-                  sleep 5  # may need to wait for file to be written
-                  # grab first failure -> may not be the failure from this pid
-                  cat $( grep -l -m 1 *.test.out -e "= FAILURES =" | head -1 )
+                  echo "ERROR: test(s) failed"
+                  sleep 5  # may need to wait for output files to be written
                   kill $pidlist 2>/dev/null
                   exit 1
               fi
               echo "-> PASSED"
           done
+
+      - name: pytest first failure
+        if: always()
+        run: |
+          cat $( grep -l -m 1 *.test.out -e "= FAILURES =" | head -1 ) || echo "not found"
 
       - name: pytest container outputs
         if: always()
@@ -331,7 +336,7 @@ jobs:
       py-setup,
       py-dependencies,
       test-build-docker,
-      test-build-singularity,
+      test-build-apptainer,
       tests
     ]
     runs-on: ubuntu-latest

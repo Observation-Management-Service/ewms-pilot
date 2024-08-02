@@ -55,7 +55,15 @@ async def run_container(
     dump_output = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT
 
     # NOTE: don't add to mount_bindings (WYSIWYG); also avoid intermediate structures
-    cmd = f"docker run --rm -i {mount_bindings} {env_options} {image} {args}"
+
+    if ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower() not in ["docker", "apptainer"]:
+        raise ValueError(
+            f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {ENV._EWMS_PILOT_CONTAINER_PLATFORM}"
+        )
+    cmd = (
+        f"{ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower()} run "
+        f"--rm -i {mount_bindings} {env_options} {image} {args}"
+    )
     LOGGER.info(cmd)
 
     # call & check outputs
