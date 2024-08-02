@@ -6,12 +6,11 @@
 #
 ########################################################################
 
-if [ -z "$3" ]; then
-    # NOTE: $1 is /bin/bash, $2 is script name
+if [ -z "$1" ]; then
     echo "Usage: entrypoint.sh CONTAINER_PLATFORM"
     exit 1
 fi
-export _EWMS_PILOT_CONTAINER_PLATFORM="$3"  # used in pilot
+export _EWMS_PILOT_CONTAINER_PLATFORM="$1"  # used in pilot
 
 
 echo ""
