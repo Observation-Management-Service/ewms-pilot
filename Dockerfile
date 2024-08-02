@@ -19,25 +19,21 @@ ARG CONTAINER_PLATFORM='docker'
 # docker-in-docker -- see NOTE above
 # aka if $CONTAINER_PLATFORM == 'docker', then...
 RUN ("$CONTAINER_PLATFORM" != 'docker') || \
-    ( \
     apt-get update && \
     apt-get -qy full-upgrade && \
     apt-get install -qy curl && \
-    curl -sSL https://get.docker.com/ | sh \
-    )
+    curl -sSL https://get.docker.com/ | sh
 # for starting up docker daemon
 RUN ("$CONTAINER_PLATFORM" != 'docker') || touch /var/log/dockerd.log
 
 # apptainer-in-apptainer
 # aka if $CONTAINER_PLATFORM == 'apptainer', then ...
 RUN ("$CONTAINER_PLATFORM" != 'apptainer') || \
-    ( \
     apt update && \
     apt install -y software-properties-common && \
     add-apt-repository -y ppa:apptainer/ppa && \
     apt update && \
-    apt install -y apptainer \
-    )
+    apt install -y apptainer
 
 
 # dirs
