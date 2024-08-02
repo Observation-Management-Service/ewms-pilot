@@ -27,13 +27,21 @@ ls -lR $PWD
 echo "----"
 if (! docker stats --no-stream ); then
     echo "Activating docker daemon..."
-    dockerd > ./dockerd.log 2>&1 &
+    dockerd > ./dockerd.log 2>&1 & dockerd_pid="$!"
     # dockerd > /var/log/dockerd.log 2>&1 || echo "WARNING: docker-in-docker setup failed (error suppressed)" &
     i=0
     while (! docker stats --no-stream ); do
         # Docker takes a few seconds to initialize
         echo "Waiting for docker daemon to initialize..."
-        sleep 1
+        # start up failed? -> break
+        #    wait for 2s then, if dockerd_pid didn't exit with a non-0, continue on
+        sleep 2 & sleeper_pid="$!"  # this should never fail (always exits 0)
+        if ! wait -n $dockerd_pid $sleeper_pid; then
+            # ^^^^^^ this returns on FIRST done
+            echo "ERROR: docker daemon failed to activate"
+            break
+        fi
+        # taking too long? -> break
         i=$((i+1))
         if [[ "$i" == "60" ]]; then
             break
