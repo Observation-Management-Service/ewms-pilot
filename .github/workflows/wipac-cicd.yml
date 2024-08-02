@@ -256,6 +256,7 @@ jobs:
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo "starting test $test"
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+          
               set -x  # lets see the command
               docker run --rm \
                   --net=mynet \
@@ -268,9 +269,22 @@ jobs:
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test --retries 1 --retry-delay 5" \
                   >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
-              sleep .1  # little sleep to help logs
-              sleep 5  # sleep so the broker doesn't get overwhelmed
               set +x
+              sleep .1  # little sleep to help logs
+          
+              # sleep so the broker doesn't get overwhelmed
+          
+              # wait for N seconds then, if pid didn't exit with a non-0, continue on
+              sleep 5 & sleeper_pid="$!"  # this should never fail (always exits 0)
+              echo "waiting to submit the next test, in the meantime will check on already-running tests..."
+              if ! wait -n $pidlist $sleeper_pid; then
+                  # ^^^^^^ this returns on FIRST done
+                  sleep 5  # may need to wait for output files to be written
+                  kill $pidlist 2>/dev/null
+                  echo "ERROR: test(s) failed"
+                  exit 1
+              fi
+          
               cat $(basename $test).test.out  # get a preview of the test output
               sleep .1  # little sleep to help logs
           done < $SORTED_LIST_OF_TESTS_FILE
@@ -282,14 +296,18 @@ jobs:
               date --rfc-3339=seconds
               echo "waiting for $pid..."
               if ! wait -n $pid; then
-                  sleep 5  # may need to wait for file to be written
-                  # grab first failure -> may not be the failure from this pid
-                  cat $( grep -l -m 1 *.test.out -e "= FAILURES =" | head -1 )
+                  sleep 5  # may need to wait for output files to be written
                   kill $pidlist 2>/dev/null
+                  echo "ERROR: test(s) failed"
                   exit 1
               fi
               echo "-> PASSED"
           done
+
+      - name: pytest first failure
+        if: always()
+        run: |
+          cat $( grep -l -m 1 *.test.out -e "= FAILURES =" | head -1 ) || echo "not found"
 
       - name: pytest container outputs
         if: always()
