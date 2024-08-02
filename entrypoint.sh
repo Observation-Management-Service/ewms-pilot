@@ -25,14 +25,13 @@ ls -l $PWD
 
 
 if [[ "$_EWMS_PILOT_CONTAINER_PLATFORM" == "docker" ]]; then
-# check docker -- https://stackoverflow.com/a/48843074/13156561
+    # check docker -- https://stackoverflow.com/a/48843074/13156561
     echo "----"
-    if (! docker stats --no-stream ); then
+    if (! docker stats --no-stream > /dev/null 2>&1 ); then
         echo "Activating docker daemon..."
-        dockerd > ./dockerd.log 2>&1 & dockerd_pid="$!"
-        # dockerd > /var/log/dockerd.log 2>&1 || echo "WARNING: docker-in-docker setup failed (error suppressed)" &
+        dockerd > /var/log/dockerd.log 2>&1 & dockerd_pid="$!"
         i=0
-        while (! docker stats --no-stream ); do
+        while (! docker stats --no-stream > /dev/null 2>&1 ); do
             # Docker takes a few seconds to initialize
             echo "Waiting for docker daemon to initialize..."
             # start up failed? -> break
@@ -49,7 +48,6 @@ if [[ "$_EWMS_PILOT_CONTAINER_PLATFORM" == "docker" ]]; then
                 break
             fi
         done
-        cat ./dockerd.log  # TODO - trim down?
     fi
     docker info
 fi
