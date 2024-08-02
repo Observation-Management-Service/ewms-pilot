@@ -17,17 +17,17 @@ FROM python:${PYTHON}
 ARG CONTAINER_PLATFORM='docker'
 
 # docker-in-docker -- see NOTE above
-RUN if [[ "$CONTAINER_PLATFORM" == 'docker' ]]; then \
+RUN if [ "$CONTAINER_PLATFORM" == 'docker' ]; then \
     apt-get update && \
     apt-get -qy full-upgrade && \
     apt-get install -qy curl && \
     curl -sSL https://get.docker.com/ | sh \
     ; fi
 # for starting up docker daemon
-RUN if [[ "$CONTAINER_PLATFORM" == 'docker' ]]; then touch /var/log/dockerd.log; fi
+RUN if [ "$CONTAINER_PLATFORM" == 'docker' ]; then touch /var/log/dockerd.log; fi
 
 # apptainer-in-apptainer
-RUN if [[ "$CONTAINER_PLATFORM" == 'apptainer' ]]; then \
+RUN if [ "$CONTAINER_PLATFORM" == 'apptainer' ]; then \
     apt update && \
     apt install -y software-properties-common && \
     add-apt-repository -y ppa:apptainer/ppa && \
