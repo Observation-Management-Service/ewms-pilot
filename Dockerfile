@@ -17,23 +17,27 @@ FROM python:${PYTHON}
 ARG CONTAINER_PLATFORM='docker'
 
 # docker-in-docker -- see NOTE above
-RUN if [ "$CONTAINER_PLATFORM" == 'docker' ]; then \
+# aka if $CONTAINER_PLATFORM == 'docker', then...
+RUN ("$CONTAINER_PLATFORM" != 'docker') || \
+    ( \
     apt-get update && \
     apt-get -qy full-upgrade && \
     apt-get install -qy curl && \
     curl -sSL https://get.docker.com/ | sh \
-    ; fi
+    )
 # for starting up docker daemon
-RUN if [ "$CONTAINER_PLATFORM" == 'docker' ]; then touch /var/log/dockerd.log; fi
+RUN ("$CONTAINER_PLATFORM" != 'docker') || touch /var/log/dockerd.log
 
 # apptainer-in-apptainer
-RUN if [ "$CONTAINER_PLATFORM" == 'apptainer' ]; then \
+# aka if $CONTAINER_PLATFORM == 'apptainer', then ...
+RUN ("$CONTAINER_PLATFORM" != 'apptainer') || \
+    ( \
     apt update && \
     apt install -y software-properties-common && \
     add-apt-repository -y ppa:apptainer/ppa && \
     apt update && \
     apt install -y apptainer \
-    ; fi
+    )
 
 
 # dirs
@@ -59,4 +63,4 @@ RUN . /app/entrypoint_venv/bin/activate && \
 
 # go
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["python", "-m", "ewms_pilot"]
+CMD ["python", "-m", "ewms_pilot", "$CONTAINER_PLATFORM"]
