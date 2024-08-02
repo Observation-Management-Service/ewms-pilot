@@ -158,7 +158,6 @@ jobs:
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
 
   test-build-apptainer:
-    needs: test-build-docker
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
