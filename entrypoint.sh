@@ -23,13 +23,21 @@ echo "----"
 echo "PWD: $PWD"
 ls -lR $PWD
 
+# check docker -- https://stackoverflow.com/a/48843074/13156561
 echo "----"
-echo "Activating docker daemon..."
-dockerd > /var/log/dockerd.log 2>&1 || echo "WARNING: docker-in-docker setup failed (error suppressed)" &
-sleep 1
-docker info || echo "ERROR: docker info"  # TODO - keep, but think about timing (put in above?)
-sudo docker info || echo "ERROR: sudo docker info"  # TODO - remove, sudo is not prefered
-
+if (! docker stats --no-stream ); then
+    echo "Activating docker daemon..."
+    dockerd > ./dockerd.log 2>&1 &
+    # dockerd > /var/log/dockerd.log 2>&1 || echo "WARNING: docker-in-docker setup failed (error suppressed)" &
+    while (! docker stats --no-stream ); do
+        # Docker takes a few seconds to initialize
+        echo "Waiting for docker daemon to initialize..."
+        cat ./dockerd.log  # TODO - trim down
+        sleep 1
+    done
+    cat ./dockerd.log  # TODO - trim down?
+fi
+docker info
 
 echo "----"
 echo "Activating venv..."
