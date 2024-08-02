@@ -15,6 +15,7 @@ FROM python:${PYTHON}
 
 
 ARG CONTAINER_PLATFORM='docker'
+ENV _EWMS_PILOT_CONTAINER_PLATFORM="$CONTAINER_PLATFORM"
 
 # docker-in-docker -- see NOTE above
 RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
@@ -63,5 +64,5 @@ RUN . /app/entrypoint_venv/bin/activate && \
 
 # go
 # use shell form to pass in var -- https://stackoverflow.com/a/37904830/13156561
-ENTRYPOINT /entrypoint.sh "$CONTAINER_PLATFORM"
+ENTRYPOINT ["/entrypoint.sh"]
 CMD ["python", "-m", "ewms_pilot"]

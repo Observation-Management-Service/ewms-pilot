@@ -6,14 +6,6 @@
 #
 ########################################################################
 
-echo "ENTRYPOINT: $@"
-if [ -z "$1" ]; then
-    echo "Usage: entrypoint.sh CONTAINER_PLATFORM"
-    exit 1
-fi
-export _EWMS_PILOT_CONTAINER_PLATFORM="$1"  # used in pilot
-
-
 echo ""
 echo "Setting up the EWMS Task Pilot Container Environment..."
 
