@@ -2,6 +2,13 @@
 
 
 
+## v0.23.12 (2024-08-02)
+
+###  
+
+* Support Apptainer-in-Apptainer (#84) ([`ed15b71`](https://github.com/Observation-Management-Service/ewms-pilot/commit/ed15b71d5348a7af70a5121f48a900f29754f6e2))
+
+
 ## v0.23.11 (2024-08-02)
 
 ###  
