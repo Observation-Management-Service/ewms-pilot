@@ -198,12 +198,19 @@ jobs:
               .
           docker images
 
-      - if: ${{ matrix.container_platform == 'docker' }}
-        name: pre-pull & save images for testing
+      - name: pre-pull & save images for testing
         run: |
           set -x
           mkdir saved-images/
-          docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
+          
+          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+              docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
+          elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+              cd saved-images/
+              apptainer pull docker://python:alpine
+          else
+              exit 2  # unknown container_platform
+          fi
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: build apptainer image
@@ -288,11 +295,12 @@ jobs:
                   apptainer run \
                       --writable-tmpfs --containall \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
+                      --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
-                      /bin/bash -c "apptainer pull docker://python:alpine || true && pytest -vvv $test" \
+                      /bin/bash -c "ls -l && pytest -vvv $test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
               else
