@@ -32,6 +32,9 @@ Homepage = "https://pypi.org/project/ewms-pilot/"
 Tracker = "https://github.com/Observation-Management-Service/ewms-pilot/issues"
 Source = "https://github.com/Observation-Management-Service/ewms-pilot"
 
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]
 version_variables = ["ewms_pilot/__init__.py:__version__"]
@@ -49,6 +52,3 @@ patch_tags = ["[patch]", "[fix]", " ", "!", "#", "$", "%", "&", "'", "(", ")", "
 [tool.setuptools.packages.find]
 namespaces = false
 exclude = ["test", "tests", "doc", "docs", "resource", "resources", "example", "examples"]
-
-[tool.pytest.ini_options]
-asyncio_mode = "auto"
