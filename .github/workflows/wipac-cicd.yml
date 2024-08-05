@@ -303,20 +303,7 @@ jobs:
               sleep .1  # little sleep to help logs
           done < $SORTED_LIST_OF_TESTS_FILE
           
-          # wait for tests to finish
-          # https://stackoverflow.com/a/32604828/13156561
-          sleep 3  # short sleep to help logs
-          for pid in $pidlist; do
-              date --rfc-3339=seconds
-              echo "waiting for $pid..."
-              if ! wait -n $pid; then
-                  echo "ERROR: test(s) failed"
-                  sleep 5  # may need to wait for output files to be written
-                  kill $pidlist 2>/dev/null
-                  exit 1
-              fi
-              echo "-> PASSED"
-          done
+          ./tests/wait-on-pids.sh "$pidlist"
 
       - name: pytest first failure
         if: always()
