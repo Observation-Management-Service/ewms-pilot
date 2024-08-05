@@ -171,7 +171,7 @@ jobs:
               --build-arg="FLAVOR=rabbitmq,test" \
               --build-arg="CONTAINER_PLATFORM=apptainer" \
               .
-          apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:local
+          apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}
           ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
       - name: Integrate
         run: |
