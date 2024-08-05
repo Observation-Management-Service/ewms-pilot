@@ -8,7 +8,6 @@ import mqclient as mq
 
 from . import htchirp_tools
 from .config import (
-    DirectoryCatalog,
     ENV,
     INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR,
     LOGGER,
@@ -18,7 +17,7 @@ from .housekeeping import Housekeeping
 from .tasks.io import FileExtension
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
-from .utils.runner import ContainerRunner
+from .utils.runner import ContainerRunner, DirectoryCatalog
 from .utils.utils import all_task_errors_string
 
 # fmt:off

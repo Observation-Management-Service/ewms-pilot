@@ -3,7 +3,6 @@
 import dataclasses as dc
 import logging
 import os
-import shutil
 from pathlib import Path
 
 from wipac_dev_tools import from_environment_as_dataclass
@@ -142,9 +141,7 @@ class EnvConfig:
 ENV = from_environment_as_dataclass(EnvConfig)
 
 
-#
 # --------------------------------------------------------------------------------------
-#
 
 
 PILOT_DATA_DIR = Path(
@@ -153,55 +150,3 @@ PILOT_DATA_DIR = Path(
 PILOT_DATA_HUB_DIR = PILOT_DATA_DIR / "data-hub"
 
 INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR = "EWMS_TASK_DATA_HUB_DIR"
-
-
-class DirectoryCatalog:
-    """Handles the naming and mapping logic for a task's directories."""
-
-    @dc.dataclass
-    class _ContainerBindMountDirPair:
-        on_host: Path
-        in_container: Path
-
-    def __init__(self, name: str):
-        """Directories are not pre-created; you must `mkdir -p` to use."""
-        self._namebased_dir = PILOT_DATA_DIR / name
-
-        # for inter-task/init storage: startup data, init container's output, etc.
-        self.pilot_data_hub = self._ContainerBindMountDirPair(
-            PILOT_DATA_HUB_DIR,
-            PILOT_DATA_HUB_DIR,
-        )
-
-        # for persisting stderr and stdout
-        self.outputs_on_host = self._namebased_dir / "outputs"
-
-        # for message-based task i/o
-        self.task_io = self._ContainerBindMountDirPair(
-            self._namebased_dir / "task-io",
-            PILOT_DATA_DIR / "task-io",
-        )
-
-    def assemble_bind_mounts(
-        self,
-        external_directories: bool = False,
-        task_io: bool = False,
-    ) -> str:
-        """Get the docker bind mount string containing the wanted directories."""
-        string = f"--mount type=bind,source={self.pilot_data_hub.on_host},target={self.pilot_data_hub.in_container} "
-
-        if external_directories:
-            string += "".join(
-                f"--mount type=bind,source={dpath},target={dpath},readonly "
-                for dpath in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
-                if dpath  # skip any blanks
-            )
-
-        if task_io:
-            string += f"--mount type=bind,source={self.task_io.on_host},target={self.task_io.in_container} "
-
-        return string
-
-    def rm_unique_dirs(self) -> None:
-        """Remove all directories (on host) created for use only by this container."""
-        shutil.rmtree(self._namebased_dir)  # rm -r

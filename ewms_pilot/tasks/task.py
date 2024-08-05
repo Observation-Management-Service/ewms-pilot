@@ -7,11 +7,10 @@ from mqclient.broker_client_interface import Message
 
 from .io import FileExtension, InFileInterface, OutFileInterface
 from ..config import (
-    DirectoryCatalog,
     ENV,
     INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR,
 )
-from ..utils.runner import ContainerRunner
+from ..utils.runner import ContainerRunner, DirectoryCatalog
 
 LOGGER = logging.getLogger(__name__)
 
