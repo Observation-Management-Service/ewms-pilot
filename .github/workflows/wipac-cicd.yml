@@ -196,6 +196,20 @@ jobs:
               $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
               /bin/bash -c "/app/entrypoint_venv/bin/python -m pip freeze && /app/entrypoint_venv/bin/python -m pytest -vvv tests/test_pilot.py::test_000"
 
+      - name: broker output
+        if: always()
+        run: |
+          set -x
+          cat ./broker.out
+          if [ -n "$(ls -A ./broker_logs/ 2>/dev/null)" ]; then
+            ls ./broker_logs/
+            more ./broker_logs/* | cat  # cats with filenames (delimited by :::::::)
+          fi
+      - name: broker docker logs
+        if: always()
+        run: |
+          docker logs $BROKER_CONTAINER_NAME || true
+
   test-run-docker:
     needs: [ py-versions ]
     runs-on: ubuntu-latest
