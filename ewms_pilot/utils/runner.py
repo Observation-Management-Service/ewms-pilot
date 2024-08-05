@@ -61,7 +61,7 @@ async def run_container(
             cmd = f"docker run --rm {mount_bindings} {env_options} {image} {args}"
         case "apptainer":
             cmd = (
-                f"apptainer run docker://{mount_bindings} {env_options} {image} {args}"
+                f"apptainer run {mount_bindings} {env_options} docker://{image} {args}"
             )
         case other:
             raise ValueError(
