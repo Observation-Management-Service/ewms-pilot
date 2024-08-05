@@ -293,7 +293,7 @@ jobs:
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
               # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES 
-              source ./tests/run-broker.sh rabbitmq $BROKER_CONTAINER_NAME "--network=host"
+              source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--network=host"
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else
