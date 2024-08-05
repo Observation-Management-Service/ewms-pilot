@@ -176,12 +176,15 @@ jobs:
           apptainer-version: 1.3.2
       - name: build apptainer image
         run: |
-          sudo singularity build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:local
+          sudo apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:local
           ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
       - name: run apptainer container
         run: |
-          singularity run $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
-            ls
+          # startup broker
+          source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
+              "--net=mynet --runtime=sysbox-runc"
+          
+          apptainer run $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
 
   tests:
     needs: [ py-versions ]
