@@ -286,9 +286,7 @@ jobs:
           
               set -x  # lets see the command
               docker run --rm \
-                  --net=mynet \
-                  --runtime=sysbox-runc \
-                  --hostname=syscont \
+                  --net=mynet --runtime=sysbox-runc --hostname=syscont \
                   --mount type=bind,source=$(pwd),target=/repo/,readonly \
                   --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                   --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
@@ -296,10 +294,10 @@ jobs:
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test --retries 1 --retry-delay 5" \
                   >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+              set +x
           
               sleep .1  # little sleep to help logs
               sleep 5  # sleep so the broker doesn't get overwhelmed
-              set +x
               cat $(basename $test).test.out  # get a preview of the test output
               sleep .1  # little sleep to help logs
           done < $SORTED_LIST_OF_TESTS_FILE

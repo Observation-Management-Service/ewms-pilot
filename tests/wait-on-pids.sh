@@ -21,7 +21,7 @@ echo "will wait on pids: $PIDS_LIST..."
 
 
 # https://stackoverflow.com/a/32604828/13156561
-for pid in PIDS_LIST; do
+for pid in $PIDS_LIST; do
     date --rfc-3339=seconds
     echo "waiting for $pid..."
     if ! wait -n $pid; then
