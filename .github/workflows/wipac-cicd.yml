@@ -192,6 +192,7 @@ jobs:
           export _EWMS_PILOT_CONTAINER_PLATFORM=apptainer
           
           apptainer run \
+              --writable \
               $(env | grep '^EWMS_' | awk '$0="--env "$0') \
               $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
               /bin/bash -c "pip install -e pytest && pytest -vvv "tests/test_pilot.py::test_000" --retries 1 --retry-delay 5"
