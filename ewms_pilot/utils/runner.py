@@ -42,64 +42,78 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
         LOGGER.error(f"Error dumping subprocess output ({stream.name}): {e}")
 
 
-async def run_container(
-    image: str,
-    args: str,
-    timeout: Optional[int],
-    stdoutfile: Path,
-    stderrfile: Path,
-    mount_bindings: str = "",
-    env_options: str = "",
-) -> None:
-    """Run the container and dump outputs."""
-    dump_output = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT
+class ContainerRunner:
+    """A utility class to run a container."""
 
-    # NOTE: don't add to mount_bindings (WYSIWYG); also avoid intermediate structures
+    def __init__(self, image: str, args: str, timeout: Optional[int]):
+        self.image = image
+        self.args = args
+        self.timeout = timeout
 
-    match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
-        case "docker":
-            cmd = f"docker run --rm {mount_bindings} {env_options} {image} {args}"
-        case "apptainer":
-            cmd = (
-                f"apptainer run {mount_bindings} {env_options} docker://{image} {args}"
-            )
-        case other:
-            raise ValueError(
-                f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
-            )
+    async def run_container(
+        self,
+        stdoutfile: Path,
+        stderrfile: Path,
+        mount_bindings: str,
+        env_options: str,
+        infile_arg_replacement: str = "",
+        outfile_arg_replacement: str = "",
+    ) -> None:
+        """Run the container and dump outputs."""
+        dump_output = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT
 
-    LOGGER.info(cmd)
+        # insert in/out files *paths* into task_args
+        inst_args = self.args
+        if infile_arg_replacement:
+            inst_args = inst_args.replace("{{INFILE}}", infile_arg_replacement)
+        if outfile_arg_replacement:
+            inst_args = inst_args.replace("{{OUTFILE}}", outfile_arg_replacement)
 
-    # call & check outputs
-    try:
-        with open(stdoutfile, "wb") as stdoutf, open(stderrfile, "wb") as stderrf:
-            # await to start & prep coroutines
-            proc = await asyncio.create_subprocess_shell(
-                cmd,
-                stdout=stdoutf,
-                stderr=stderrf,
-            )
-            # await to finish
-            try:
-                await asyncio.wait_for(  # raises TimeoutError
-                    proc.wait(),
-                    timeout=timeout,
+        # assemble command
+        # NOTE: don't add to mount_bindings (WYSIWYG); also avoid intermediate structures
+        match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
+            case "docker":
+                cmd = f"docker run --rm {mount_bindings} {env_options} {self.image} {inst_args}"
+            case "apptainer":
+                cmd = f"apptainer run {mount_bindings} {env_options} docker://{self.image} {inst_args}"
+            case other:
+                raise ValueError(
+                    f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
                 )
-            except (TimeoutError, asyncio.exceptions.TimeoutError) as e:
-                # < 3.11 -> asyncio.exceptions.TimeoutError
-                raise TimeoutError(f"subprocess timed out after {timeout}s") from e
+        LOGGER.info(cmd)
 
-        LOGGER.info(f"Subprocess return code: {proc.returncode}")
+        # run: call & check outputs
+        try:
+            with open(stdoutfile, "wb") as stdoutf, open(stderrfile, "wb") as stderrf:
+                # await to start & prep coroutines
+                proc = await asyncio.create_subprocess_shell(
+                    cmd,
+                    stdout=stdoutf,
+                    stderr=stderrf,
+                )
+                # await to finish
+                try:
+                    await asyncio.wait_for(  # raises TimeoutError
+                        proc.wait(),
+                        timeout=self.timeout,
+                    )
+                except (TimeoutError, asyncio.exceptions.TimeoutError) as e:
+                    # < 3.11 -> asyncio.exceptions.TimeoutError
+                    raise TimeoutError(
+                        f"subprocess timed out after {self.timeout}s"
+                    ) from e
 
-        # exception handling (immediately re-handled by 'except' below)
-        if proc.returncode:
-            raise PilotSubprocessError(proc.returncode, stderrfile)
+            LOGGER.info(f"Subprocess return code: {proc.returncode}")
 
-    except Exception as e:
-        LOGGER.error(f"Subprocess failed: {e}")  # log the time
-        dump_output = True
-        raise
-    finally:
-        if dump_output:
-            _dump_binary_file(stdoutfile, sys.stdout)
-            _dump_binary_file(stderrfile, sys.stderr)
+            # exception handling (immediately re-handled by 'except' below)
+            if proc.returncode:
+                raise PilotSubprocessError(proc.returncode, stderrfile)
+
+        except Exception as e:
+            LOGGER.error(f"Subprocess failed: {e}")  # log the time
+            dump_output = True
+            raise
+        finally:
+            if dump_output:
+                _dump_binary_file(stdoutfile, sys.stdout)
+                _dump_binary_file(stderrfile, sys.stderr)
