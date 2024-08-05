@@ -60,7 +60,9 @@ async def run_container(
         case "docker":
             cmd = f"docker run --rm {mount_bindings} {env_options} {image} {args}"
         case "apptainer":
-            cmd = f"apptainer run {mount_bindings} {env_options} {image} {args}"
+            cmd = (
+                f"apptainer run docker://{mount_bindings} {env_options} {image} {args}"
+            )
         case other:
             raise ValueError(
                 f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
