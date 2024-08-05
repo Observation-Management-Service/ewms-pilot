@@ -195,7 +195,7 @@ jobs:
               --writable-tmpfs \
               $(env | grep '^EWMS_' | awk '$0="--env "$0') \
               $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
-              /bin/bash -c "pip install pytest && pytest -vvv "tests/test_pilot.py::test_000" --retries 1 --retry-delay 5"
+              /bin/bash -c "pip install pytest && pytest -vvv tests/test_pilot.py::test_000"
 
   test-run-docker:
     needs: [ py-versions ]
