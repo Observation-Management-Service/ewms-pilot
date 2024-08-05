@@ -224,7 +224,7 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.version }}
-      - if: matrix.broker_client == docker
+      - if: matrix.broker_client == 'docker'
         name: install sysbox (needed for docker-in-docker)
         run: |
           temp_dir=$(mktemp -d) && cd $temp_dir && trap 'rm -rf $temp_dir' EXIT  # save disk space
