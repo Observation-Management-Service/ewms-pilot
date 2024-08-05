@@ -174,10 +174,10 @@ jobs:
       - uses: eWaterCycle/setup-apptainer@v2
         with:
           apptainer-version: 1.3.2
-      - name: build apptainer image
-        run: |
-          sudo apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:local
-          ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
+      # - name: build apptainer image
+      #   run: |
+      #     sudo apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:local
+      #     ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
       - name: Integrate
         run: |
           # startup broker
@@ -191,10 +191,12 @@ jobs:
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=rabbitmq
           export _EWMS_PILOT_CONTAINER_PLATFORM=apptainer
           
+          # note - .sif files create containers with read-only internal filesystems
+          
           apptainer run \
               $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-              $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
-              /bin/bash -c "pip install -e pytest && pytest -vvv "tests/test_pilot.py::test_000" --retries 1 --retry-delay 5"
+              docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:local \
+              /bin/bash -c "pip install pytest && pytest -vvv "tests/test_pilot.py::test_000" --retries 1 --retry-delay 5"
 
   test-run-docker:
     needs: [ py-versions ]
