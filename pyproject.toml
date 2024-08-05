@@ -49,3 +49,6 @@ patch_tags = ["[patch]", "[fix]", " ", "!", "#", "$", "%", "&", "'", "(", ")", "
 [tool.setuptools.packages.find]
 namespaces = false
 exclude = ["test", "tests", "doc", "docs", "resource", "resources", "example", "examples"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
