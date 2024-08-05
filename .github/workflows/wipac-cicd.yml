@@ -218,12 +218,14 @@ jobs:
       matrix:
         version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
         broker_client: [ pulsar, rabbitmq, nats ]
+        container_platform: [ docker ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.version }}
-      - name: install sysbox (needed for docker-in-docker)
+      - if: matrix.broker_client == docker
+        name: install sysbox (needed for docker-in-docker)
         run: |
           temp_dir=$(mktemp -d) && cd $temp_dir && trap 'rm -rf $temp_dir' EXIT  # save disk space
           # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
