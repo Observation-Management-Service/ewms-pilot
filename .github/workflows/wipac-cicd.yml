@@ -224,7 +224,8 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.version }}
-      - if: matrix.broker_client == 'docker'
+
+      - if: ${{ matrix.broker_client == 'docker' }}
         name: install sysbox (needed for docker-in-docker)
         run: |
           temp_dir=$(mktemp -d) && cd $temp_dir && trap 'rm -rf $temp_dir' EXIT  # save disk space
@@ -234,6 +235,7 @@ jobs:
           sudo apt-get install jq
           sudo apt-get install ./sysbox-ce_0.6.4-0.linux_amd64.deb
           # sudo systemctl status sysbox -n20  # used below
+
       - name: pre-pull/build images for testing
         run: |
           set -x
@@ -243,23 +245,35 @@ jobs:
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
               .
+
       - name: get list of pytest tests
         run: |
           pip install .[test]  # for the for-loop below
           pytest --collect-only -q --disable-warnings tests | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
-      - run: |
+
+      - if: ${{ matrix.broker_client == 'docker' }}
+        run: |
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
+
       - name: Integrate
         run: |
           set -x
           
-          # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
-          sudo systemctl status sysbox -n20
+          if [[ "${{ matrix.broker_client }}" == "docker" ]]; then
+              # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
+              sudo systemctl status sysbox -n20
+          fi
           
           # startup broker
-          source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
-              "--net=mynet --runtime=sysbox-runc"
+          if [[ "${{ matrix.broker_client }}" == "docker" ]]; then
+              source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
+                  "--net=mynet --runtime=sysbox-runc"
+          elif [[ "${{ matrix.broker_client }}" == "apptainer" ]]; then
+              ;
+          else
+              exit 2
+          fi
           docker ps
           
           set +x  # lots of output in these loops
