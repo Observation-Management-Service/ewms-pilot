@@ -225,7 +225,7 @@ jobs:
         with:
           python-version: ${{ matrix.version }}
 
-      - if: ${{ matrix.broker_client == 'docker' }}
+      - if: ${{ matrix.container_platform == 'docker' }}
         name: install sysbox (needed for docker-in-docker)
         run: |
           temp_dir=$(mktemp -d) && cd $temp_dir && trap 'rm -rf $temp_dir' EXIT  # save disk space
@@ -251,7 +251,7 @@ jobs:
           pip install .[test]  # for the for-loop below
           pytest --collect-only -q --disable-warnings tests | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
 
-      - if: ${{ matrix.broker_client == 'docker' }}
+      - if: ${{ matrix.container_platform == 'docker' }}
         run: |
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
@@ -260,17 +260,21 @@ jobs:
         run: |
           set -x
           
-          if [[ "${{ matrix.broker_client }}" == "docker" ]]; then
+          # NETWORKING
+          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
               sudo systemctl status sysbox -n20
           fi
           
-          # startup broker
-          if [[ "${{ matrix.broker_client }}" == "docker" ]]; then
+          # STARTUP BROKER
+          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
                   "--net=mynet --runtime=sysbox-runc"
-          elif [[ "${{ matrix.broker_client }}" == "apptainer" ]]; then
-              ;
+              export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
+              export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
+          elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+              export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
+              export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else
               exit 2
           fi
@@ -280,9 +284,7 @@ jobs:
           echo "--------------------------------------------------------------"
           echo "running tests..."
           
-          # set queue env vars
-          export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
-          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
+          # SET QUEUE ENVVARS
           export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
           
