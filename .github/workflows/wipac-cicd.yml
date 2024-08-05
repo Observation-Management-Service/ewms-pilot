@@ -240,12 +240,6 @@ jobs:
           echo "--------------------------------------------------------------"
           echo "running tests..."
           
-          # set queue env vars
-          export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
-          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
-          export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
-          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
-          
           # make external directories -- used in like 1 test
           export EWMS_PILOT_EXTERNAL_DIRECTORIES="/cvmfs/dummy-1/dir-A,/cvmfs/dummy-2/dir-B"
           mkdir -p $(pwd)/cvmfs/dummy-1/dir-A
@@ -270,6 +264,10 @@ jobs:
                   --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                   --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                  --env EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME" \ 
+                  --env EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME" \
+                  --env EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }} \
+                  --env EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }} \
                   ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test --retries 1 --retry-delay 5" \
                   >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
