@@ -271,6 +271,7 @@ jobs:
 
       - if: ${{ matrix.container_platform == 'docker' }}
         run: |
+          # we're connecting all the containers (broker + apps) in the same docker network
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
 
@@ -278,7 +279,7 @@ jobs:
         run: |
           set -x
           
-          # NETWORKING
+          # ACTIVATE FOR DOCKER-IN-DOCKER
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
               sudo systemctl status sysbox -n20
@@ -286,10 +287,12 @@ jobs:
           
           # STARTUP BROKER
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+              # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
               source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=mynet --runtime=sysbox-runc"
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+              # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES 
               source ./tests/run-broker.sh rabbitmq $BROKER_CONTAINER_NAME "--network=host"
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
@@ -337,7 +340,6 @@ jobs:
                   apptainer run \
                       --writable-tmpfs \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
-                      --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
@@ -385,6 +387,7 @@ jobs:
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               cat $(basename $test).test.out || true
           done < $SORTED_LIST_OF_TESTS_FILE
+
       - name: broker output
         if: always()
         run: |
@@ -394,6 +397,7 @@ jobs:
             ls ./broker_logs/
             more ./broker_logs/* | cat  # cats with filenames (delimited by :::::::)
           fi
+
       - name: broker docker logs
         if: always()
         run: |
