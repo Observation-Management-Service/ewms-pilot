@@ -300,9 +300,11 @@ jobs:
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
-                      /bin/bash -c "ls -l && pytest -vvv $test" \
+                      /bin/bash -c "echo \\\$PWD && ls -l && ls -l / && pytest -vvv $test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
+                  sleep 30
+                  exit 100
               else
                   exit 2  # unknown container_platform
               fi
