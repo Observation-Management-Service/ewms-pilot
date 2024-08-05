@@ -236,15 +236,33 @@ jobs:
           sudo apt-get install ./sysbox-ce_0.6.4-0.linux_amd64.deb
           # sudo systemctl status sysbox -n20  # used below
 
-      - name: pre-pull/build images for testing
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.3.2
+
+      - name: build docker image
+        run: |
+          docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
+              --build-arg="PYTHON=${{ matrix.version }}" \
+              --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
+              --build-arg="CONTAINER_PLATFORM=${{ matrix.container_platform}}" \
+              .
+          docker images
+
+      - if: ${{ matrix.container_platform == 'docker' }}
+        name: pre-pull & save images for testing
         run: |
           set -x
           mkdir saved-images/
           docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
-          docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
-              --build-arg="PYTHON=${{ matrix.version }}" \
-              --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
-              .
+
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        name: build apptainer image
+        run: |
+          docker images
+          apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:latest
+          ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
 
       - name: get list of pytest tests
         run: |
@@ -268,11 +286,11 @@ jobs:
           
           # STARTUP BROKER
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
-              source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
-                  "--net=mynet --runtime=sysbox-runc"
+              source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=mynet --runtime=sysbox-runc"
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+              source ./tests/run-broker.sh rabbitmq $BROKER_CONTAINER_NAME "--network=host"
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else
@@ -284,7 +302,7 @@ jobs:
           echo "--------------------------------------------------------------"
           echo "running tests..."
           
-          # SET QUEUE ENVVARS
+          # set queue env vars
           export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
           
@@ -302,17 +320,25 @@ jobs:
               echo "starting test $test"
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
           
-              set -x  # lets see the command
-              docker run --rm \
-                  --net=mynet --runtime=sysbox-runc --hostname=syscont \
-                  --mount type=bind,source=$(pwd),target=/repo/,readonly \
-                  --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
-                  --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
-                  --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
-                  $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                  ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test --retries 1 --retry-delay 5" \
-                  >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
-              set +x
+              if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+                  set -x  # lets see the command
+                  docker run --rm \
+                      --net=mynet --runtime=sysbox-runc --hostname=syscont \
+                      --mount type=bind,source=$(pwd),target=/repo/,readonly \
+                      --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
+                      --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
+                      --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
+                      $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                      ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test --retries 1 --retry-delay 5" \
+                      >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+                  set +x        
+              elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+                  set -x  # lets see the command
+                  echo ""
+                  set +x
+              else
+                  exit 2
+              fi
           
               sleep .1  # little sleep to help logs
               sleep 5  # sleep so the broker doesn't get overwhelmed
@@ -320,8 +346,20 @@ jobs:
               sleep .1  # little sleep to help logs
           done < $SORTED_LIST_OF_TESTS_FILE
           
+          # wait for tests to finish
+          # https://stackoverflow.com/a/32604828/13156561
           sleep 3  # short sleep to help logs
-          ./tests/wait-on-pids.sh "$pidlist" PASSED
+          for pid in $pidlist; do
+              date --rfc-3339=seconds
+              echo "waiting for $pid..."
+              if ! wait -n $pid; then
+                  echo "ERROR: test(s) failed"
+                  sleep 5  # may need to wait for output files to be written
+                  kill $pidlist 2>/dev/null
+                  exit 1
+              fi
+              echo "-> PASSED"
+          done
 
       - name: pytest first failure
         if: always()
