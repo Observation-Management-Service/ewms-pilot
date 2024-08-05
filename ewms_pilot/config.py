@@ -5,7 +5,6 @@ import logging
 import os
 import shutil
 from pathlib import Path
-from typing import Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -62,7 +61,7 @@ class EnvConfig:
     EWMS_PILOT_PREFETCH: int = (
         1  # prefetch amount for incoming messages (off by default -- prefetch is an optimization)
     )
-    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: Optional[int] = (
+    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: int | None = (
         None  # timeout (sec) for the first message to arrive at the pilot (defaults to incoming timeout value)
     )
     EWMS_PILOT_TIMEOUT_QUEUE_INCOMING: int = 1  # timeout (sec) for messages TO pilot
@@ -80,8 +79,8 @@ class EnvConfig:
     EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL: float = 60.0
 
     # timing config -- tasks
-    EWMS_PILOT_INIT_TIMEOUT: Optional[int] = None  # timeout (sec) for the init command
-    EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None  # timeout (sec) for each task
+    EWMS_PILOT_INIT_TIMEOUT: int | None = None  # timeout (sec) for the init command
+    EWMS_PILOT_TASK_TIMEOUT: int | None = None  # timeout (sec) for each task
 
     # task handling logic
     EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: bool = (

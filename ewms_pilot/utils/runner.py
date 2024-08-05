@@ -4,7 +4,7 @@ import asyncio
 import logging
 import sys
 from pathlib import Path
-from typing import Optional, TextIO
+from typing import TextIO
 
 from ewms_pilot.config import ENV
 
@@ -45,7 +45,7 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
 class ContainerRunner:
     """A utility class to run a container."""
 
-    def __init__(self, image: str, args: str, timeout: Optional[int]):
+    def __init__(self, image: str, args: str, timeout: int | None):
         self.image = image
         self.args = args
         self.timeout = timeout

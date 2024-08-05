@@ -3,7 +3,6 @@
 import asyncio
 import sys
 import uuid
-from typing import Optional
 
 import mqclient as mq
 
@@ -38,7 +37,7 @@ _EXCEPT_ERRORS = False
 async def consume_and_reply(
     task_image: str = ENV.EWMS_PILOT_TASK_IMAGE,
     task_args: str = ENV.EWMS_PILOT_TASK_ARGS,
-    task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
+    task_timeout: int | None = ENV.EWMS_PILOT_TASK_TIMEOUT,
     max_concurrent_tasks: int = ENV.EWMS_PILOT_MAX_CONCURRENT_TASKS,
     #
     # incoming queue
@@ -48,9 +47,9 @@ async def consume_and_reply(
     queue_incoming_broker_address: str = ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS,
     # incoming queue - settings
     prefetch: int = ENV.EWMS_PILOT_PREFETCH,
-    timeout_wait_for_first_message: Optional[
-        int
-    ] = ENV.EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE,
+    timeout_wait_for_first_message: (
+        int | None
+    ) = ENV.EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE,
     timeout_incoming: int = ENV.EWMS_PILOT_TIMEOUT_QUEUE_INCOMING,
     #
     # outgoing queue
@@ -66,7 +65,7 @@ async def consume_and_reply(
     # init
     init_image: str = ENV.EWMS_PILOT_INIT_IMAGE,
     init_args: str = ENV.EWMS_PILOT_INIT_ARGS,
-    init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
+    init_timeout: int | None = ENV.EWMS_PILOT_INIT_TIMEOUT,
     #
     # misc settings
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
@@ -214,7 +213,7 @@ async def _consume_and_reply(
     infile_ext: FileExtension,
     outfile_ext: FileExtension,
     #
-    timeout_wait_for_first_message: Optional[int],
+    timeout_wait_for_first_message: int | None,
     timeout_incoming: int,
     #
     max_concurrent_tasks: int,
