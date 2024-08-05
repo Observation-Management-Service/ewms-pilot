@@ -266,8 +266,8 @@ jobs:
                   $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                   --env EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME" \ 
                   --env EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME" \
-                  --env EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }} \
-                  --env EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }} \
+                  --env EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE="${{ matrix.broker_client }}" \
+                  --env EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE="${{ matrix.broker_client }}" \
                   ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test --retries 1 --retry-delay 5" \
                   >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
               sleep .1  # little sleep to help logs
