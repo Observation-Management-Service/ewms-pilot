@@ -3,7 +3,7 @@
 import asyncio
 import sys
 import uuid
-from typing import List, Optional
+from typing import Optional
 
 import mqclient as mq
 
@@ -189,7 +189,7 @@ async def run_init_container(
 
 
 def listener_loop_exit(
-    task_errors: List[BaseException],
+    task_errors: list[BaseException],
     current_msg_waittime: float,
     msg_waittime_timeout: float,
 ) -> bool:
@@ -228,7 +228,7 @@ async def _consume_and_reply(
     await housekeeper.basic_housekeeping()
 
     pending: AsyncioTaskMessages = {}
-    task_errors: List[BaseException] = []
+    task_errors: list[BaseException] = []
 
     # timeouts
     if (

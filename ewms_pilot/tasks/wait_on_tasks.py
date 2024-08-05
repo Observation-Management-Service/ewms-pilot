@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-from typing import Dict, List, Set, Tuple
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message
@@ -11,24 +10,24 @@ from ..utils.utils import all_task_errors_string
 
 LOGGER = logging.getLogger(__name__)
 
-AsyncioTaskMessages = Dict[asyncio.Task, Message]  # type: ignore[type-arg]
+AsyncioTaskMessages = dict[asyncio.Task, Message]  # type: ignore[type-arg]
 
 
 async def wait_on_tasks_with_ack(
     sub: mq.queue.ManualQueueSubResource,
     pub: mq.queue.QueuePubResource,
     tasks_msgs: AsyncioTaskMessages,
-    previous_task_errors: List[BaseException],
+    previous_task_errors: list[BaseException],
     timeout: int,
-) -> Tuple[AsyncioTaskMessages, List[BaseException]]:
+) -> tuple[AsyncioTaskMessages, list[BaseException]]:
     """Get finished tasks and ack/nack their messages.
 
     Returns:
         Tuple:
             AsyncioTaskMessages: pending tasks and
-            List[BaseException]: failed tasks' exceptions (plus those in `previous_task_errors`)
+            list[BaseException]: failed tasks' exceptions (plus those in `previous_task_errors`)
     """
-    pending: Set[asyncio.Task] = set(tasks_msgs.keys())  # type: ignore[type-arg]
+    pending: set[asyncio.Task] = set(tasks_msgs.keys())  # type: ignore[type-arg]
     if not pending:
         return {}, previous_task_errors
 
