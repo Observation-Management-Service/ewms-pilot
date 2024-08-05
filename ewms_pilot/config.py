@@ -59,10 +59,12 @@ class EnvConfig:
     EWMS_PILOT_OUTFILE_TYPE: str = ".out"  # ''
 
     # incoming queue - settings
-    EWMS_PILOT_PREFETCH: int = 1  # prefetch amount for incoming messages (off by default -- prefetch is an optimization)
-    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: Optional[
-        int
-    ] = None  # timeout (sec) for the first message to arrive at the pilot (defaults to incoming timeout value)
+    EWMS_PILOT_PREFETCH: int = (
+        1  # prefetch amount for incoming messages (off by default -- prefetch is an optimization)
+    )
+    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: Optional[int] = (
+        None  # timeout (sec) for the first message to arrive at the pilot (defaults to incoming timeout value)
+    )
     EWMS_PILOT_TIMEOUT_QUEUE_INCOMING: int = 1  # timeout (sec) for messages TO pilot
 
     # files
@@ -95,7 +97,9 @@ class EnvConfig:
     EWMS_PILOT_DUMP_TASK_OUTPUT: bool = (
         False  # dump each task's stderr to stderr and stdout to stdout
     )
-    EWMS_PILOT_QUARANTINE_TIME: int = 0  # how long to sleep after error (useful for preventing blackhole scenarios on condor)
+    EWMS_PILOT_QUARANTINE_TIME: int = (
+        0  # how long to sleep after error (useful for preventing blackhole scenarios on condor)
+    )
 
     # non-user set settings
     _EWMS_PILOT_CONTAINER_PLATFORM: str = "docker"
