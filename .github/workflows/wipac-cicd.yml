@@ -210,15 +210,15 @@ jobs:
         run: |
           docker logs $BROKER_CONTAINER_NAME || true
 
-  test-run-docker:
+  integration-tests:
     needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        container_platform: [ docker, apptainer ]
         version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
         broker_client: [ pulsar, rabbitmq, nats ]
-        container_platform: [ docker ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
@@ -294,7 +294,7 @@ jobs:
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else
-              exit 2
+              exit 2  # unknown container_platform
           fi
           docker ps
           
@@ -334,10 +334,19 @@ jobs:
                   set +x        
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
                   set -x  # lets see the command
-                  echo ""
+                  apptainer run \
+                      --writable-tmpfs \
+                      --mount type=bind,source=$(pwd),target=/repo/,readonly \
+                      --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
+                      --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
+                      --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
+                      $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                      $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
+                      /bin/bash -c "apptainer pull docker://python:alpine && pytest -vvv $test" \
+                      >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
               else
-                  exit 2
+                  exit 2  # unknown container_platform
               fi
           
               sleep .1  # little sleep to help logs
@@ -407,7 +416,7 @@ jobs:
       py-dependencies,
       test-build-docker,
       test-run-apptainer,
-      test-run-docker
+      integration-tests
     ]
     runs-on: ubuntu-latest
     concurrency: release  # prevent any possible race conditions
