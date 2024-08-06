@@ -294,9 +294,11 @@ jobs:
                   set -x  # lets see the command
                   temp_dir=$(mktemp -d) && mv $temp_dir . && temp_dir=$PWD/$(basename $temp_dir) && trap 'rm -rf $temp_dir' EXIT  # save disk space
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
+                  # '--keep-privs' in order to run apptainer-in-apptainer https://apptainer.org/docs/user/main/security_options.html#keep-privs
                   # '--workdir' allows using host disk instead of memory
                   apptainer run \
                       --containall --writable-tmpfs --no-eval \
+                      --keep-privs \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
