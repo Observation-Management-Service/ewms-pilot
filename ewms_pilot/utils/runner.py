@@ -136,9 +136,20 @@ class ContainerRunner:
         # NOTE: don't add to mount_bindings (WYSIWYG); also avoid intermediate structures
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
             case "docker":
-                cmd = f"docker run --rm {mount_bindings} {env_options} {self.image} {inst_args}"
+                cmd = (
+                    f"docker run --rm "
+                    f"{mount_bindings} "
+                    f"{env_options} "
+                    f"{self.image} {inst_args}"
+                )
             case "apptainer":
-                cmd = f"apptainer run {mount_bindings} {env_options} docker://{self.image} {inst_args}"
+                cmd = (
+                    f"apptainer run "
+                    f"--containall --writable-tmpfs --no-eval "  # gets us close to docker functionality
+                    f"{mount_bindings} "
+                    f"{env_options} "
+                    f"docker://{self.image} {inst_args}"
+                )
             case other:
                 raise ValueError(
                     f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
