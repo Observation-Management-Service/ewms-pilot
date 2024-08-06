@@ -3,9 +3,7 @@
 import dataclasses as dc
 import logging
 import os
-import shutil
 from pathlib import Path
-from typing import Optional
 
 from wipac_dev_tools import from_environment_as_dataclass
 
@@ -59,10 +57,12 @@ class EnvConfig:
     EWMS_PILOT_OUTFILE_TYPE: str = ".out"  # ''
 
     # incoming queue - settings
-    EWMS_PILOT_PREFETCH: int = 1  # prefetch amount for incoming messages (off by default -- prefetch is an optimization)
-    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: Optional[
-        int
-    ] = None  # timeout (sec) for the first message to arrive at the pilot (defaults to incoming timeout value)
+    EWMS_PILOT_PREFETCH: int = (
+        1  # prefetch amount for incoming messages (off by default -- prefetch is an optimization)
+    )
+    EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: int | None = (
+        None  # timeout (sec) for the first message to arrive at the pilot (defaults to incoming timeout value)
+    )
     EWMS_PILOT_TIMEOUT_QUEUE_INCOMING: int = 1  # timeout (sec) for messages TO pilot
 
     # files
@@ -78,8 +78,8 @@ class EnvConfig:
     EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL: float = 60.0
 
     # timing config -- tasks
-    EWMS_PILOT_INIT_TIMEOUT: Optional[int] = None  # timeout (sec) for the init command
-    EWMS_PILOT_TASK_TIMEOUT: Optional[int] = None  # timeout (sec) for each task
+    EWMS_PILOT_INIT_TIMEOUT: int | None = None  # timeout (sec) for the init command
+    EWMS_PILOT_TASK_TIMEOUT: int | None = None  # timeout (sec) for each task
 
     # task handling logic
     EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR: bool = (
@@ -95,10 +95,13 @@ class EnvConfig:
     EWMS_PILOT_DUMP_TASK_OUTPUT: bool = (
         False  # dump each task's stderr to stderr and stdout to stdout
     )
-    EWMS_PILOT_QUARANTINE_TIME: int = 0  # how long to sleep after error (useful for preventing blackhole scenarios on condor)
+    EWMS_PILOT_QUARANTINE_TIME: int = (
+        0  # how long to sleep after error (useful for preventing blackhole scenarios on condor)
+    )
 
     # non-user set settings
     _EWMS_PILOT_CONTAINER_PLATFORM: str = "docker"
+    CI: bool = False  # github actions sets this to 'true'
 
     def __post_init__(self) -> None:
         if timeout := os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT"):
@@ -139,9 +142,7 @@ class EnvConfig:
 ENV = from_environment_as_dataclass(EnvConfig)
 
 
-#
 # --------------------------------------------------------------------------------------
-#
 
 
 PILOT_DATA_DIR = Path(
@@ -150,55 +151,3 @@ PILOT_DATA_DIR = Path(
 PILOT_DATA_HUB_DIR = PILOT_DATA_DIR / "data-hub"
 
 INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR = "EWMS_TASK_DATA_HUB_DIR"
-
-
-class DirectoryCatalog:
-    """Handles the naming and mapping logic for a task's directories."""
-
-    @dc.dataclass
-    class _ContainerBindMountDirPair:
-        on_host: Path
-        in_container: Path
-
-    def __init__(self, name: str):
-        """Directories are not pre-created; you must `mkdir -p` to use."""
-        self._namebased_dir = PILOT_DATA_DIR / name
-
-        # for inter-task/init storage: startup data, init container's output, etc.
-        self.pilot_data_hub = self._ContainerBindMountDirPair(
-            PILOT_DATA_HUB_DIR,
-            PILOT_DATA_HUB_DIR,
-        )
-
-        # for persisting stderr and stdout
-        self.outputs_on_host = self._namebased_dir / "outputs"
-
-        # for message-based task i/o
-        self.task_io = self._ContainerBindMountDirPair(
-            self._namebased_dir / "task-io",
-            PILOT_DATA_DIR / "task-io",
-        )
-
-    def assemble_bind_mounts(
-        self,
-        external_directories: bool = False,
-        task_io: bool = False,
-    ) -> str:
-        """Get the docker bind mount string containing the wanted directories."""
-        string = f"--mount type=bind,source={self.pilot_data_hub.on_host},target={self.pilot_data_hub.in_container} "
-
-        if external_directories:
-            string += "".join(
-                f"--mount type=bind,source={dpath},target={dpath},readonly "
-                for dpath in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
-                if dpath  # skip any blanks
-            )
-
-        if task_io:
-            string += f"--mount type=bind,source={self.task_io.on_host},target={self.task_io.in_container} "
-
-        return string
-
-    def rm_unique_dirs(self) -> None:
-        """Remove all directories (on host) created for use only by this container."""
-        shutil.rmtree(self._namebased_dir)  # rm -r

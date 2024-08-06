@@ -14,7 +14,7 @@ env:
   #
   SORTED_LIST_OF_TESTS_FILE: list-of-tests-sorted.txt
   #
-  BROKER_CONTAINER_NAME: broker
+  BROKER_CONTAINER_NAME: thebroker
   #
   EWMS_PILOT_TIMEOUT_INCOMING: 1
   EWMS_PILOT_TIMEOUT_OUTGOING: 1
@@ -70,7 +70,7 @@ jobs:
       - if: github.actor != 'dependabot[bot]'
         uses: WIPACrepo/wipac-dev-py-setup-action@v4.1
         with:
-          python_min: 3.9
+          python_min: "3.10"
           keywords: pilot "Observation Management Service" "Event Workflow Management Service" EWMS "message passing" MQ task
           pypi_name: ewms-pilot
           author: WIPAC Developers
@@ -140,7 +140,7 @@ jobs:
 
 
   ############################################################################
-  # TESTS & EXAMPLES
+  # tests
   #############################################################################
 
 
@@ -157,38 +157,14 @@ jobs:
           cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
 
-  test-build-apptainer:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v5
-        with:
-          context: .
-          file: Dockerfile
-          build-args: CONTAINER_PLATFORM=apptainer
-          cache-from: type=gha
-          # cache-to: type=gha,mode=min
-          tags: ${{ env.DOCKER_IMAGE_NAME }}:local
-          load: true
-      - uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.3.2
-      - name: build apptainer image
-        run: |
-          sudo singularity build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:local
-          ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
-      - name: run apptainer container
-        run: |
-          singularity run $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
-            ls
 
-  tests:
+  integration-tests:
     needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        container_platform: [ docker, apptainer ]
         version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
         broker_client: [ pulsar, rabbitmq, nats ]
     steps:
@@ -196,7 +172,9 @@ jobs:
       - uses: actions/setup-python@v4
         with:
           python-version: ${{ matrix.version }}
-      - name: install sysbox (needed for docker-in-docker)
+
+      - if: ${{ matrix.container_platform == 'docker' }}
+        name: install sysbox (needed for docker-in-docker)
         run: |
           temp_dir=$(mktemp -d) && cd $temp_dir && trap 'rm -rf $temp_dir' EXIT  # save disk space
           # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
@@ -205,32 +183,77 @@ jobs:
           sudo apt-get install jq
           sudo apt-get install ./sysbox-ce_0.6.4-0.linux_amd64.deb
           # sudo systemctl status sysbox -n20  # used below
-      - name: pre-pull/build images for testing
+
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        uses: eWaterCycle/setup-apptainer@v2
+        with:
+          apptainer-version: 1.3.2
+
+      - name: build docker image
         run: |
-          set -x
-          mkdir saved-images/
-          docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
+              --build-arg="CONTAINER_PLATFORM=${{ matrix.container_platform }}" \
               .
+          docker images
+
+      - name: pre-pull & save images for testing
+        run: |
+          set -x
+          mkdir saved-images/
+          
+          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+              docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
+          elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+              cd saved-images/
+              apptainer pull docker://python:alpine
+          else
+              exit 2  # unknown container_platform
+          fi
+
+      - if: ${{ matrix.container_platform == 'apptainer' }}
+        name: build apptainer image
+        run: |
+          docker images
+          apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:latest
+          ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
+
       - name: get list of pytest tests
         run: |
           pip install .[test]  # for the for-loop below
           pytest --collect-only -q --disable-warnings tests | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
-      - run: |
+
+      - if: ${{ matrix.container_platform == 'docker' }}
+        run: |
+          # we're connecting all the containers (broker + apps) in the same docker network
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
+
       - name: Integrate
         run: |
           set -x
           
-          # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
-          sudo systemctl status sysbox -n20
+          # ACTIVATE FOR DOCKER-IN-DOCKER
+          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+              # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
+              sudo systemctl status sysbox -n20
+          fi
           
-          # startup broker
-          source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME \
-              "--net=mynet --runtime=sysbox-runc"
+          # STARTUP BROKER -- this is always in docker container, even in 'apptainer' tests
+          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+              # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
+              source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=mynet --runtime=sysbox-runc"
+              export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
+              export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
+          elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+              # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES 
+              source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--network=host"
+              export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
+              export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
+          else
+              exit 2  # unknown container_platform
+          fi
           docker ps
           
           set +x  # lots of output in these loops
@@ -238,8 +261,6 @@ jobs:
           echo "running tests..."
           
           # set queue env vars
-          export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
-          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
           export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
           
@@ -249,31 +270,74 @@ jobs:
           echo "alpha" > $(pwd)/cvmfs/dummy-1/dir-A/file.txt
           mkdir -p $(pwd)/cvmfs/dummy-2/dir-B
           echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
+          
+          # figure how long to wait between tests
+          if [[ "${{ matrix.container_platform }}" == 'docker' && "${{ matrix.broker_client }}" == 'rabbitmq' ]]; then
+              test_offset_delay=15  # rabbitmq on docker gets overwhelmed for some reason
+          else
+              test_offset_delay=5
+          fi
 
           # iterate each test, starting each in its own container
           cat $SORTED_LIST_OF_TESTS_FILE
+          i=0
           while read test; do
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo "starting test $test"
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
           
-              set -x  # lets see the command
-              docker run --rm \
-                  --net=mynet \
-                  --runtime=sysbox-runc \
-                  --hostname=syscont \
-                  --mount type=bind,source=$(pwd),target=/repo/,readonly \
-                  --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
-                  --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
-                  --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
-                  $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                  ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && pytest -vvv $test --retries 1 --retry-delay 5" \
-                  >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+              # NOTE: re 'sleep N && ...': this allows all tests to be submitted in bulk, 
+              #   then waited for in order, PLUS it has a built-in delay to not overwhelm
+              #   the broker. This way (as opposed to sleep between loop iterations), we 
+              #   can stop all the tests if one fails early on (like pytest --exit-first).
+          
+              if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+          
+                  set -x  # lets see the command
+                  sleep "$(($i*$test_offset_delay))" && docker run --rm \
+                      --net=mynet --runtime=sysbox-runc --hostname=syscont \
+                      --mount type=bind,source=$(pwd),target=/repo/,readonly \
+                      --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
+                      --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
+                      --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
+                      $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
+                      --env CI=$CI \
+                      ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv $test" \
+                      >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+                  set +x
+          
+              elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+          
+                  set -x  # lets see the command
+                  temp_dir=$(mktemp -d) && mv $temp_dir . && temp_dir=$PWD/$(basename $temp_dir) && trap 'rm -rf $temp_dir' EXIT  # save disk space
+                  # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
+                  # 'sudo + --keep-privs' in order to run apptainer-in-apptainer
+                  # '--workdir' allows using host disk instead of memory
+                  sleep "$(($i*$test_offset_delay))" && sudo apptainer run \
+                      --containall --writable-tmpfs --no-eval \
+                      --keep-privs \
+                      --mount type=bind,source=$(pwd),target=/repo/,readonly \
+                      --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
+                      --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
+                      --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
+                      $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine.sif" \
+                      --env CI=$CI \
+                      --workdir "$temp_dir" \
+                      $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
+                      /bin/bash -c "ls -l && ls -l / && pytest -vvv /app/$test" \
+                      >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+                  set +x
+          
+              else
+          
+                  exit 2  # unknown container_platform
+          
+              fi
+          
               sleep .1  # little sleep to help logs
-              sleep 5  # sleep so the broker doesn't get overwhelmed
-              set +x
-              cat $(basename $test).test.out  # get a preview of the test output
-              sleep .1  # little sleep to help logs
+              i=$((i+1))
           done < $SORTED_LIST_OF_TESTS_FILE
           
           # wait for tests to finish
@@ -304,8 +368,13 @@ jobs:
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo $test
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-              cat $(basename $test).test.out || true
+              if [ -f $(basename $test).test.out ]; then
+                  cat $(basename $test).test.out
+              else
+                  echo "CI: output file does not exist"
+              fi
           done < $SORTED_LIST_OF_TESTS_FILE
+
       - name: broker output
         if: always()
         run: |
@@ -315,6 +384,7 @@ jobs:
             ls ./broker_logs/
             more ./broker_logs/* | cat  # cats with filenames (delimited by :::::::)
           fi
+
       - name: broker docker logs
         if: always()
         run: |
@@ -336,8 +406,7 @@ jobs:
       py-setup,
       py-dependencies,
       test-build-docker,
-      test-build-apptainer,
-      tests
+      integration-tests
     ]
     runs-on: ubuntu-latest
     concurrency: release  # prevent any possible race conditions

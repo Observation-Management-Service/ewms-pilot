@@ -3,13 +3,11 @@
 import asyncio
 import sys
 import uuid
-from typing import List, Optional
 
 import mqclient as mq
 
 from . import htchirp_tools
 from .config import (
-    DirectoryCatalog,
     ENV,
     INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR,
     LOGGER,
@@ -19,7 +17,7 @@ from .housekeeping import Housekeeping
 from .tasks.io import FileExtension
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
-from .utils.runner import run_container
+from .utils.runner import ContainerRunner, DirectoryCatalog
 from .utils.utils import all_task_errors_string
 
 # fmt:off
@@ -38,7 +36,7 @@ _EXCEPT_ERRORS = False
 async def consume_and_reply(
     task_image: str = ENV.EWMS_PILOT_TASK_IMAGE,
     task_args: str = ENV.EWMS_PILOT_TASK_ARGS,
-    task_timeout: Optional[int] = ENV.EWMS_PILOT_TASK_TIMEOUT,
+    task_timeout: int | None = ENV.EWMS_PILOT_TASK_TIMEOUT,
     max_concurrent_tasks: int = ENV.EWMS_PILOT_MAX_CONCURRENT_TASKS,
     #
     # incoming queue
@@ -48,9 +46,9 @@ async def consume_and_reply(
     queue_incoming_broker_address: str = ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS,
     # incoming queue - settings
     prefetch: int = ENV.EWMS_PILOT_PREFETCH,
-    timeout_wait_for_first_message: Optional[
-        int
-    ] = ENV.EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE,
+    timeout_wait_for_first_message: (
+        int | None
+    ) = ENV.EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE,
     timeout_incoming: int = ENV.EWMS_PILOT_TIMEOUT_QUEUE_INCOMING,
     #
     # outgoing queue
@@ -66,7 +64,7 @@ async def consume_and_reply(
     # init
     init_image: str = ENV.EWMS_PILOT_INIT_IMAGE,
     init_args: str = ENV.EWMS_PILOT_INIT_ARGS,
-    init_timeout: Optional[int] = ENV.EWMS_PILOT_INIT_TIMEOUT,
+    init_timeout: int | None = ENV.EWMS_PILOT_INIT_TIMEOUT,
     #
     # misc settings
     quarantine_time: int = ENV.EWMS_PILOT_QUARANTINE_TIME,
@@ -85,9 +83,7 @@ async def consume_and_reply(
         # Init command
         if init_image:
             await run_init_container(
-                init_image,
-                init_args,
-                init_timeout,
+                ContainerRunner(init_image, init_args, init_timeout),
                 housekeeper,
             )
 
@@ -110,10 +106,12 @@ async def consume_and_reply(
             # timeout=timeout_outgoing,  # no timeout needed b/c this queue is only for pub
         )
 
+        task_runner = ContainerRunner(task_image, task_args, task_timeout)
+
         # MQ tasks
         await _consume_and_reply(
-            task_image,
-            task_args,
+            task_runner,
+            #
             in_queue,
             out_queue,
             FileExtension(infile_type),
@@ -122,7 +120,6 @@ async def consume_and_reply(
             timeout_wait_for_first_message,
             timeout_incoming,
             #
-            task_timeout,
             max_concurrent_tasks,
             #
             housekeeper,
@@ -147,9 +144,7 @@ async def consume_and_reply(
 
 @htchirp_tools.async_htchirp_error_wrapper
 async def run_init_container(
-    init_image: str,
-    init_args: str,
-    init_timeout: Optional[int],
+    init_runner: ContainerRunner,
     housekeeper: Housekeeping,
 ) -> None:
     """Run the init container with the given arguments."""
@@ -159,10 +154,7 @@ async def run_init_container(
     dirs.outputs_on_host.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
-        run_container(
-            init_image,
-            init_args,
-            init_timeout,
+        init_runner.run_container(
             dirs.outputs_on_host / "stdoutfile",
             dirs.outputs_on_host / "stderrfile",
             dirs.assemble_bind_mounts(external_directories=True),
@@ -195,7 +187,7 @@ async def run_init_container(
 
 
 def listener_loop_exit(
-    task_errors: List[BaseException],
+    task_errors: list[BaseException],
     current_msg_waittime: float,
     msg_waittime_timeout: float,
 ) -> bool:
@@ -211,8 +203,7 @@ def listener_loop_exit(
 
 @htchirp_tools.async_htchirp_error_wrapper
 async def _consume_and_reply(
-    task_image: str,
-    task_args: str,
+    task_runner: ContainerRunner,
     #
     in_queue: mq.Queue,
     out_queue: mq.Queue,
@@ -221,10 +212,9 @@ async def _consume_and_reply(
     infile_ext: FileExtension,
     outfile_ext: FileExtension,
     #
-    timeout_wait_for_first_message: Optional[int],
+    timeout_wait_for_first_message: int | None,
     timeout_incoming: int,
     #
-    task_timeout: Optional[int],
     max_concurrent_tasks: int,
     #
     housekeeper: Housekeeping,
@@ -236,7 +226,7 @@ async def _consume_and_reply(
     await housekeeper.basic_housekeeping()
 
     pending: AsyncioTaskMessages = {}
-    task_errors: List[BaseException] = []
+    task_errors: list[BaseException] = []
 
     # timeouts
     if (
@@ -295,9 +285,7 @@ async def _consume_and_reply(
                     task = asyncio.create_task(
                         process_msg_task(
                             in_msg,
-                            task_image,
-                            task_args,
-                            task_timeout,
+                            task_runner,
                             infile_ext,
                             outfile_ext,
                         )

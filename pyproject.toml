@@ -7,10 +7,10 @@ version = "0.23.12"
 dependencies = ["htchirp", "htcondor", "oms-mqclient"]
 name = "ewms-pilot"
 keywords = ["pilot", "Observation Management Service", "Event Workflow Management Service", "EWMS", "message passing", "MQ", "task"]
-requires-python = ">=3.9, <3.13"
+requires-python = ">=3.10, <3.13"
 description = "EWMS's Pilot: A Job Pilot for Processing EWMS Events/Tasks"
 readme = "README.md"
-classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3.9", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12"]
+classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12"]
 
 [[project.authors]]
 name = "WIPAC Developers"
@@ -31,6 +31,9 @@ mypy = ["oms-mqclient[all]", "asyncstdlib", "pytest", "pytest-asyncio", "pytest-
 Homepage = "https://pypi.org/project/ewms-pilot/"
 Tracker = "https://github.com/Observation-Management-Service/ewms-pilot/issues"
 Source = "https://github.com/Observation-Management-Service/ewms-pilot"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
 
 [tool.semantic_release]
 version_toml = ["pyproject.toml:project.version"]

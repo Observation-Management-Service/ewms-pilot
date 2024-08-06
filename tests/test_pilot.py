@@ -210,7 +210,7 @@ async def test_000(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
@@ -253,7 +253,7 @@ async def test_001__txt__str_filetype(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
@@ -298,7 +298,7 @@ async def test_100__json__objects(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 import json;
 input=json.load(open('{{INFILE}}'));
@@ -346,7 +346,7 @@ async def test_101__json__preserialized(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 import json;
 input=json.load(open('{{INFILE}}'));
@@ -408,7 +408,7 @@ async def test_200__pkl_b64(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 import pickle, base64;
 from datetime import date, timedelta;
@@ -465,7 +465,7 @@ async def test_400__exception_quarantine(
                 intermittent_sleep=TIMEOUT_INCOMING / 4,
             ),
             consume_and_reply(
-                "python:alpine",
+                f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
                 """python3 -c "raise ValueError('no good!')" """,
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
@@ -520,7 +520,7 @@ async def test_420__timeout(
                 intermittent_sleep=TIMEOUT_INCOMING / 4,
             ),
             consume_and_reply(
-                "python:alpine",
+                f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
                 """python3 -c "import time; time.sleep(30)" """,
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
@@ -583,7 +583,7 @@ async def test_500__concurrent_load_max_concurrent_tasks(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 import time
 output = open('{{INFILE}}').read().strip() * 2;
@@ -660,7 +660,7 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
                 ),
             ),
             consume_and_reply(
-                "python:alpine",
+                f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
                 """python3 -c "
 import time
 output = open('{{INFILE}}').read().strip() * 2;
@@ -716,7 +716,7 @@ async def test_520__preload_max_concurrent_tasks(
     )
 
     await consume_and_reply(
-        "python:alpine",
+        f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
         """python3 -c "
 import time
 output = open('{{INFILE}}').read().strip() * 2;
@@ -776,7 +776,7 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
         ),
     ) as e:
         await consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 import time
 output = open('{{INFILE}}').read().strip() * 2;
@@ -839,7 +839,7 @@ async def _test_1000__heartbeat_workaround__rabbitmq_only(
                 intermittent_sleep=timeout_incoming / 4,
             ),
             consume_and_reply(
-                "python:alpine",
+                f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
                 """python3 -c "
 import time;
 output = open('{{INFILE}}').read().strip() * 2;
@@ -937,16 +937,16 @@ async def test_2000_init(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
-            init_image="python:alpine",
+            init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR'), exist_ok=True)
-with open(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR') + '/initoutput', 'w') as f:
+os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
+with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
 " """,
@@ -991,17 +991,17 @@ async def test_2001_init__timeout_error(
         match=re.escape(f"subprocess timed out after {init_timeout}s"),
     ):
         await consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
-            init_image="python:alpine",
+            init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args=f"""python3 -c "
 import time
 import os
-os.makedirs(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR'), exist_ok=True)
-with open(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR') + '/initoutput', 'w') as f:
+os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
+with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
 time.sleep({init_timeout})
@@ -1030,16 +1030,16 @@ async def test_2002_init__exception(
         match=re.escape("Subprocess completed with exit code 1: ValueError: no good!"),
     ):
         await consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
-            init_image="python:alpine",
+            init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR'), exist_ok=True)
-with open(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR') + '/initoutput', 'w') as f:
+os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
+with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
 raise ValueError('no good!')
@@ -1073,17 +1073,17 @@ async def test_2010_init__use_in_task(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 import os
-output = open('{{INFILE}}').read().strip() + open(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR') + '/initoutput').read().strip();
+output = open('{{INFILE}}').read().strip() + open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput').read().strip();
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
-            init_image="python:alpine",
+            init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR'), exist_ok=True)
-with open(os.getenv('EWMS_TASK_PILOT_DATA_HUB_DIR') + '/initoutput', 'w') as f:
+os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
+with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing to a file...')
     print('blue', file=f)
 " """,
@@ -1138,7 +1138,7 @@ async def test_3000_external_directories(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            "python:alpine",
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 import os
 file_one='/cvmfs/dummy-1/dir-A/file.txt'
@@ -1146,7 +1146,7 @@ file_two='/cvmfs/dummy-2/dir-B/file.txt'
 output = open('{{INFILE}}').read().strip() + open(file_one).read().strip() + open(file_two).read().strip();
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
-            init_image="python:alpine",
+            init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 file_one='/cvmfs/dummy-1/dir-A/file.txt'
 assert open(file_one).read().strip() == 'alpha'
