@@ -120,24 +120,32 @@ class ContainerRunner:
 
         Return the fully-qualified image name.
         """
-        run_args = dict(text=True, check=True, shell=True)
-
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
 
             case "docker":
-                subprocess.run(f"docker pull {image}", **run_args)  # type: ignore[call-overload]
+                subprocess.run(
+                    f"docker pull {image}",
+                    text=True,
+                    check=True,
+                    shell=True,
+                )
                 return image
 
             case "apptainer":
-                # .sif
+                # .sif -- check if file exists
                 if image.endswith(".sif"):
                     if not Path(image).exists():
                         raise FileNotFoundError(image)
                     return image
-                # docker image
+                # docker image -- pull & convert
                 else:
                     docker_image = f"docker://{image}"
-                    subprocess.run(f"apptainer pull {docker_image}", **run_args)  # type: ignore[call-overload]
+                    subprocess.run(
+                        f"apptainer pull {docker_image}",
+                        text=True,
+                        check=True,
+                        shell=True,
+                    )
                     return docker_image
 
             case other:
