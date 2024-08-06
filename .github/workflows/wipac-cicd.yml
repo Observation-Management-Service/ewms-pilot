@@ -195,7 +195,7 @@ jobs:
           if [[ "${{ matrix.broker_client }}" != 'rabbitmq' ]]; then
               exit 1
           fi
-          if [[ "${{ matrix.container_platform }}" != 'apptainer' ]]; then
+          if [[ "${{ matrix.container_platform }}" != 'docker' ]]; then
               exit 1
           fi
           
