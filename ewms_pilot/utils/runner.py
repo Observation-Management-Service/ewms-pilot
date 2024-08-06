@@ -120,24 +120,30 @@ class ContainerRunner:
 
         Return the fully-qualified image name.
         """
+        run_args = dict(text=True, check=True, shell=True)
+
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
+
             case "docker":
-                out_image = image
-                cmd = f"docker pull {out_image}"
+                subprocess.run(f"docker pull {image}", **run_args)
+                return image
+
             case "apptainer":
+                # .sif
                 if image.endswith(".sif"):
-                    out_image = image
+                    if not Path(image).exists():
+                        raise FileNotFoundError(image)
+                    return image
+                # docker image
                 else:
-                    out_image = f"docker://{image}"
-                cmd = f"apptainer pull {out_image}"
+                    docker_image = f"docker://{image}"
+                    subprocess.run(f"apptainer pull {docker_image}", **run_args)
+                    return docker_image
+
             case other:
                 raise ValueError(
                     f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
                 )
-
-        subprocess.run(cmd, text=True, check=True, shell=True)
-
-        return out_image
 
     async def run_container(
         self,
