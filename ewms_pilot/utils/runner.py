@@ -174,7 +174,7 @@ class ContainerRunner:
                     f"--containall --writable-tmpfs --no-eval "  # gets us close to docker functionality
                     f"{mount_bindings} "
                     f"{env_options} "
-                    f"docker://{self.image} {inst_args}"
+                    f"{self.image} {inst_args}"
                 )
             case other:
                 raise ValueError(
