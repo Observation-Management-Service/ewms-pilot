@@ -191,14 +191,6 @@ jobs:
 
       - name: build docker image
         run: |
-          # TODO: REMOVE
-          if [[ "${{ matrix.broker_client }}" != 'rabbitmq' ]]; then
-              exit 1
-          fi
-          if [[ "${{ matrix.container_platform }}" != 'docker' ]]; then
-              exit 1
-          fi
-          
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
@@ -278,6 +270,13 @@ jobs:
           echo "alpha" > $(pwd)/cvmfs/dummy-1/dir-A/file.txt
           mkdir -p $(pwd)/cvmfs/dummy-2/dir-B
           echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
+          
+          # figure how long to wait between tests
+          if [[ "${{ matrix.container_platform }}" == 'docker' && "${{ matrix.broker_client }}" == 'rabbitmq' ]]; then
+              test_offset_delay=15  # rabbitmq on docker gets overwhelmed for some reason
+          else
+              test_offset_delay=5
+          fi
 
           # iterate each test, starting each in its own container
           cat $SORTED_LIST_OF_TESTS_FILE
@@ -287,11 +286,15 @@ jobs:
               echo "starting test $test"
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
           
+              # NOTE: re 'sleep N && ...': this allows all tests to be submitted in bulk, 
+              #   then waited for in order, PLUS it has a built-in delay to not overwhelm
+              #   the broker. This way (as opposed to sleep between loop iterations), we 
+              #   can stop all the tests if one fails early on (like pytest --exit-first).
+          
               if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
           
                   set -x  # lets see the command
-                  # sleep "$(($i*5))" && docker run --rm \  # TODO: REMOVE
-                  docker run --rm \
+                  sleep "$(($i*$test_offset_delay))" && docker run --rm \
                       --net=mynet --runtime=sysbox-runc --hostname=syscont \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
@@ -301,8 +304,7 @@ jobs:
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
                       --env CI=$CI \
                       ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv $test" \
-                      >> $(basename $test).test.out 2>&1
-                      # >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"  # TODO: REMOVE
+                      >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
           
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
@@ -312,7 +314,7 @@ jobs:
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
                   # 'sudo + --keep-privs' in order to run apptainer-in-apptainer
                   # '--workdir' allows using host disk instead of memory
-                  sleep "$(($i*5))" && sudo apptainer run \
+                  sleep "$(($i*$test_offset_delay))" && sudo apptainer run \
                       --containall --writable-tmpfs --no-eval \
                       --keep-privs \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
