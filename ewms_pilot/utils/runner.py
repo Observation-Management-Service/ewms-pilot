@@ -125,7 +125,7 @@ class ContainerRunner:
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
 
             case "docker":
-                subprocess.run(f"docker pull {image}", **run_args)
+                subprocess.run(f"docker pull {image}", **run_args)  # type: ignore[call-overload]
                 return image
 
             case "apptainer":
@@ -137,7 +137,7 @@ class ContainerRunner:
                 # docker image
                 else:
                     docker_image = f"docker://{image}"
-                    subprocess.run(f"apptainer pull {docker_image}", **run_args)
+                    subprocess.run(f"apptainer pull {docker_image}", **run_args)  # type: ignore[call-overload]
                     return docker_image
 
             case other:
