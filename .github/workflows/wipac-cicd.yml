@@ -191,10 +191,18 @@ jobs:
 
       - name: build docker image
         run: |
+          # TODO: REMOVE
+          if [[ "${{ matrix.broker }}" != 'rabbitmq' ]]; then
+              exit 1
+          fi
+          if [[ "${{ matrix.container_platform }}" != 'apptainer' ]]; then
+              exit 1
+          fi
+          
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
-              --build-arg="CONTAINER_PLATFORM=${{ matrix.container_platform}}" \
+              --build-arg="CONTAINER_PLATFORM=${{ matrix.container_platform }}" \
               .
           docker images
 
@@ -282,7 +290,8 @@ jobs:
               if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
           
                   set -x  # lets see the command
-                  sleep "$(($i*5))" && docker run --rm \
+                  # sleep "$(($i*5))" && docker run --rm \  # TODO: REMOVE
+                  docker run --rm \
                       --net=mynet --runtime=sysbox-runc --hostname=syscont \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
@@ -292,7 +301,8 @@ jobs:
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
                       --env CI=$CI \
                       ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv $test --retries 1 --retry-delay 5" \
-                      >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+                      >> $(basename $test).test.out 2>&1
+                      # >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"  # TODO: REMOVE
                   set +x
           
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
