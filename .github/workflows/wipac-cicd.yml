@@ -343,7 +343,11 @@ jobs:
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo $test
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-              cat $(basename $test).test.out || true
+              if [ -f $(basename $test).test.out ]; then
+                  cat $(basename $test).test.out
+              else
+                  echo "CI: output file does not exist"
+              fi
           done < $SORTED_LIST_OF_TESTS_FILE
 
       - name: broker output
