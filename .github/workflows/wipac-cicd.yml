@@ -273,6 +273,7 @@ jobs:
 
           # iterate each test, starting each in its own container
           cat $SORTED_LIST_OF_TESTS_FILE
+          i=0
           while read test; do
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo "starting test $test"
@@ -280,7 +281,7 @@ jobs:
           
               if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
                   set -x  # lets see the command
-                  docker run --rm \
+                  sleep "$(($i*5))" && docker run --rm \
                       --net=mynet --runtime=sysbox-runc --hostname=syscont \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
@@ -296,7 +297,7 @@ jobs:
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
                   # 'sudo + --keep-privs' in order to run apptainer-in-apptainer
                   # '--workdir' allows using host disk instead of memory
-                  sudo apptainer run \
+                  sleep "$(($i*5))" && sudo apptainer run \
                       --containall --writable-tmpfs --no-eval \
                       --keep-privs \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
@@ -314,9 +315,7 @@ jobs:
               fi
           
               sleep .1  # little sleep to help logs
-              sleep 5  # sleep so the broker doesn't get overwhelmed
-              cat $(basename $test).test.out  # get a preview of the test output
-              sleep .1  # little sleep to help logs
+              i=$((i+1))
           done < $SORTED_LIST_OF_TESTS_FILE
           
           # wait for tests to finish
