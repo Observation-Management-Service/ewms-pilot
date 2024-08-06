@@ -292,7 +292,7 @@ jobs:
                   set +x        
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
                   set -x  # lets see the command
-                  temp_dir=$(mktemp -d) && trap 'rm -rf $temp_dir' EXIT  # save disk space
+                  temp_dir=$(mktemp -d) && mv $temp_dir . && temp_dir=$PWD/$(basename $temp_dir) && trap 'rm -rf $temp_dir' EXIT  # save disk space
                   # --compat run like docker: https://apptainer.org/docs/user/main/docker_and_oci.html#docker-like-compat-flag
                   # --workdir allows using host disk instead of memory
                   apptainer run \
