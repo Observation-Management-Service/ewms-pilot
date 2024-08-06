@@ -292,8 +292,9 @@ jobs:
                   set +x        
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
                   set -x  # lets see the command
+                  # --compat run like docker: https://apptainer.org/docs/user/main/docker_and_oci.html#docker-like-compat-flag
                   apptainer run \
-                      --writable-tmpfs --containall \
+                      --compat \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
