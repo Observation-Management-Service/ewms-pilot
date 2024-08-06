@@ -4,6 +4,7 @@ import asyncio
 import dataclasses as dc
 import logging
 import shutil
+import subprocess
 import sys
 from pathlib import Path
 from typing import TextIO
@@ -109,9 +110,34 @@ class ContainerRunner:
     """A utility class to run a container."""
 
     def __init__(self, image: str, args: str, timeout: int | None):
-        self.image = image
         self.args = args
         self.timeout = timeout
+        self.image = self._prepull_image(image)
+
+    @staticmethod
+    def _prepull_image(image: str) -> str:
+        """Pull the image so it can be used in many tasks.
+
+        Return the fully-qualified image name.
+        """
+        match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
+            case "docker":
+                out_image = image
+                cmd = f"docker pull {out_image}"
+            case "apptainer":
+                if image.endswith(".sif"):
+                    out_image = image
+                else:
+                    out_image = f"docker://{image}"
+                cmd = f"apptainer pull {out_image}"
+            case other:
+                raise ValueError(
+                    f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
+                )
+
+        subprocess.run(cmd, text=True, check=True, shell=True)
+
+        return out_image
 
     async def run_container(
         self,
