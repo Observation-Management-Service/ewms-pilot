@@ -303,8 +303,6 @@ jobs:
                       /bin/bash -c "cd /app && mv /saved-images/* . && ls -l && ls -l / && pytest -vvv $test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
-                  sleep 30
-                  exit 100
               else
                   exit 2  # unknown container_platform
               fi
