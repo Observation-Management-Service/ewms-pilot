@@ -288,6 +288,7 @@ jobs:
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
                       ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && pytest -vvv $test --retries 1 --retry-delay 5" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x        
@@ -305,9 +306,10 @@ jobs:
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine.sif" \
                       --workdir "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
-                      /bin/bash -c "ln -s /saved-images/python_alpine.sif && ls -l && ls -l / && pytest -vvv /app/$test" \
+                      /bin/bash -c "ls -l && ls -l / && pytest -vvv /app/$test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
               else
