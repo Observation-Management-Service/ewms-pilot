@@ -123,6 +123,8 @@ class ContainerRunner:
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
 
             case "docker":
+                if ENV.CI:  # optimization during testing, images are *loaded* manually
+                    return image
                 subprocess.run(
                     f"docker pull {image}",
                     text=True,
