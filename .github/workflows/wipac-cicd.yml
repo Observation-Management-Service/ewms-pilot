@@ -280,6 +280,7 @@ jobs:
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
           
               if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
+          
                   set -x  # lets see the command
                   sleep "$(($i*5))" && docker run --rm \
                       --net=mynet --runtime=sysbox-runc --hostname=syscont \
@@ -291,8 +292,10 @@ jobs:
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
                       ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && pytest -vvv $test --retries 1 --retry-delay 5" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
-                  set +x        
+                  set +x
+          
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+          
                   set -x  # lets see the command
                   temp_dir=$(mktemp -d) && mv $temp_dir . && temp_dir=$PWD/$(basename $temp_dir) && trap 'rm -rf $temp_dir' EXIT  # save disk space
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
@@ -312,8 +315,11 @@ jobs:
                       /bin/bash -c "ls -l && ls -l / && pytest -vvv /app/$test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
+          
               else
+          
                   exit 2  # unknown container_platform
+          
               fi
           
               sleep .1  # little sleep to help logs
