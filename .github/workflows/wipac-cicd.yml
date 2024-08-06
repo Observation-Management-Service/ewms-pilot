@@ -192,7 +192,7 @@ jobs:
       - name: build docker image
         run: |
           # TODO: REMOVE
-          if [[ "${{ matrix.broker }}" != 'rabbitmq' ]]; then
+          if [[ "${{ matrix.broker_client }}" != 'rabbitmq' ]]; then
               exit 1
           fi
           if [[ "${{ matrix.container_platform }}" != 'apptainer' ]]; then
