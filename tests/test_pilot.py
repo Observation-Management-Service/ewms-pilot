@@ -193,8 +193,23 @@ async def test_1000__heartbeat_workaround__rabbitmq_only(
 ########################################################################################
 
 
+@pytest.mark.parametrize(
+    "image",
+    [
+        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+        pytest.param(
+            os.getenv("CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF"),
+            marks=pytest.mark.skipif(ENV._EWMS_PILOT_CONTAINER_PLATFORM != "apptainer"),
+        ),
+        pytest.param(
+            os.getenv("CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_FROM_DOCKER"),
+            marks=pytest.mark.skipif(ENV._EWMS_PILOT_CONTAINER_PLATFORM != "apptainer"),
+        ),
+    ],
+)
 @pytest.mark.usefixtures("unique_pwd")
 async def test_000(
+    image: str,
     queue_incoming: str,
     queue_outgoing: str,
 ) -> None:
@@ -210,7 +225,7 @@ async def test_000(
             intermittent_sleep=TIMEOUT_INCOMING / 4,
         ),
         consume_and_reply(
-            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
+            image,
             """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat

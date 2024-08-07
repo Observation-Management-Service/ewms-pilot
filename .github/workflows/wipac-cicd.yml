@@ -209,6 +209,8 @@ jobs:
               cd saved-images/
               # building as a sandbox (unpacked dir) allows apptainer-in-apptainer
               apptainer build --sandbox python_alpine_sandbox/ docker://python:alpine
+              # pilot converts .sif to apptainer dir -- only 1 test uses this
+              apptainer build saved-images/python_alpine.sif docker://python:alpine
           else
               exit 2  # unknown container_platform
           fi
@@ -310,19 +312,6 @@ jobs:
           
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
           
-                  # figure which image to run -- can't do first few tests b/c they're for rabbitmq only
-                  if [[ $i == 10 ]]; then
-                      # pilot pulls docker & converts to apptainer dir
-                      ci_test_alpine_python_image="python:alpine"
-                  elif [[ $i == 11 ]]; then
-                      # pilot converts .sif to apptainer dir
-                      ci_test_alpine_python_image="saved-images/python_alpine.sif"
-                      apptainer build $ci_test_alpine_python_image docker://python:alpine
-                  else
-                      # use apptainer dir
-                      ci_test_alpine_python_image="/saved-images/python_alpine_sandbox/"
-                  fi
-          
                   set -x  # lets see the command
                   temp_dir=$(mktemp -d) && trap 'rm -rf $temp_dir' EXIT  # save disk space
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
@@ -334,7 +323,9 @@ jobs:
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                      --env CI_TEST_ALPINE_PYTHON_IMAGE=$ci_test_alpine_python_image \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine_sandbox/" \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF="saved-images/python_alpine.sif" \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_FROM_DOCKER="python:alpine" \
                       --env CI=$CI \
                       --workdir "$temp_dir" -B "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
