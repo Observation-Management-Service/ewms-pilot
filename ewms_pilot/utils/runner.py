@@ -134,17 +134,27 @@ class ContainerRunner:
                 _run(f"docker pull {image}")
                 return image
 
+            # NOTE: We are only are able to run unpacked directory format on condor.
+            #       Otherwise, we get error: `code 255: FATAL:   container creation
+            #       failed: image driver mount failure: image driver squashfuse_ll
+            #       instance exited with error: squashfuse_ll exited: fuse: device
+            #       not found, try 'modprobe fuse' first`
+            #       See https://github.com/Observation-Management-Service/ewms-pilot/pull/86
             case "apptainer":
-                # only are able to run unpacked directory format
                 if Path(image).is_dir():
                     LOGGER.info("OK: Apptainer image is already in directory format")
                     return image
                 # assume non-specified image is docker -- https://apptainer.org/docs/user/latest/build_a_container.html#overview
                 if "." not in image and "://" not in image:
                     image = f"docker://{image}"
-                # run
-                dir_image = f"{ENV._EWMS_PILOT_APPTAINER_WORKDIR}/{image.replace('://', '_').replace('/', '_')}/"
+                # name it something that is recognizable -- and put it where there is enough space
+                dir_image = (
+                    f"{ENV._EWMS_PILOT_APPTAINER_WORKDIR}/"
+                    f"{image.replace('://', '_').replace('/', '_')}/"
+                )
+                # build (convert)
                 _run(
+                    # cd b/c want to *build* in a directory w/ enough space (intermediate files)
                     f"cd {ENV._EWMS_PILOT_APPTAINER_WORKDIR} && "
                     f"apptainer build --sandbox {dir_image} {image}"
                 )
@@ -153,6 +163,7 @@ class ContainerRunner:
                 )
                 return dir_image
 
+            # ???
             case other:
                 raise ValueError(
                     f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
