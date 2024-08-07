@@ -146,7 +146,7 @@ class ContainerRunner:
                     return image
                 # assume non-specified image is docker -- https://apptainer.org/docs/user/latest/build_a_container.html#overview
                 if "." not in image and "://" not in image:
-                    # is not a blah.sif file and doesn't point to a registry
+                    # is not a blah.sif file (or other) and doesn't point to a registry
                     image = f"docker://{image}"
                 # name it something that is recognizable -- and put it where there is enough space
                 dir_image = (
