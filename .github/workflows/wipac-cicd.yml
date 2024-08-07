@@ -312,7 +312,9 @@ jobs:
           
                   if [[ $i == 0 ]]; then
                       # pilot pulls & converts to apptainer dir
-                      ci_test_alpine_python_image="python:alpine"    
+                      ci_test_alpine_python_image="python:alpine"
+                  elif [[ $i == 1 ]]; then
+                      ci_test_alpine_python_image="/saved-images/python_alpine.sif"
                   else
                       ci_test_alpine_python_image="/saved-images/python_alpine_sandbox/"
                   fi
@@ -330,7 +332,7 @@ jobs:
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE=$ci_test_alpine_python_image \
                       --env CI=$CI \
-                      --workdir "$temp_dir" --pwd "$temp_dir" \
+                      --workdir "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
                       /bin/bash -c "ls -l && ls -l / && pytest -vvv /app/$test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
