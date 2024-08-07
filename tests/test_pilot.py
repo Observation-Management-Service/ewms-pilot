@@ -196,7 +196,7 @@ async def test_1000__heartbeat_workaround__rabbitmq_only(
 @pytest.mark.parametrize(
     "image",
     [
-        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+        os.getenv("CI_TEST_ALPINE_PYTHON_IMAGE"),
         pytest.param(
             os.getenv("CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF"),
             marks=pytest.mark.skipif(ENV._EWMS_PILOT_CONTAINER_PLATFORM != "apptainer"),

@@ -226,6 +226,7 @@ jobs:
         run: |
           pip install .[test]  # for the for-loop below
           pytest --collect-only -q --disable-warnings tests | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
+          cat $SORTED_LIST_OF_TESTS_FILE
 
       - if: ${{ matrix.container_platform == 'docker' }}
         run: |
