@@ -199,11 +199,17 @@ async def test_1000__heartbeat_workaround__rabbitmq_only(
         "CI_TEST_ALPINE_PYTHON_IMAGE",
         pytest.param(
             "CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF",
-            marks=pytest.mark.skipif(ENV._EWMS_PILOT_CONTAINER_PLATFORM != "apptainer"),
+            marks=pytest.mark.skipif(
+                ENV._EWMS_PILOT_CONTAINER_PLATFORM != "apptainer",
+                reason="test only for apptainer",
+            ),
         ),
         pytest.param(
             "CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_FROM_DOCKER",
-            marks=pytest.mark.skipif(ENV._EWMS_PILOT_CONTAINER_PLATFORM != "apptainer"),
+            marks=pytest.mark.skipif(
+                ENV._EWMS_PILOT_CONTAINER_PLATFORM != "apptainer",
+                reason="test only for apptainer",
+            ),
         ),
     ],
 )
