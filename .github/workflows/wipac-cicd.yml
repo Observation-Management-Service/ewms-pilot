@@ -324,7 +324,7 @@ jobs:
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine_sandbox/" \
-                      --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF="saved-images/python_alpine.sif" \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF="/saved-images/python_alpine.sif" \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_FROM_DOCKER="python:alpine" \
                       --env CI=$CI \
                       --workdir "$temp_dir" -B "$temp_dir" \
