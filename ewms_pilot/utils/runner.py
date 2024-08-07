@@ -141,7 +141,7 @@ class ContainerRunner:
                 if "." not in image and "://" not in image:
                     image = f"docker://{image}"
                 # run
-                dir_image = "image_in_a_sandbox/"
+                dir_image = f"{image.replace('://', '_').replace('/', '_')}/"
                 subprocess.run(
                     f"apptainer build --sandbox {dir_image} {image}",
                     text=True,
