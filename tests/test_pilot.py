@@ -194,7 +194,7 @@ async def test_1000__heartbeat_workaround__rabbitmq_only(
 
 
 @pytest.mark.parametrize(
-    "image",
+    "image_envvar",
     [
         "CI_TEST_ALPINE_PYTHON_IMAGE",
         pytest.param(
