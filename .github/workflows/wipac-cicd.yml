@@ -210,7 +210,7 @@ jobs:
               # building as a sandbox (unpacked dir) allows apptainer-in-apptainer
               apptainer build --sandbox python_alpine_sandbox/ docker://python:alpine
               # pilot converts .sif to apptainer dir -- only 1 test uses this
-              apptainer build saved-images/python_alpine.sif docker://python:alpine
+              apptainer build python_alpine.sif docker://python:alpine
           else
               exit 2  # unknown container_platform
           fi
