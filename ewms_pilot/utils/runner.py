@@ -120,33 +120,36 @@ class ContainerRunner:
 
         Return the fully-qualified image name.
         """
+        LOGGER.info(f"Pulling image: {image}")
+
+        def _run(cmd: str):
+            LOGGER.info(f"Running command: {cmd}")
+            return subprocess.run(cmd, text=True, check=True, shell=True)
+
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
 
             case "docker":
                 if ENV.CI:  # optimization during testing, images are *loaded* manually
                     return image
-                subprocess.run(
-                    f"docker pull {image}",
-                    text=True,
-                    check=True,
-                    shell=True,
-                )
+                _run(f"docker pull {image}")
                 return image
 
             case "apptainer":
                 # only are able to run unpacked directory format
                 if Path(image).is_dir():
+                    LOGGER.info("OK: Apptainer image is already in directory format")
                     return image
                 # assume non-specified image is docker -- https://apptainer.org/docs/user/latest/build_a_container.html#overview
                 if "." not in image and "://" not in image:
                     image = f"docker://{image}"
                 # run
                 dir_image = f"{ENV._EWMS_PILOT_APPTAINER_WORKDIR}/{image.replace('://', '_').replace('/', '_')}/"
-                subprocess.run(
-                    f"cd {ENV._EWMS_PILOT_APPTAINER_WORKDIR} && apptainer build --sandbox {dir_image} {image}",
-                    text=True,
-                    check=True,
-                    shell=True,
+                _run(
+                    f"cd {ENV._EWMS_PILOT_APPTAINER_WORKDIR} && "
+                    f"apptainer build --sandbox {dir_image} {image}"
+                )
+                LOGGER.info(
+                    f"Image has been converted to Apptainer directory format: {dir_image}"
                 )
                 return dir_image
 
@@ -196,7 +199,7 @@ class ContainerRunner:
                 raise ValueError(
                     f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
                 )
-        LOGGER.info(cmd)
+        LOGGER.info(f"Running command: {cmd}")
 
         # run: call & check outputs
         try:
