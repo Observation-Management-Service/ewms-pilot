@@ -351,7 +351,7 @@ jobs:
               date --rfc-3339=seconds
               echo "waiting for $pid..."
               if ! wait -n $pid; then
-                  echo "ERROR: test(s) failed"
+                  echo "ERROR: test(s) failed (ctrl+f $pid to match)"
                   sleep 5  # may need to wait for output files to be written
                   kill $pidlist 2>/dev/null
                   exit 1
