@@ -2,6 +2,13 @@
 
 
 
+## v0.24.1 (2024-08-07)
+
+###  
+
+* Support Singularity/Apptainer Directory Image (#86) ([`466e46e`](https://github.com/Observation-Management-Service/ewms-pilot/commit/466e46ed0528c30ac552d84baef781c5e0ce0075))
+
+
 ## v0.24.0 (2024-08-06)
 
 ### [minor]
