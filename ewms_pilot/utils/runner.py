@@ -144,14 +144,14 @@ class ContainerRunner:
                     return image
                 # docker image -- pull & convert
                 else:
-                    docker_image = f"docker://{image}"
+                    dir_image = "image_in_a_sandbox/"
                     subprocess.run(
-                        f"apptainer pull {docker_image}",
+                        f"apptainer build --sandbox {dir_image} docker://{image}",
                         text=True,
                         check=True,
                         shell=True,
                     )
-                    return docker_image
+                    return dir_image
 
             case other:
                 raise ValueError(
