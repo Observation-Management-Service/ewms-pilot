@@ -314,7 +314,7 @@ jobs:
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
                   # 'sudo + --keep-privs' in order to run apptainer-in-apptainer
                   # '--workdir' allows using host disk instead of memory
-                  sleep "$(($i*$test_offset_delay))" && sudo apptainer run \
+                  sleep "$(($i*$test_offset_delay))" && apptainer run \
                       --containall --writable-tmpfs --no-eval \
                       --keep-privs \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
