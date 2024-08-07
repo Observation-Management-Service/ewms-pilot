@@ -316,7 +316,6 @@ jobs:
                   # '--workdir' allows using host disk instead of memory
                   sleep "$(($i*$test_offset_delay))" && apptainer run \
                       --containall --writable-tmpfs --no-eval \
-                      --keep-privs \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
