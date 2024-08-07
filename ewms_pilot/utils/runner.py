@@ -141,14 +141,14 @@ class ContainerRunner:
                 if "." not in image and "://" not in image:
                     image = f"docker://{image}"
                 # run
-                dir_image = f"{image.replace('://', '_').replace('/', '_')}/"
+                dir_image = f"{ENV._EWMS_PILOT_APPTAINER_WORKDIR}/{image.replace('://', '_').replace('/', '_')}/"
                 subprocess.run(
-                    f"apptainer build --sandbox {dir_image} {image}",
+                    f"cd {ENV._EWMS_PILOT_APPTAINER_WORKDIR} && apptainer build --sandbox {dir_image} {image}",
                     text=True,
                     check=True,
                     shell=True,
                 )
-                return image
+                return dir_image
 
             case other:
                 raise ValueError(

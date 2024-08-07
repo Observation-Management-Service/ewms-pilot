@@ -336,7 +336,7 @@ jobs:
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE=$ci_test_alpine_python_image \
                       --env CI=$CI \
-                      --workdir "$temp_dir" --pwd "$temp_dir" -B "$temp_dir" \
+                      --workdir "$temp_dir" -B "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
                       /bin/bash -c "ls -l && ls -l / && pytest -vvv /app/$test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
