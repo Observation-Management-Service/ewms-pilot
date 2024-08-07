@@ -134,24 +134,21 @@ class ContainerRunner:
                 return image
 
             case "apptainer":
-                # .sif -- check if file exists
-                if image.endswith(".sif"):
-                    if not Path(image).exists():
-                        raise FileNotFoundError(image)
+                # only are able to run unpacked directory format
+                if Path(image).is_dir():
                     return image
-                # sandbox / unpacked directory format -- check if exists
-                elif Path(image).is_dir():
-                    return image
-                # docker image -- pull & convert
-                else:
-                    dir_image = "image_in_a_sandbox/"
-                    subprocess.run(
-                        f"apptainer build --sandbox {dir_image} docker://{image}",
-                        text=True,
-                        check=True,
-                        shell=True,
-                    )
-                    return dir_image
+                # assume non-specified image is docker -- https://apptainer.org/docs/user/latest/build_a_container.html#overview
+                if "." not in image and "://" not in image:
+                    image = f"docker://{image}"
+                # run
+                dir_image = "image_in_a_sandbox/"
+                subprocess.run(
+                    f"apptainer build --sandbox {dir_image} {image}",
+                    text=True,
+                    check=True,
+                    shell=True,
+                )
+                return image
 
             case other:
                 raise ValueError(
