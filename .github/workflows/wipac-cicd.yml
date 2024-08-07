@@ -310,6 +310,7 @@ jobs:
           
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
           
+                  set -x  # lets see the command
                   # figure which image to run -- can't do first few tests b/c they're for rabbitmq only
                   if [[ $i == 10 ]]; then
                       # pilot pulls & converts to apptainer dir
@@ -321,6 +322,7 @@ jobs:
                   else
                       ci_test_alpine_python_image="/saved-images/python_alpine_sandbox/"
                   fi
+                  set +x
           
                   set -x  # lets see the command
                   temp_dir=$(mktemp -d) && mv $temp_dir . && temp_dir=$PWD/$(basename $temp_dir) && trap 'rm -rf $temp_dir' EXIT  # save disk space
