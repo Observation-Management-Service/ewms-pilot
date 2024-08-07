@@ -139,6 +139,9 @@ class ContainerRunner:
                     if not Path(image).exists():
                         raise FileNotFoundError(image)
                     return image
+                # sandbox / unpacked directory format -- check if exists
+                elif Path(image).is_dir():
+                    return image
                 # docker image -- pull & convert
                 else:
                     docker_image = f"docker://{image}"

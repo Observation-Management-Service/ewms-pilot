@@ -207,7 +207,9 @@ jobs:
               docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
               cd saved-images/
-              apptainer pull docker://python:alpine
+              mkdir python_alpine_sandbox
+              # building as a sandbox (unpacked dir) allows apptainer-in-apptainer
+              apptainer build --sandbox python_alpine_sandbox/ docker://python:alpine
           else
               exit 2  # unknown container_platform
           fi
@@ -312,7 +314,6 @@ jobs:
                   set -x  # lets see the command
                   temp_dir=$(mktemp -d) && mv $temp_dir . && temp_dir=$PWD/$(basename $temp_dir) && trap 'rm -rf $temp_dir' EXIT  # save disk space
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
-                  # 'sudo + --keep-privs' in order to run apptainer-in-apptainer
                   # '--workdir' allows using host disk instead of memory
                   sleep "$(($i*$test_offset_delay))" && apptainer run \
                       --containall --writable-tmpfs --no-eval \
@@ -321,7 +322,7 @@ jobs:
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                      --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine.sif" \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine_sandbox/" \
                       --env CI=$CI \
                       --workdir "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
