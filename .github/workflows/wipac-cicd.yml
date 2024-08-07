@@ -207,7 +207,10 @@ jobs:
               docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
               cd saved-images/
-              apptainer pull docker://python:alpine
+              # building as a sandbox (unpacked dir) allows apptainer-in-apptainer
+              apptainer build --sandbox python_alpine_sandbox/ docker://python:alpine
+              # pilot converts .sif to apptainer dir -- only 1 test uses this
+              apptainer build python_alpine.sif docker://python:alpine
           else
               exit 2  # unknown container_platform
           fi
@@ -223,6 +226,7 @@ jobs:
         run: |
           pip install .[test]  # for the for-loop below
           pytest --collect-only -q --disable-warnings tests | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
+          cat $SORTED_LIST_OF_TESTS_FILE
 
       - if: ${{ matrix.container_platform == 'docker' }}
         run: |
@@ -310,21 +314,21 @@ jobs:
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
           
                   set -x  # lets see the command
-                  temp_dir=$(mktemp -d) && mv $temp_dir . && temp_dir=$PWD/$(basename $temp_dir) && trap 'rm -rf $temp_dir' EXIT  # save disk space
+                  temp_dir=$(mktemp -d) && trap 'rm -rf $temp_dir' EXIT  # save disk space
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
-                  # 'sudo + --keep-privs' in order to run apptainer-in-apptainer
                   # '--workdir' allows using host disk instead of memory
-                  sleep "$(($i*$test_offset_delay))" && sudo apptainer run \
+                  sleep "$(($i*$test_offset_delay))" && apptainer run \
                       --containall --writable-tmpfs --no-eval \
-                      --keep-privs \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                      --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine.sif" \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine_sandbox/" \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF="/saved-images/python_alpine.sif" \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_FROM_DOCKER="python:alpine" \
                       --env CI=$CI \
-                      --workdir "$temp_dir" \
+                      --workdir "$temp_dir" -B "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
                       /bin/bash -c "ls -l && ls -l / && pytest -vvv /app/$test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
@@ -347,7 +351,7 @@ jobs:
               date --rfc-3339=seconds
               echo "waiting for $pid..."
               if ! wait -n $pid; then
-                  echo "ERROR: test(s) failed"
+                  echo "ERROR: test(s) failed (ctrl+f $pid to match)"
                   sleep 5  # may need to wait for output files to be written
                   kill $pidlist 2>/dev/null
                   exit 1

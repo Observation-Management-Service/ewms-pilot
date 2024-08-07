@@ -120,36 +120,51 @@ class ContainerRunner:
 
         Return the fully-qualified image name.
         """
+        LOGGER.info(f"Pulling image: {image}")
+
+        def _run(cmd: str):
+            LOGGER.info(f"Running command: {cmd}")
+            return subprocess.run(cmd, text=True, check=True, shell=True)
+
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
 
             case "docker":
                 if ENV.CI:  # optimization during testing, images are *loaded* manually
                     return image
-                subprocess.run(
-                    f"docker pull {image}",
-                    text=True,
-                    check=True,
-                    shell=True,
-                )
+                _run(f"docker pull {image}")
                 return image
 
+            # NOTE: We are only are able to run unpacked directory format on condor.
+            #       Otherwise, we get error: `code 255: FATAL:   container creation
+            #       failed: image driver mount failure: image driver squashfuse_ll
+            #       instance exited with error: squashfuse_ll exited: fuse: device
+            #       not found, try 'modprobe fuse' first`
+            #       See https://github.com/Observation-Management-Service/ewms-pilot/pull/86
             case "apptainer":
-                # .sif -- check if file exists
-                if image.endswith(".sif"):
-                    if not Path(image).exists():
-                        raise FileNotFoundError(image)
+                if Path(image).is_dir():
+                    LOGGER.info("OK: Apptainer image is already in directory format")
                     return image
-                # docker image -- pull & convert
-                else:
-                    docker_image = f"docker://{image}"
-                    subprocess.run(
-                        f"apptainer pull {docker_image}",
-                        text=True,
-                        check=True,
-                        shell=True,
-                    )
-                    return docker_image
+                # assume non-specified image is docker -- https://apptainer.org/docs/user/latest/build_a_container.html#overview
+                if "." not in image and "://" not in image:
+                    # is not a blah.sif file (or other) and doesn't point to a registry
+                    image = f"docker://{image}"
+                # name it something that is recognizable -- and put it where there is enough space
+                dir_image = (
+                    f"{ENV._EWMS_PILOT_APPTAINER_WORKDIR}/"
+                    f"{image.replace('://', '_').replace('/', '_')}/"
+                )
+                # build (convert)
+                _run(
+                    # cd b/c want to *build* in a directory w/ enough space (intermediate files)
+                    f"cd {ENV._EWMS_PILOT_APPTAINER_WORKDIR} && "
+                    f"apptainer build --sandbox {dir_image} {image}"
+                )
+                LOGGER.info(
+                    f"Image has been converted to Apptainer directory format: {dir_image}"
+                )
+                return dir_image
 
+            # ???
             case other:
                 raise ValueError(
                     f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
@@ -196,7 +211,7 @@ class ContainerRunner:
                 raise ValueError(
                     f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
                 )
-        LOGGER.info(cmd)
+        LOGGER.info(f"Running command: {cmd}")
 
         # run: call & check outputs
         try:
