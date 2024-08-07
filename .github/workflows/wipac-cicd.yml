@@ -207,7 +207,6 @@ jobs:
               docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
               cd saved-images/
-              mkdir python_alpine_sandbox
               # building as a sandbox (unpacked dir) allows apptainer-in-apptainer
               apptainer build --sandbox python_alpine_sandbox/ docker://python:alpine
           else
