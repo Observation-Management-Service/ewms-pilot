@@ -2,6 +2,21 @@
 
 
 
+## v0.24.3 (2024-08-08)
+
+###  
+
+* Remove `--writable-tmpfs` from Task Container (#88) ([`a7ca17c`](https://github.com/Observation-Management-Service/ewms-pilot/commit/a7ca17c6d69de3f2fad049dc0a8590ecc6909dfb))
+
+* Merge remote-tracking branch &#39;origin/main&#39; ([`1a455fb`](https://github.com/Observation-Management-Service/ewms-pilot/commit/1a455fb3c197956f0ff7b81fa5b4b8cb3ea3bca0))
+
+* Entrypoint: `ls -l /` ([`7a6bc20`](https://github.com/Observation-Management-Service/ewms-pilot/commit/7a6bc20c8f0580cb1374f464cf75d710a5bc483e))
+
+* &lt;bot&gt; update dependencies*.log files(s) ([`ca6b853`](https://github.com/Observation-Management-Service/ewms-pilot/commit/ca6b853fbdd399662304a0aefea1ff7a444e4f98))
+
+* Fix Chirping for Multi-Line ([`2e4e619`](https://github.com/Observation-Management-Service/ewms-pilot/commit/2e4e6199c0ba4a253332c38cfa57f25166934b3b))
+
+
 ## v0.24.2 (2024-08-08)
 
 ###  
