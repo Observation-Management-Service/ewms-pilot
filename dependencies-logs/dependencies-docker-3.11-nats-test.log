@@ -10,7 +10,7 @@ asyncstdlib==3.12.4
 certifi==2024.7.4
 charset-normalizer==3.3.2
 htchirp==3.0
-htcondor==23.8.1
+htcondor==23.9.6
 idna==3.7
 iniconfig==2.0.0
 nats-py==2.8.0
@@ -24,7 +24,7 @@ pytest-retry==1.6.3
 requests==2.32.3
 typing_extensions==4.12.2
 urllib3==2.2.2
-wipac-dev-tools==1.10.7
+wipac-dev-tools==1.11.0
 zstd==1.5.5.1
 ########################################################################
 #  pipdeptree
@@ -32,9 +32,9 @@ zstd==1.5.5.1
 asyncstdlib==3.12.4
 ewms-pilot
 ├── htchirp [required: Any, installed: 3.0]
-├── htcondor [required: Any, installed: 23.8.1]
+├── htcondor [required: Any, installed: 23.9.6]
 └── oms-mqclient [required: Any, installed: 2.6.0]
-    ├── wipac-dev-tools [required: Any, installed: 1.10.7]
+    ├── wipac-dev-tools [required: Any, installed: 1.11.0]
     │   ├── requests [required: Any, installed: 2.32.3]
     │   │   ├── certifi [required: >=2017.4.17, installed: 2024.7.4]
     │   │   ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
