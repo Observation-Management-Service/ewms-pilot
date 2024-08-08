@@ -56,10 +56,10 @@ class HTChirpEWMSPilotAttr(enum.Enum):
 def _chirp(ctx: htchirp.HTChirp, _attr: HTChirpEWMSPilotAttr, _val: Any) -> None:
     """Chirp to either a job attr (default) or the job event log."""
     LOGGER.info(f"HTChirp -> {_attr.name} = {_val}")
-    # LOGGER.info(f"HTChirp ({ctx.whoami()}) -> {_attr.name} = {_val}")  # whoami() was erroring out with "htchirp.htchirp.HTChirp.InvalidRequest: The form of the request is invalid."
 
     if ENV.EWMS_PILOT_HTCHIRP_DEST == "JOB_EVENT_LOG":
-        ctx.ulog(f"{HTCHIRP_ATTR_PREFIX}{_attr.name}: {_val}")
+        # classad.quote escape new-lines, etc.
+        ctx.ulog(f"{HTCHIRP_ATTR_PREFIX}{_attr.name}: {classad.quote(str(_val))}")
     elif ENV.EWMS_PILOT_HTCHIRP_DEST == "JOB_ATTR":
         # condor has built-in types (see below for strs)
         if isinstance(_val, (int, float)):
