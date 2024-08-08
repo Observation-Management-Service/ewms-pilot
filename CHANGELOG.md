@@ -2,6 +2,13 @@
 
 
 
+## v0.24.4 (2024-08-08)
+
+###  
+
+* CI: retry logic for docker rate limiting ([`7450ba9`](https://github.com/Observation-Management-Service/ewms-pilot/commit/7450ba9abaa2fb231b77d7f390584e97382afbb5))
+
+
 ## v0.24.3 (2024-08-08)
 
 ###  
