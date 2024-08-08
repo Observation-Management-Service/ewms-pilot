@@ -20,8 +20,12 @@ mkdir -p "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST/ewms-pilot-data/data-hub"
 
 # inspect the file system
 echo "----"
+echo "/"
+ls -l /
+echo "----"
 echo "PWD: $PWD"
 ls -l $PWD
+
 
 
 if [[ "$_EWMS_PILOT_CONTAINER_PLATFORM" == "docker" ]]; then
