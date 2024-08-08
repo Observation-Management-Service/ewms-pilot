@@ -2,6 +2,17 @@
 
 
 
+## v0.24.2 (2024-08-08)
+
+###  
+
+* &lt;bot&gt; update dependencies*.log files(s) ([`5ed749f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/5ed749f1ca3af4b7b125037c2a4f5eed2eeeb25e))
+
+* Quick Fix Chirping ([`91028ac`](https://github.com/Observation-Management-Service/ewms-pilot/commit/91028ac364d53caa956ebae81102c53870d5b553))
+
+* Use Module-based Logging ([`328a21c`](https://github.com/Observation-Management-Service/ewms-pilot/commit/328a21c7d78a00b5e4bcb2c8727f9a341db3982b))
+
+
 ## v0.24.1 (2024-08-07)
 
 ###  
