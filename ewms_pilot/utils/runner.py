@@ -202,7 +202,7 @@ class ContainerRunner:
             case "apptainer":
                 cmd = (
                     f"apptainer run "
-                    f"--containall --no-eval "  # gets us close to docker functionality
+                    f"--no-eval "
                     f"{mount_bindings} "
                     f"{env_options} "
                     f"{self.image} {inst_args}"
