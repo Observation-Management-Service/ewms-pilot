@@ -2,6 +2,7 @@
 
 import asyncio
 import enum
+import logging
 import sys
 import time
 import traceback
@@ -12,7 +13,9 @@ import htchirp  # type: ignore[import-untyped]
 from htcondor import classad  # type: ignore[import-untyped]
 from typing_extensions import ParamSpec
 
-from .config import ENV, LOGGER
+from .config import ENV
+
+LOGGER = logging.getLogger(__name__)
 
 T = TypeVar("T")
 P = ParamSpec("P")

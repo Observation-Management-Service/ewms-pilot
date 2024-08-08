@@ -1,6 +1,7 @@
 """API for launching an MQ-task pilot."""
 
 import asyncio
+import logging
 import sys
 import uuid
 
@@ -10,7 +11,6 @@ from . import htchirp_tools
 from .config import (
     ENV,
     INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR,
-    LOGGER,
     REFRESH_INTERVAL,
 )
 from .housekeeping import Housekeeping
@@ -19,6 +19,8 @@ from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
 from .utils.runner import ContainerRunner, DirectoryCatalog
 from .utils.utils import all_task_errors_string
+
+LOGGER = logging.getLogger(__name__)
 
 # fmt:off
 if sys.version_info[1] < 10:
