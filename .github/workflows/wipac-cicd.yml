@@ -203,14 +203,35 @@ jobs:
           set -x
           mkdir saved-images/
           
+          retry_command_if_255() {
+              # some logic to get around docker hub's rate limiting
+              local command="$1"
+              max_retries=5
+              for ((i=1; i<=max_retries; i++)); do
+                  eval "$command"
+                  exit_code=$?
+                  if [[ $exit_code -eq 0 ]]; then
+                      break
+                  elif [[ $exit_code -eq 255 ]]; then
+                      # docker hub rate limiting
+                      echo "Command failed with exit code 255. Retry $i/$max_retries..."
+                  else
+                      exit $exit_code
+                  fi
+                  # Wait before retrying
+                  sleep $((30*$i))  # 30, 60, 90, ... 
+              done
+          }
+          
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
-              docker pull python:alpine && docker save -o saved-images/python-alpine.tar python:alpine
+              retry_command_if_255 "docker pull python:alpine"
+              docker save -o saved-images/python-alpine.tar python:alpine
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
               cd saved-images/
               # building as a sandbox (unpacked dir) allows apptainer-in-apptainer
-              apptainer build --sandbox python_alpine_sandbox/ docker://python:alpine
+              retry_command_if_255 "apptainer build --sandbox python_alpine_sandbox/ docker://python:alpine"
               # pilot converts .sif to apptainer dir -- only 1 test uses this
-              apptainer build python_alpine.sif docker://python:alpine
+              retry_command_if_255 "apptainer build python_alpine.sif docker://python:alpine"
           else
               exit 2  # unknown container_platform
           fi
