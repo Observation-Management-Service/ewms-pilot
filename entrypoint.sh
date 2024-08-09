@@ -72,8 +72,17 @@ echo "║  Today:  $(date --rfc-3339=seconds)                                   
 echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
 while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(pip show ewms-pilot)"  # pip-supplied info
 echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
-while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$( hostnamectl 2>/dev/null || uname --all 2>/dev/null | fold --spaces -w 66 || echo 'No OS info to display' )"  # OS-supplied info
+# OS info
+printf "║  %-83s ║\n" "Operating System:  $(uname -o 2>/dev/null || echo 'N/A')"
+printf "║  %-83s ║\n" "Kernel Name:       $(uname -s 2>/dev/null || echo 'N/A')"
+printf "║  %-83s ║\n" "Kernel Release:    $(uname -r 2>/dev/null || echo 'N/A')"
+printf "║  %-83s ║\n" "Kernel Version:    $(uname -v 2>/dev/null || echo 'N/A')"
+printf "║  %-83s ║\n" "Machine:           $(uname -m 2>/dev/null || echo 'N/A')"
+printf "║  %-83s ║\n" "Processor:         $(uname -p 2>/dev/null || echo 'N/A')"
+printf "║  %-83s ║\n" "Hardware Platform: $(uname -i 2>/dev/null || echo 'N/A')"
+printf "║  %-83s ║\n" "Hostname:          $(uname -n 2>/dev/null || echo 'N/A')"
 echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
+# docker/apptainer info
 if [[ $_EWMS_PILOT_CONTAINER_PLATFORM == 'docker' ]]; then
     while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$( echo 'Docker:' && echo && docker version || echo 'No docker info to display' )"
 elif [[ $_EWMS_PILOT_CONTAINER_PLATFORM == 'apptainer' ]]; then
