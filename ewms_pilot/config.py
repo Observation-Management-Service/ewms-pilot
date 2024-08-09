@@ -101,7 +101,7 @@ class EnvConfig:
 
     # non-user set settings
     _EWMS_PILOT_CONTAINER_PLATFORM: str = "docker"
-    _EWMS_PILOT_APPTAINER_WORKDIR: str = "/var/tmp"
+    _EWMS_PILOT_APPTAINER_BUILD_WORKDIR: str = "/var/tmp"
     CI: bool = False  # github actions sets this to 'true'
 
     def __post_init__(self) -> None:
