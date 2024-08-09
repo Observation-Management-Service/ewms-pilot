@@ -72,12 +72,12 @@ echo "║  Today:  $(date --rfc-3339=seconds)                                   
 echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
 while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(pip show ewms-pilot)"  # pip-supplied info
 echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
-while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(hostnamectl || uname --all | fold --spaces -w 66 || echo 'No OS info to display')"  # OS-supplied info
+while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$( hostnamectl 2>/dev/null || uname --all 2>/dev/null | fold --spaces -w 66 || echo 'No OS info to display' )"  # OS-supplied info
 echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
 if [[ $_EWMS_PILOT_CONTAINER_PLATFORM == 'docker' ]]; then
-    while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$( echo -n 'Docker ' && docker version || echo 'No docker info to display')"
+    while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$( echo -n 'Docker ' && docker version || echo 'No docker info to display' )"
 elif [[ $_EWMS_PILOT_CONTAINER_PLATFORM == 'apptainer' ]]; then
-    while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$( echo 'Apptainer Version: '$(apptainer version) || echo 'No apptainer info to display')"
+    while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$( echo 'Apptainer Version: '$(apptainer version) || echo 'No apptainer info to display' )"
 fi
 echo "╚══════════════════════════════════════════════════════════════════════════════════════╝"
 
