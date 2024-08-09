@@ -71,6 +71,8 @@ echo "║  Source: https://github.com/Observation-Management-Service/ewms-pilot 
 echo "║  Today:  $(date --rfc-3339=seconds)                                                   ║"  # spacing for command
 echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
 while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(pip show ewms-pilot)"  # pip-supplied info
+echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
+while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(hostnamectl || echo 'no OS info')"  # OS-supplied info
 echo "╚══════════════════════════════════════════════════════════════════════════════════════╝"
 
 echo "Executing command: $@"
