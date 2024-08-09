@@ -2,6 +2,13 @@
 
 
 
+## v0.24.7 (2024-08-09)
+
+###  
+
+* Tweak Task-Container Paths ([`74de89b`](https://github.com/Observation-Management-Service/ewms-pilot/commit/74de89b16d2a76a400a81571967e773635893d6c))
+
+
 ## v0.24.6 (2024-08-09)
 
 ###  
