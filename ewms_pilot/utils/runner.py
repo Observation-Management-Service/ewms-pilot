@@ -150,13 +150,13 @@ class ContainerRunner:
                     image = f"docker://{image}"
                 # name it something that is recognizable -- and put it where there is enough space
                 dir_image = (
-                    f"{ENV._EWMS_PILOT_APPTAINER_WORKDIR}/"
+                    f"{ENV._EWMS_PILOT_APPTAINER_BUILD_WORKDIR}/"
                     f"{image.replace('://', '_').replace('/', '_')}/"
                 )
                 # build (convert)
                 _run(
                     # cd b/c want to *build* in a directory w/ enough space (intermediate files)
-                    f"cd {ENV._EWMS_PILOT_APPTAINER_WORKDIR} && "
+                    f"cd {ENV._EWMS_PILOT_APPTAINER_BUILD_WORKDIR} && "
                     f"apptainer build --sandbox {dir_image} {image}"
                 )
                 LOGGER.info(
