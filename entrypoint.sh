@@ -73,6 +73,12 @@ echo "╠═══════════════════════�
 while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(pip show ewms-pilot)"  # pip-supplied info
 echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
 while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$(hostnamectl || echo 'No OS info to display')"  # OS-supplied info
+echo "╠══════════════════════════════════════════════════════════════════════════════════════╣"
+if [[ $_EWMS_PILOT_CONTAINER_PLATFORM == 'docker' ]]; then
+    while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$( echo -n 'Docker ' && docker version || echo 'No docker info to display')"
+elif [[ $_EWMS_PILOT_CONTAINER_PLATFORM == 'apptainer' ]]; then
+    while read -r i; do printf "║  %-83s ║\n" "$i"; done <<< "$( echo 'Apptainer Version: '$(apptainer version) || echo 'No apptainer info to display')"
+fi
 echo "╚══════════════════════════════════════════════════════════════════════════════════════╝"
 
 echo "Executing command: $@"
