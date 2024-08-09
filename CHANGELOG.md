@@ -2,6 +2,13 @@
 
 
 
+## v0.24.5 (2024-08-09)
+
+###  
+
+* Add Back `--writable-tmpfs` for Task Container (#91) ([`34b9610`](https://github.com/Observation-Management-Service/ewms-pilot/commit/34b9610f0802f5e0ef4a2b3f1414b1cc127a7ca8))
+
+
 ## v0.24.4 (2024-08-08)
 
 ###  
