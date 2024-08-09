@@ -2,6 +2,15 @@
 
 
 
+## v0.24.6 (2024-08-09)
+
+###  
+
+* Use `apptainer build --fix-perms ...` - 2 ([`732bf3d`](https://github.com/Observation-Management-Service/ewms-pilot/commit/732bf3d5b0ed77598f8ac15ca838d20fc04c35e1))
+
+* Use `apptainer build --fix-perms ...` ([`0ff85fd`](https://github.com/Observation-Management-Service/ewms-pilot/commit/0ff85fde96dd92cb9498b2e22e6f31f69c673822))
+
+
 ## v0.24.5 (2024-08-09)
 
 ###  
