@@ -156,7 +156,7 @@ class ContainerRunner:
                 # build (convert)
                 _run(
                     # cd b/c want to *build* in a directory w/ enough space (intermediate files)
-                    f"cd {ENV._EWMS_PILOT_APPTAINER_WORKDIR} && "
+                    f"cd {ENV._EWMS_PILOT_APPTAINER_BUILD_WORKDIR} && "
                     f"apptainer build "
                     f"--fix-perms "
                     f"--sandbox {dir_image} "
