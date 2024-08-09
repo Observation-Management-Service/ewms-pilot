@@ -153,14 +153,14 @@ async def run_init_container(
     await housekeeper.running_init_container()
 
     dirs = DirectoryCatalog(f"init-{uuid.uuid4().hex}")
-    dirs.outputs_on_host.mkdir(parents=True, exist_ok=False)
+    dirs.outputs_on_pilot.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
         init_runner.run_container(
-            dirs.outputs_on_host / "stdoutfile",
-            dirs.outputs_on_host / "stderrfile",
+            dirs.outputs_on_pilot / "stdoutfile",
+            dirs.outputs_on_pilot / "stderrfile",
             dirs.assemble_bind_mounts(external_directories=True),
-            f"--env {INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR}={dirs.pilot_data_hub.in_container}",
+            f"--env {INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR}={dirs.pilot_data_hub.in_task_container}",
         )
     )
     pending = set([task])

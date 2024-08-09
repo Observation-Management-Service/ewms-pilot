@@ -9,7 +9,7 @@ import sys
 from pathlib import Path
 from typing import TextIO
 
-from ..config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR
+from ..config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,8 +44,8 @@ class DirectoryCatalog:
 
     @dc.dataclass
     class _ContainerBindMountDirPair:
-        on_host: Path
-        in_container: Path
+        on_pilot: Path
+        in_task_container: Path
 
     def __init__(self, name: str):
         """Directories are not pre-created; you must `mkdir -p` to use."""
@@ -53,17 +53,17 @@ class DirectoryCatalog:
 
         # for inter-task/init storage: startup data, init container's output, etc.
         self.pilot_data_hub = self._ContainerBindMountDirPair(
-            PILOT_DATA_HUB_DIR,
-            PILOT_DATA_HUB_DIR,
+            PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME,
+            Path(f"/{PILOT_DATA_DIR.name}/{PILOT_DATA_HUB_DIR_NAME}"),
         )
 
         # for persisting stderr and stdout
-        self.outputs_on_host = self._namebased_dir / "outputs"
+        self.outputs_on_pilot = self._namebased_dir / "outputs"
 
         # for message-based task i/o
         self.task_io = self._ContainerBindMountDirPair(
             self._namebased_dir / "task-io",
-            PILOT_DATA_DIR / "task-io",
+            Path(f"/{PILOT_DATA_DIR.name}/task-io"),
         )
 
     def assemble_bind_mounts(
@@ -72,7 +72,7 @@ class DirectoryCatalog:
         task_io: bool = False,
     ) -> str:
         """Get the docker bind mount string containing the wanted directories."""
-        string = f"--mount type=bind,source={self.pilot_data_hub.on_host},target={self.pilot_data_hub.in_container} "
+        string = f"--mount type=bind,source={self.pilot_data_hub.on_pilot},target={self.pilot_data_hub.in_task_container} "
 
         if external_directories:
             string += "".join(
@@ -82,7 +82,7 @@ class DirectoryCatalog:
             )
 
         if task_io:
-            string += f"--mount type=bind,source={self.task_io.on_host},target={self.task_io.in_container} "
+            string += f"--mount type=bind,source={self.task_io.on_pilot},target={self.task_io.in_task_container} "
 
         return string
 

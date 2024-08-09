@@ -27,24 +27,24 @@ async def process_msg_task(
 
     # staging-dir logic -- includes stderr/stdout files (see below)
     dirs = DirectoryCatalog(str(in_msg.uuid))
-    dirs.outputs_on_host.mkdir(parents=True, exist_ok=False)
-    dirs.task_io.on_host.mkdir(parents=True, exist_ok=False)
+    dirs.outputs_on_pilot.mkdir(parents=True, exist_ok=False)
+    dirs.task_io.on_pilot.mkdir(parents=True, exist_ok=False)
 
     # create in/out file *names* -- piggy-back the uuid since it's unique and trackable
     infile_name = f"infile-{in_msg.uuid}.{infile_ext}"
     outfile_name = f"outfile-{in_msg.uuid}.{outfile_ext}"
 
     # do task
-    InFileInterface.write(in_msg, dirs.task_io.on_host / infile_name)
+    InFileInterface.write(in_msg, dirs.task_io.on_pilot / infile_name)
     await task_runner.run_container(
-        dirs.outputs_on_host / "stderrfile",
-        dirs.outputs_on_host / "stdoutfile",
+        dirs.outputs_on_pilot / "stderrfile",
+        dirs.outputs_on_pilot / "stdoutfile",
         dirs.assemble_bind_mounts(external_directories=True, task_io=True),
-        f"--env {INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR}={dirs.pilot_data_hub.in_container}",
-        infile_arg_replacement=str(dirs.task_io.in_container / infile_name),
-        outfile_arg_replacement=str(dirs.task_io.in_container / outfile_name),
+        f"--env {INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR}={dirs.pilot_data_hub.in_task_container}",
+        infile_arg_replacement=str(dirs.task_io.in_task_container / infile_name),
+        outfile_arg_replacement=str(dirs.task_io.in_task_container / outfile_name),
     )
-    out_data = OutFileInterface.read(dirs.task_io.on_host / outfile_name)
+    out_data = OutFileInterface.read(dirs.task_io.on_pilot / outfile_name)
 
     # send
     LOGGER.info("Sending response message...")

@@ -20,7 +20,7 @@ import mqclient as mq
 import pytest
 
 from ewms_pilot import PilotSubprocessError, config, consume_and_reply
-from ewms_pilot.config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR
+from ewms_pilot.config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
 
 logging.getLogger().setLevel(logging.DEBUG)
 logging.getLogger("mqclient").setLevel(logging.INFO)
@@ -980,7 +980,7 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     )
 
     # check init's output
-    with open(PILOT_DATA_HUB_DIR / "initoutput") as f:
+    with open(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME / "initoutput") as f:
         assert f.read().strip() == "hello world!"
 
     # check task stuff
@@ -1036,7 +1036,7 @@ time.sleep({init_timeout})
         )
 
     # check init's output
-    with open(PILOT_DATA_HUB_DIR / "initoutput") as f:
+    with open(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME / "initoutput") as f:
         assert f.read().strip() == "hello world!"
 
 
@@ -1073,7 +1073,7 @@ raise ValueError('no good!')
         )
 
     # check init's output
-    with open(PILOT_DATA_HUB_DIR / "initoutput") as f:
+    with open(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME / "initoutput") as f:
         assert f.read().strip() == "hello world!"
 
 
@@ -1117,7 +1117,7 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     )
 
     # check init's output
-    with open(PILOT_DATA_HUB_DIR / "initoutput") as f:
+    with open(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME / "initoutput") as f:
         assert f.read().strip() == "blue"
 
     # check task stuff

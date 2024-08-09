@@ -149,6 +149,6 @@ ENV = from_environment_as_dataclass(EnvConfig)
 PILOT_DATA_DIR = Path(
     f"{ENV.EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST.rstrip('/')}/ewms-pilot-data"
 )
-PILOT_DATA_HUB_DIR = PILOT_DATA_DIR / "data-hub"
+PILOT_DATA_HUB_DIR_NAME = "data-hub"
 
 INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR = "EWMS_TASK_DATA_HUB_DIR"
