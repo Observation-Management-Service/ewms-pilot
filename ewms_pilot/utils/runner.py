@@ -106,8 +106,8 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
         LOGGER.error(f"Error dumping subprocess output ({stream.name}): {e}")
 
 
-class ContainerRunnerError(Exception):
-    """Exception raised when a container fails to run."""
+class ContainerSetupError(Exception):
+    """Exception raised when a container pull/build fails."""
 
 
 class ContainerRunner:
@@ -141,7 +141,8 @@ class ContainerRunner:
             except subprocess.CalledProcessError as e:
                 print(e.stdout)
                 print(e.stderr, file=sys.stderr)
-                raise ContainerRunnerError(f"{str(e)} [{e.stderr.split('\n')[-1]}]")
+                last_line = e.stderr.split("\n")[-1]
+                raise ContainerSetupError(f"{str(e)} [{last_line}]")
 
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
 
