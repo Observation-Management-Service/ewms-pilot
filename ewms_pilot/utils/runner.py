@@ -224,7 +224,7 @@ class ContainerRunner:
                 cmd = (
                     f"apptainer run "
                     f"--containall "  # don't auto-mount anything
-                    f"--no-eval "  # don't interpret vars
+                    f"--no-eval "  # don't interpret CL args
                     f"{mount_bindings} "
                     f"{env_options} "
                     f"{self.image} {inst_args}"
