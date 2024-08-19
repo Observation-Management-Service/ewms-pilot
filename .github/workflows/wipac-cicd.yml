@@ -179,6 +179,12 @@ jobs:
         with:
           python-version: ${{ matrix.version }}
 
+      - if: ${{ matrix.broker_client == 'rabbitmq' }}
+        uses: jlumbroso/free-disk-space@main
+        with:
+          android: false  # this is a LOT of space, so it takes longer to remove
+          docker-images: false  # we may actually need this one
+
       - if: ${{ matrix.container_platform == 'docker' }}
         name: install sysbox (needed for docker-in-docker)
         run: |
@@ -302,12 +308,7 @@ jobs:
           mkdir -p $(pwd)/cvmfs/dummy-2/dir-B
           echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
           
-          # figure how long to wait between tests
-          if [[ "${{ matrix.broker_client }}" == 'rabbitmq' ]]; then
-              test_offset_delay=20  # rabbitmq on docker gets overwhelmed for some reason
-          else
-              test_offset_delay=5
-          fi
+          test_offset_delay=5
 
           # iterate each test, starting each in its own container
           cat $SORTED_LIST_OF_TESTS_FILE
@@ -339,6 +340,8 @@ jobs:
                   set +x
           
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
+          
+                  # NOTE: we want to mimic how htcondor launches apptainer-enabled EPs
           
                   set -x  # lets see the command
                   temp_dir=$(mktemp -d) && trap 'rm -rf $temp_dir' EXIT  # save disk space
