@@ -340,6 +340,8 @@ jobs:
           
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
           
+                  # NOTE: we want to mimic how htcondor launches apptainer-enabled EPs
+          
                   set -x  # lets see the command
                   temp_dir=$(mktemp -d) && trap 'rm -rf $temp_dir' EXIT  # save disk space
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality

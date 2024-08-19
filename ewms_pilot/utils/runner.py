@@ -223,7 +223,8 @@ class ContainerRunner:
             case "apptainer":
                 cmd = (
                     f"apptainer run "
-                    f"--containall --writable-tmpfs --no-eval "  # gets us close to docker functionality
+                    f"--containall "  # don't auto-mount anything
+                    f"--no-eval "  # don't interpret vars
                     f"{mount_bindings} "
                     f"{env_options} "
                     f"{self.image} {inst_args}"
