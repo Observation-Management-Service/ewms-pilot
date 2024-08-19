@@ -303,8 +303,8 @@ jobs:
           echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
           
           # figure how long to wait between tests
-          if [[ "${{ matrix.broker_client }}" == 'rabbitmq' ]]; then
-              test_offset_delay=20  # rabbitmq on docker gets overwhelmed for some reason
+          if [[ "${{ matrix.container_platform }}" == 'docker' && "${{ matrix.broker_client }}" == 'rabbitmq' ]]; then
+              test_offset_delay=15  # rabbitmq on docker gets overwhelmed for some reason
           else
               test_offset_delay=5
           fi
