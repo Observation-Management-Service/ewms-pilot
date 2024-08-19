@@ -106,6 +106,10 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
         LOGGER.error(f"Error dumping subprocess output ({stream.name}): {e}")
 
 
+class ContainerRunnerError(Exception):
+    """Exception raised when a container fails to run."""
+
+
 class ContainerRunner:
     """A utility class to run a container."""
 
@@ -124,7 +128,20 @@ class ContainerRunner:
 
         def _run(cmd: str):
             LOGGER.info(f"Running command: {cmd}")
-            return subprocess.run(cmd, text=True, check=True, shell=True)
+            try:
+                ret = subprocess.run(
+                    cmd,
+                    capture_output=True,  # redirect stdout & stderr
+                    text=True,  # outputs are strings
+                    check=True,  # raise if error
+                    shell=True,
+                )
+                print(ret.stdout)
+                print(ret.stderr, file=sys.stderr)
+            except subprocess.CalledProcessError as e:
+                print(e.stdout)
+                print(e.stderr, file=sys.stderr)
+                raise ContainerRunnerError(f"{str(e)} [{e.stderr.split('\n')[-1]}]")
 
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
 
