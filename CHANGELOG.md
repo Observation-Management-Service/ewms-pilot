@@ -2,6 +2,19 @@
 
 
 
+## v0.24.8 (2024-08-20)
+
+###  
+
+* Remove `--writable-tmpfs` and Avoid Pitfalls with Overlays (#93) ([`7a9ae2c`](https://github.com/Observation-Management-Service/ewms-pilot/commit/7a9ae2cbb5be5f2bd15dca380aeef731bdc5dd21))
+
+* Update Inner-Container Runner Error Handling - 3 ([`2cdf125`](https://github.com/Observation-Management-Service/ewms-pilot/commit/2cdf12525bc267ac057f2bdabf4cd10145788f1a))
+
+* Update Inner-Container Runner Error Handling - 2 ([`d2bdbce`](https://github.com/Observation-Management-Service/ewms-pilot/commit/d2bdbced09ab398ede49e88e36033b60bb43164a))
+
+* Update Inner-Container Runner Error Handling ([`9f6f39d`](https://github.com/Observation-Management-Service/ewms-pilot/commit/9f6f39d8e3301a9793442d5c150d6e0a92f4fcee))
+
+
 ## v0.24.7 (2024-08-09)
 
 ###  
