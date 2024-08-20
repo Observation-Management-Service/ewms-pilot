@@ -2,6 +2,13 @@
 
 
 
+## v0.24.9 (2024-08-20)
+
+###  
+
+* Fix Chirp Attrs ([`b8d87e5`](https://github.com/Observation-Management-Service/ewms-pilot/commit/b8d87e54d9a3dc67762e6e1dbc02dcaf86389383))
+
+
 ## v0.24.8 (2024-08-20)
 
 ###  

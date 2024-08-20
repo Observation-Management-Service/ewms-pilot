@@ -237,8 +237,6 @@ output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            # infile_type=,
-            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
         ),
     )
@@ -280,8 +278,8 @@ output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".txt",
-            outfile_type=".txt",
+            infile_ext=".txt",
+            outfile_ext=".txt",
             timeout_incoming=TIMEOUT_INCOMING,
         ),
     )
@@ -328,8 +326,8 @@ output={'attr-a':v, 'attr-b':v+v};
 json.dump(output, open('{{OUTFILE}}','w'))" """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".json",
-            outfile_type=".json",
+            infile_ext=".json",
+            outfile_ext=".json",
             timeout_incoming=TIMEOUT_INCOMING,
         ),
     )
@@ -376,8 +374,8 @@ output={'attr-a':v, 'attr-b':v+v};
 json.dump(output, open('{{OUTFILE}}','w'))" """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".json",
-            outfile_type=".json",
+            infile_ext=".json",
+            outfile_ext=".json",
             timeout_incoming=TIMEOUT_INCOMING,
         ),
     )
@@ -440,8 +438,8 @@ outdata = base64.b64encode(pickle.dumps(output)).decode();
 print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            infile_type=".pkl.b64",
-            outfile_type=".pkl.b64",
+            infile_ext=".pkl.b64",
+            outfile_ext=".pkl.b64",
             timeout_incoming=TIMEOUT_INCOMING,
         ),
     )
@@ -490,8 +488,6 @@ async def test_400__exception_quarantine(
                 """python3 -c "raise ValueError('no good!')" """,
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                # infile_type=,
-                # outfile_type=,
                 timeout_incoming=TIMEOUT_INCOMING,
                 quarantine_time=quarantine if quarantine else 0,
             ),
@@ -545,8 +541,6 @@ async def test_420__timeout(
                 """python3 -c "import time; time.sleep(30)" """,
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                # infile_type=,
-                # outfile_type=,
                 timeout_incoming=TIMEOUT_INCOMING,
                 task_timeout=task_timeout,
             ),
@@ -612,8 +606,6 @@ time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            # infile_type=,
-            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             max_concurrent_tasks=MAX_CONCURRENT_TASKS,
@@ -745,8 +737,6 @@ time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
         queue_incoming=queue_incoming,
         queue_outgoing=queue_outgoing,
-        # infile_type=,
-        # outfile_type=,
         timeout_incoming=TIMEOUT_INCOMING,
         prefetch=prefetch,
         max_concurrent_tasks=MAX_CONCURRENT_TASKS,
@@ -806,8 +796,6 @@ print(output, file=open('{{OUTFILE}}','w'))
 raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            # infile_type=,
-            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
             prefetch=prefetch,
             max_concurrent_tasks=MAX_CONCURRENT_TASKS,
@@ -870,8 +858,6 @@ time.sleep("""
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
-                # infile_type=,
-                # outfile_type=,
                 timeout_incoming=timeout_incoming,
             ),
         )
@@ -973,8 +959,6 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            # infile_type=,
-            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
         ),
     )
@@ -1030,8 +1014,6 @@ time.sleep({init_timeout})
             init_timeout=init_timeout,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            # infile_type=,
-            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
         )
 
@@ -1067,8 +1049,6 @@ raise ValueError('no good!')
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            # infile_type=,
-            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
         )
 
@@ -1110,8 +1090,6 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            # infile_type=,
-            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
         ),
     )
@@ -1176,8 +1154,6 @@ assert open(file_two).read().strip() == 'beta'
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
-            # infile_type=,
-            # outfile_type=,
             timeout_incoming=TIMEOUT_INCOMING,
         ),
     )

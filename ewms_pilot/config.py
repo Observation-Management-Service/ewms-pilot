@@ -53,8 +53,8 @@ class EnvConfig:
     EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST: str = ""
 
     # I/O to subprocess -- the file type (extension) of the input/output file from the pilot's task
-    EWMS_PILOT_INFILE_TYPE: str = ".in"  # ''
-    EWMS_PILOT_OUTFILE_TYPE: str = ".out"  # ''
+    EWMS_PILOT_INFILE_EXT: str = ".in"  # ''
+    EWMS_PILOT_OUTFILE_EXT: str = ".out"  # ''
 
     # incoming queue - settings
     EWMS_PILOT_PREFETCH: int = (

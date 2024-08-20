@@ -60,8 +60,8 @@ async def consume_and_reply(
     queue_outgoing_broker_address: str = ENV.EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS,
     #
     # for subprocess
-    infile_type: str = ENV.EWMS_PILOT_INFILE_TYPE,
-    outfile_type: str = ENV.EWMS_PILOT_OUTFILE_TYPE,
+    infile_ext: str = ENV.EWMS_PILOT_INFILE_EXT,
+    outfile_ext: str = ENV.EWMS_PILOT_OUTFILE_EXT,
     #
     # init
     init_image: str = ENV.EWMS_PILOT_INIT_IMAGE,
@@ -116,8 +116,8 @@ async def consume_and_reply(
             #
             in_queue,
             out_queue,
-            FileExtension(infile_type),
-            FileExtension(outfile_type),
+            FileExtension(infile_ext),
+            FileExtension(outfile_ext),
             #
             timeout_wait_for_first_message,
             timeout_incoming,
