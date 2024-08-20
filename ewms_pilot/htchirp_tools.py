@@ -34,41 +34,42 @@ class PilotStatus(enum.Enum):
     Done = enum.auto()
 
 
-HTCHIRP_ATTR_PREFIX = "HTChirpEWMSPilot"
-
-
-class HTChirpEWMSPilotAttr(enum.Enum):
+class HTChirpAttr(enum.Enum):
     """Organized list of attributes for chirping."""
 
-    LastUpdatedTimestamp = enum.auto()  # always overwritten
+    HTChirpEWMSPilotLastUpdatedTimestamp = enum.auto()  # auto-set by backlog
 
-    StartedTimestamp = enum.auto()
-    Status = enum.auto()
+    HTChirpEWMSPilotStartedTimestamp = enum.auto()
+    HTChirpEWMSPilotStatus = enum.auto()
 
-    TasksTotal = enum.auto()
-    PilotTasksFailed = enum.auto()
-    TasksSuccess = enum.auto()
+    HTChirpEWMSPilotTasksTotal = enum.auto()
+    HTChirpEWMSPilotTasksFailed = enum.auto()
+    HTChirpEWMSPilotTasksSuccess = enum.auto()
 
-    PilotError = enum.auto()
-    ErrorTraceback = enum.auto()
+    HTChirpEWMSPilotError = enum.auto()
+    HTChirpEWMSPilotErrorTraceback = enum.auto()
 
 
-def _chirp(ctx: htchirp.HTChirp, _attr: HTChirpEWMSPilotAttr, _val: Any) -> None:
+def _chirp(ctx: htchirp.HTChirp, _attr: HTChirpAttr, _val: Any) -> None:
     """Chirp to either a job attr (default) or the job event log."""
-    LOGGER.info(f"HTChirp -> {_attr.name} = {_val}")
 
+    # Use job log
     if ENV.EWMS_PILOT_HTCHIRP_DEST == "JOB_EVENT_LOG":
         # classad.quote escape new-lines, etc.
-        ctx.ulog(f"{HTCHIRP_ATTR_PREFIX}{_attr.name}: {classad.quote(str(_val))}")
+        job_log_line = f"{_attr.name}: {classad.quote(str(_val))}"
+        LOGGER.info(job_log_line)
+        ctx.ulog(job_log_line)
+    # Use job attribute
     elif ENV.EWMS_PILOT_HTCHIRP_DEST == "JOB_ATTR":
         # condor has built-in types (see below for strs)
         if isinstance(_val, (int, float)):
             # https://htcondor.readthedocs.io/en/latest/classads/classad-mechanism.html#composing-literals
-            ctx.set_job_attr(f"{HTCHIRP_ATTR_PREFIX}{_attr.name}", str(_val))
+            job_attr_val = str(_val)
         else:
-            ctx.set_job_attr(
-                f"{HTCHIRP_ATTR_PREFIX}{_attr.name}", classad.quote(str(_val))
-            )
+            job_attr_val = classad.quote(str(_val))
+        LOGGER.info(job_attr_val)
+        ctx.set_job_attr(_attr.name, job_attr_val)
+    # ???
     else:
         raise ValueError(
             f"Invalid EWMS_PILOT_HTCHIRP_DEST: {ENV.EWMS_PILOT_HTCHIRP_DEST}"
@@ -80,7 +81,7 @@ class Chirper:
 
     def __init__(self) -> None:
         self._conn = None
-        self._backlog: dict[HTChirpEWMSPilotAttr, Any] = {}
+        self._backlog: dict[HTChirpAttr, Any] = {}
         self._last_backlog_time = 0.0
 
     def _get_conn(self) -> htchirp.HTChirp:
@@ -144,11 +145,11 @@ class Chirper:
             return
 
         # set HTChirpEWMSPilotLastUpdatedTimestamp & verify backlog
-        self._backlog.pop(HTChirpEWMSPilotAttr.LastUpdatedTimestamp, None)
+        self._backlog.pop(HTChirpAttr.HTChirpEWMSPilotLastUpdatedTimestamp, None)
         if not self._backlog:
             return  # nothing to chirp
         now = int(time.time())
-        self._backlog[HTChirpEWMSPilotAttr.LastUpdatedTimestamp] = now
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotLastUpdatedTimestamp] = now
 
         # chirp it all
         try:
@@ -166,9 +167,11 @@ class Chirper:
     def chirp_status(self, status: PilotStatus) -> None:
         """Invoke HTChirp, AKA send a status message to Condor."""
         if status == PilotStatus.Started:
-            self._backlog[HTChirpEWMSPilotAttr.StartedTimestamp] = int(time.time())
+            self._backlog[HTChirpAttr.HTChirpEWMSPilotStartedTimestamp] = int(
+                time.time()
+            )
 
-        self._backlog[HTChirpEWMSPilotAttr.Status] = status.name
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotStatus] = status.name
         self.chirp_backlog()
 
     def chirp_new_total(self, total: int) -> None:
@@ -180,7 +183,7 @@ class Chirper:
             # total can only increase -> can be inferred total=0 if attr is absent
             return
 
-        self._backlog[HTChirpEWMSPilotAttr.TasksTotal] = total
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksTotal] = total
         self.chirp_backlog(is_rate_limited=True)
 
     def chirp_new_success_total(self, total: int) -> None:
@@ -192,7 +195,7 @@ class Chirper:
             # total can only increase -> can be inferred total=0 if attr is absent
             return
 
-        self._backlog[HTChirpEWMSPilotAttr.TasksSuccess] = total
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksSuccess] = total
         self.chirp_backlog(is_rate_limited=True)
 
     def chirp_new_failed_total(self, total: int) -> None:
@@ -204,7 +207,7 @@ class Chirper:
             # total can only increase -> can be inferred total=0 if attr is absent
             return
 
-        self._backlog[HTChirpEWMSPilotAttr.PilotTasksFailed] = total
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotTasksFailed] = total
         self.chirp_backlog(is_rate_limited=True)
 
     def initial_chirp(self) -> None:
@@ -214,7 +217,7 @@ class Chirper:
     def error_chirp(self, exception: Exception) -> None:
         """Send a Condor Chirp signalling that processing ran into an error."""
         str_error = f"{type(exception).__name__}: {exception}"
-        self._backlog[HTChirpEWMSPilotAttr.PilotError] = str_error
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotError] = str_error
 
         if sys.version_info >= (3, 10):
             str_traceback = "".join(traceback.format_exception(exception))
@@ -225,7 +228,7 @@ class Chirper:
             else:
                 exc_info = sys.exc_info()
             str_traceback = "".join(traceback.format_exception(*exc_info))
-        self._backlog[HTChirpEWMSPilotAttr.ErrorTraceback] = str_traceback
+        self._backlog[HTChirpAttr.HTChirpEWMSPilotErrorTraceback] = str_traceback
 
         self.chirp_backlog()
 
