@@ -2,6 +2,17 @@
 
 
 
+## v0.24.10 (2024-08-29)
+
+###  
+
+* &lt;bot&gt; update dependencies*.log files(s) ([`bb3d370`](https://github.com/Observation-Management-Service/ewms-pilot/commit/bb3d37018dcc7eee7ceb971e46d6b669d21fe8db))
+
+* Merge remote-tracking branch &#39;origin/main&#39; ([`683ac55`](https://github.com/Observation-Management-Service/ewms-pilot/commit/683ac55e97ce8592276583522e429045ace01487))
+
+* Update README &amp; Rename Extension Env Vars ([`0f01079`](https://github.com/Observation-Management-Service/ewms-pilot/commit/0f010793b855621e0fef0f1960558b344f86dbd1))
+
+
 ## v0.24.9 (2024-08-20)
 
 ###  
