@@ -1256,6 +1256,10 @@ async def test_6000__task_env_vars(
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
+    # set the env vars -- this will work fine as long as there is no immediate processing in package (like dataclass's __post_init__)
+    ENV.EWMS_PILOT_INIT_ENV_JSON = json.dumps({"INIT_FOO": "BOT", "INIT_BAZ": 99})
+    ENV.EWMS_PILOT_TASK_ENV_JSON = json.dumps({"FOO": "BAR", "BAZ": 100})
+
     # run producer & consumer concurrently
     await asyncio.gather(
         populate_queue(
