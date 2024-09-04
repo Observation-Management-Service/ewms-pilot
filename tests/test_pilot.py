@@ -8,9 +8,7 @@ import os
 import pickle
 import re
 import time
-import uuid
 from datetime import date, timedelta
-from pathlib import Path
 from pprint import pprint
 from typing import List, Optional
 from unittest.mock import patch
@@ -36,17 +34,6 @@ MSGS_TO_SUBPROC = ["item" + str(i) for i in range(30)]
 def queue_incoming() -> str:
     """Get the name of a queue for talking to client(s)."""
     return mq.Queue.make_name()
-
-
-@pytest.fixture
-def unique_pwd() -> None:
-    """Create unique directory and cd to it.
-
-    Enables tests to be ran in parallel without file conflicts.
-    """
-    root = Path(uuid.uuid4().hex)
-    root.mkdir()
-    os.chdir(root)
 
 
 @pytest.fixture
@@ -166,7 +153,6 @@ TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
     config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq",
     reason="test is only for rabbitmq tests",
 )
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize(
     "refresh_interval_rabbitmq_heartbeat_interval",
     [
