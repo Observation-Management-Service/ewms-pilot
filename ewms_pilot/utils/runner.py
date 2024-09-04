@@ -127,6 +127,7 @@ class ContainerRunner:
         self.image = self._prepull_image(image)
 
         if env := json.loads(env_json):
+            LOGGER.debug(f"Validating env: {env}")
             if not isinstance(env, dict) and not all(
                 isinstance(k, str) and isinstance(v, (str | int))
                 for k, v in env.items()
