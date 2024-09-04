@@ -6,6 +6,7 @@ import logging
 import mqclient as mq
 from mqclient.broker_client_interface import Message
 
+from .io import NoTaskResponseException
 from ..utils.utils import all_task_errors_string
 
 LOGGER = logging.getLogger(__name__)
@@ -56,6 +57,9 @@ async def wait_on_tasks_with_ack(
     for task in done:
         try:
             result = await task
+        except NoTaskResponseException:
+            LOGGER.info("TASK FINISHED -- no message to send.")
+            continue
         except Exception as e:
             LOGGER.exception(e)
             # FAILED TASK!

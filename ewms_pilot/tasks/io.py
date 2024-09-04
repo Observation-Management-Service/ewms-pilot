@@ -74,6 +74,10 @@ class InFileInterface:
             )
 
 
+class NoTaskResponseException(Exception):
+    """Raised when the task doesn't produce an outfile.'"""
+
+
 class OutFileInterface:
     """Support reading an outfile for use in a message."""
 
@@ -81,7 +85,7 @@ class OutFileInterface:
     def read(cls, fpath: Path) -> Any:
         """Read and return contents of `fpath`."""
         if not fpath.exists():
-            raise FileNotFoundError(f"Outfile was not found: {fpath}")
+            raise NoTaskResponseException(f"Outfile was not found: {fpath}")
 
         LOGGER.info(f"OUTFILE :: {fpath} ({fpath.stat().st_size} bytes)")
         data = cls._read(fpath)
