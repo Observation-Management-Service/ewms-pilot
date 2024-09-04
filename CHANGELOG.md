@@ -2,6 +2,13 @@
 
 
 
+## v0.25.0 (2024-09-04)
+
+### [minor]
+
+* Okay for Task to Not Produce Response Message/Event [minor] (#95) ([`06d246f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/06d246f7c05e839342e5fa66ff4a80300df25d32))
+
+
 ## v0.24.10 (2024-08-29)
 
 ###  
