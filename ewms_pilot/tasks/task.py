@@ -5,7 +5,12 @@ from typing import Any
 
 from mqclient.broker_client_interface import Message
 
-from .io import FileExtension, InFileInterface, OutFileInterface
+from .io import (
+    FileExtension,
+    InFileInterface,
+    NoTaskResponseException,
+    OutFileInterface,
+)
 from ..config import (
     ENV,
     INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR,
@@ -44,13 +49,14 @@ async def process_msg_task(
         infile_arg_replacement=str(dirs.task_io.in_task_container / infile_name),
         outfile_arg_replacement=str(dirs.task_io.in_task_container / outfile_name),
     )
-    out_data = OutFileInterface.read(dirs.task_io.on_pilot / outfile_name)
 
-    # send
-    LOGGER.info("Sending response message...")
-
-    # cleanup -- on success only
-    if not ENV.EWMS_PILOT_KEEP_ALL_TASK_FILES:
-        dirs.rm_unique_dirs()
-
-    return out_data
+    # get outfile response
+    try:
+        return OutFileInterface.read(dirs.task_io.on_pilot / outfile_name)
+    except NoTaskResponseException as e:
+        LOGGER.info(str(e))
+        raise  # don't return `None` b/c that could be a valid response value
+    # cleanup
+    finally:
+        if not ENV.EWMS_PILOT_KEEP_ALL_TASK_FILES:
+            dirs.rm_unique_dirs()
