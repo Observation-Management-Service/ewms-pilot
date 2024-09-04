@@ -1257,8 +1257,13 @@ async def test_6000__task_env_vars(
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     # set the env vars -- this will work fine as long as there is no immediate processing in package (like dataclass's __post_init__)
-    ENV.EWMS_PILOT_INIT_ENV_JSON = json.dumps({"INIT_FOO": "BOT", "INIT_BAZ": 99})
-    ENV.EWMS_PILOT_TASK_ENV_JSON = json.dumps({"FOO": "BAR", "BAZ": 100})
+    # use object.__setattr__ b/c dataclass is frozen
+    object.__setattr__(
+        ENV, "EWMS_PILOT_INIT_ENV_JSON", json.dumps({"INIT_FOO": "BOT", "INIT_BAZ": 99})
+    )
+    object.__setattr__(
+        ENV, "EWMS_PILOT_TASK_ENV_JSON", json.dumps({"FOO": "BAR", "BAZ": 100})
+    )
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -1271,7 +1276,7 @@ async def test_6000__task_env_vars(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 output = open('{{INFILE}}').read().strip() * 2;
-assert os.environ['FOO'] == 'BAR' 
+assert os.environ['FOO'] == 'BAR'
 assert os.environ['BAZ'] == '100'
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
@@ -1279,7 +1284,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_args="""python3 -c "
 import os
 os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
-assert os.environ['INIT_FOO'] == 'BOT' 
+assert os.environ['INIT_FOO'] == 'BOT'
 assert os.environ['INIT_BAZ'] == '99'
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
