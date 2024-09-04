@@ -199,7 +199,6 @@ async def test_1000__heartbeat_workaround__rabbitmq_only(
         ),
     ],
 )
-@pytest.mark.usefixtures("unique_pwd")
 async def test_000(
     image_envvar: str,
     queue_incoming: str,
