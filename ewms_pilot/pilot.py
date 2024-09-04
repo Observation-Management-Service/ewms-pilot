@@ -10,7 +10,7 @@ import mqclient as mq
 from . import htchirp_tools
 from .config import (
     ENV,
-    INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR,
+    InTaskContainerEnvVarNames,
     REFRESH_INTERVAL,
 )
 from .housekeeping import Housekeeping
@@ -160,7 +160,7 @@ async def run_init_container(
             dirs.outputs_on_pilot / "stdoutfile",
             dirs.outputs_on_pilot / "stderrfile",
             dirs.assemble_bind_mounts(external_directories=True),
-            f"--env {INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR}={dirs.pilot_data_hub.in_task_container}",
+            f"--env {InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name}={dirs.pilot_data_hub.in_task_container}",
         )
     )
     pending = set([task])
