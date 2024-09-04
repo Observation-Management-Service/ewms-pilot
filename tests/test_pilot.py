@@ -1173,3 +1173,44 @@ assert open(file_two).read().strip() == 'beta'
         [],
         has_init_cmd_subdir=True,
     )
+
+
+########################################################################################
+
+
+async def test_4000__no_output_ok(
+    queue_incoming: str,
+    queue_outgoing: str,
+) -> None:
+    """Test a pilot with no outfile."""
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
+        ),
+        consume_and_reply(
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
+            "sleep .1",
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
+    )
+
+    await assert_results(queue_outgoing, [])
+    assert_pilot_dirs(
+        len(msgs_to_subproc),
+        [
+            "task-io/infile-{UUID}.in",
+            # "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
+        ],
+    )
