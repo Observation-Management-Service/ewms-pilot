@@ -233,7 +233,7 @@ class ContainerRunner:
 
         # assemble env strings
         env_options = " ".join(
-            f"--env {var}={shlex.quote(val)}"
+            f"--env {var}={shlex.quote(str(val))}"
             for var, val in (self.env | env_as_dict).items()
             # in case of key conflicts, choose the vals specific to this run
         )

@@ -1223,7 +1223,7 @@ async def test_5000__io_from_envvars(
     queue_incoming: str,
     queue_outgoing: str,
 ) -> None:
-    """Test a normal pilot."""
+    """Test a pilot that gets io filepaths from env vars."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
@@ -1239,6 +1239,52 @@ async def test_5000__io_from_envvars(
             """python3 -c "
 import os
 output = open(os.environ['EWMS_TASK_INFILE']).read().strip() * 2;
+print(output, file=open(os.environ['EWMS_TASK_OUTFILE'],'w'))" """,  # double cat
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
+    )
+
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
+    assert_pilot_dirs(
+        len(msgs_outgoing_expected),
+        [
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
+        ],
+    )
+
+
+########################################################################################
+
+
+async def test_6000__task_env_vars(
+    queue_incoming: str,
+    queue_outgoing: str,
+) -> None:
+    """Test a pilot that reads env vars that are defined for the task by the user."""
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
+        ),
+        consume_and_reply(
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
+            """python3 -c "
+import os
+output = open(os.environ['EWMS_TASK_INFILE']).read().strip() * 2;
+assert os.environ['FOO'] == 'BAR' 
+assert os.environ['BAZ'] == '100' 
 print(output, file=open(os.environ['EWMS_TASK_OUTFILE'],'w'))" """,  # double cat
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
