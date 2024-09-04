@@ -2,7 +2,9 @@
 
 import asyncio
 import dataclasses as dc
+import json
 import logging
+import shlex
 import shutil
 import subprocess
 import sys
@@ -107,16 +109,35 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
 
 
 class ContainerSetupError(Exception):
-    """Exception raised when a container pull/build fails."""
+    """Exception raised when a container pre-run actions fail."""
 
 
 class ContainerRunner:
     """A utility class to run a container."""
 
-    def __init__(self, image: str, args: str, timeout: int | None):
+    def __init__(
+        self,
+        image: str,
+        args: str,
+        timeout: int | None,
+        env_json: str,
+    ) -> None:
         self.args = args
         self.timeout = timeout
         self.image = self._prepull_image(image)
+
+        if env := json.loads(env_json):
+            LOGGER.debug(f"Validating env: {env}")
+            if not isinstance(env, dict) and not all(
+                isinstance(k, str) and isinstance(v, (str | int))
+                for k, v in env.items()
+            ):
+                raise ContainerSetupError(
+                    "container's env must be a string-dictionary of strings or ints"
+                )
+        else:
+            env = {}
+        self.env = env
 
     @staticmethod
     def _prepull_image(image: str) -> str:
@@ -196,7 +217,7 @@ class ContainerRunner:
         stdoutfile: Path,
         stderrfile: Path,
         mount_bindings: str,
-        env_options: str,
+        env_as_dict: dict,
         infile_arg_replacement: str = "",
         outfile_arg_replacement: str = "",
     ) -> None:
@@ -209,6 +230,13 @@ class ContainerRunner:
             inst_args = inst_args.replace("{{INFILE}}", infile_arg_replacement)
         if outfile_arg_replacement:
             inst_args = inst_args.replace("{{OUTFILE}}", outfile_arg_replacement)
+
+        # assemble env strings
+        env_options = " ".join(
+            f"--env {var}={shlex.quote(str(val))}"
+            for var, val in (self.env | env_as_dict).items()
+            # in case of key conflicts, choose the vals specific to this run
+        )
 
         # assemble command
         # NOTE: don't add to mount_bindings (WYSIWYG); also avoid intermediate structures

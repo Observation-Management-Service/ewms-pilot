@@ -8,9 +8,9 @@ An Event-Task Pilot for EWMS
 
 The EWMS Pilot is a non-user-facing wrapper for task container instances in the Event Workflow Management System (EWMS), running on an HTCondor Execution Point (EP). The pilot:
 
-- **Triggers** task instances for each inbound event.
-- **Interfaces** with EWMS events as input/output files.
-- **Isolates** [task containers](#task-container) from one another.
+- **Triggers task instances** for each inbound event.
+- **Interfaces with EWMS events** as input/output files.
+- **Isolates [task containers](#task-container)** from one another.
 - **Provides fault tolerance** for failed tasks, CPUs, etc.
 
 The following outlines what users need to know to operate within EWMS.
@@ -19,22 +19,30 @@ The following outlines what users need to know to operate within EWMS.
 
 The Pilot is designed to be invisible to users. However, some key details are necessary for running a [task container](#task-container):
 
-### Event I/O
+### Task Container Overview
+
+A **[task container](#task-container)** is created for each inbound event, it is defined by its image, arguments, and environment variables. See the [WMS docs](https://github.com/Observation-Management-Service/ewms-workflow-management-service#the-task-container) for information on setting these within EWMS.
+
+#### Event I/O
 
 An **input event** is provided to the task container as a file. The task container creates an **output event** by writing to a predetermined location.
 
 The pilot provides the filepaths to the input and output files in two ways:
 
-1. by replacing the placeholder strings, `{{INFILE}}` and `{{OUTFILE}}`, in the `image_args` of the task directive.
-2. by setting the task container's environment variables `EWMS_TASK_INFILE` and `EWMS_TASK_OUTFILE`.
+1. By replacing the placeholder strings, `{{INFILE}}` and `{{OUTFILE}}`, in the container's arguments at runtime.
+2. By setting the task container's environment variables `EWMS_TASK_INFILE` and `EWMS_TASK_OUTFILE`.
 
 The files' extensions are configured by the pilot's environment variables, `EWMS_PILOT_INFILE_EXT` and `EWMS_PILOT_OUTFILE_EXT`: by default, these are `.in` and `.out`, respectively.
 
 No other event or [message](#message-queue) handling is required by the task container.
 
+### The Init Container
+
+An **init container** is an optional, user-supplied image used to set up the environment, wait for conditions, or perform other preparatory actions before running task containers. It is configured using the `EWMS_PILOT_INIT_IMAGE`, `EWMS_PILOT_INIT_ARGS`, and `EWMS_PILOT_INIT_ENV_JSON` environment variables.
+
 ### File I/O
 
-Task containers can interact with external files in two ways:
+Task containers (and [init containers](#the-init-container)) can interact with external files in two ways:
 
 #### Inter-Task Files
 
@@ -43,15 +51,10 @@ To transfer files between task containers, a shared directory is available to al
 **Note**:
 
 - The data hub directory is writable, but there is no protection against race conditions for parallelized tasks.
-- This directory is also available to the [init container](#the-init-container).
 
 #### External Files
 
 Externally-mounted directories are supported in EWMS. See the [WMS documentation](https://github.com/Observation-Management-Service/ewms-workflow-management-service#task-file-io) for more details.
-
-### The Init Container
-
-An **init container** is an optional, user-supplied image used to set up the environment, wait for conditions, or perform other preparatory actions before running task containers. It is configured using the `EWMS_PILOT_INIT_IMAGE` and `EWMS_PILOT_INIT_ARGS` environment variables.
 
 ## EWMS Glossary Applied to the Pilot
 

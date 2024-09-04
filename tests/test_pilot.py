@@ -8,9 +8,7 @@ import os
 import pickle
 import re
 import time
-import uuid
 from datetime import date, timedelta
-from pathlib import Path
 from pprint import pprint
 from typing import List, Optional
 from unittest.mock import patch
@@ -36,17 +34,6 @@ MSGS_TO_SUBPROC = ["item" + str(i) for i in range(30)]
 def queue_incoming() -> str:
     """Get the name of a queue for talking to client(s)."""
     return mq.Queue.make_name()
-
-
-@pytest.fixture
-def unique_pwd() -> None:
-    """Create unique directory and cd to it.
-
-    Enables tests to be ran in parallel without file conflicts.
-    """
-    root = Path(uuid.uuid4().hex)
-    root.mkdir()
-    os.chdir(root)
 
 
 @pytest.fixture
@@ -166,7 +153,6 @@ TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
     config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq",
     reason="test is only for rabbitmq tests",
 )
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize(
     "refresh_interval_rabbitmq_heartbeat_interval",
     [
@@ -213,7 +199,6 @@ async def test_1000__heartbeat_workaround__rabbitmq_only(
         ),
     ],
 )
-@pytest.mark.usefixtures("unique_pwd")
 async def test_000(
     image_envvar: str,
     queue_incoming: str,
@@ -255,7 +240,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_001__txt__str_filetype(
     queue_incoming: str,
     queue_outgoing: str,
@@ -298,7 +282,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_100__json__objects(
     queue_incoming: str,
     queue_outgoing: str,
@@ -346,7 +329,6 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_101__json__preserialized(
     queue_incoming: str,
     queue_outgoing: str,
@@ -394,7 +376,6 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_200__pkl_b64(
     queue_incoming: str,
     queue_outgoing: str,
@@ -458,7 +439,6 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("quarantine", [None, 20])
 async def test_400__exception_quarantine(
     queue_incoming: str,
@@ -511,7 +491,6 @@ async def test_400__exception_quarantine(
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_420__timeout(
     queue_incoming: str,
     queue_outgoing: str,
@@ -577,7 +556,6 @@ PREFETCH_TEST_PARAMETERS = sorted(
 )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_500__concurrent_load_max_concurrent_tasks(
     queue_incoming: str,
@@ -635,7 +613,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     delay=1,
     condition=config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE == "rabbitmq",
 )
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     queue_incoming: str,
@@ -709,7 +686,6 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_520__preload_max_concurrent_tasks(
     queue_incoming: str,
@@ -759,7 +735,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_530__preload_max_concurrent_tasks_exceptions(
     queue_incoming: str,
@@ -927,7 +902,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 ########################################################################################
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_2000_init(
     queue_incoming: str,
     queue_outgoing: str,
@@ -1057,7 +1031,6 @@ raise ValueError('no good!')
         assert f.read().strip() == "hello world!"
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_2010_init__use_in_task(
     queue_incoming: str,
     queue_outgoing: str,
@@ -1118,7 +1091,6 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
 ########################################################################################
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_3000_external_directories(
     queue_incoming: str,
     queue_outgoing: str,
@@ -1223,7 +1195,7 @@ async def test_5000__io_from_envvars(
     queue_incoming: str,
     queue_outgoing: str,
 ) -> None:
-    """Test a normal pilot."""
+    """Test a pilot that gets io filepaths from env vars."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
@@ -1257,4 +1229,76 @@ print(output, file=open(os.environ['EWMS_TASK_OUTFILE'],'w'))" """,  # double ca
             "outputs/stdoutfile",
             "outputs/",
         ],
+    )
+
+    ########################################################################################
+
+
+async def test_6000__task_env_vars(
+    queue_incoming: str,
+    queue_outgoing: str,
+) -> None:
+    """Test a pilot that reads env vars that are defined for the task by the user."""
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+
+    # set the env vars -- this will work fine as long as there is no immediate processing in package (like dataclass's __post_init__)
+    # use object.__setattr__ b/c dataclass is frozen
+    object.__setattr__(
+        ENV, "EWMS_PILOT_INIT_ENV_JSON", json.dumps({"INIT_FOO": "BOT", "INIT_BAZ": 99})
+    )
+    object.__setattr__(
+        ENV, "EWMS_PILOT_TASK_ENV_JSON", json.dumps({"FOO": "BAR", "BAZ": 100})
+    )
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
+        ),
+        consume_and_reply(
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
+            """python3 -c "
+import os
+output = open('{{INFILE}}').read().strip() * 2;
+assert os.environ['FOO'] == 'BAR'
+assert os.environ['BAZ'] == '100'
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            #
+            init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
+            init_args="""python3 -c "
+import os
+os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
+assert os.environ['INIT_FOO'] == 'BOT'
+assert os.environ['INIT_BAZ'] == '99'
+with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
+    print('writing hello world to a file...')
+    print('hello world!', file=f)
+" """,
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
+    )
+
+    # check init's output
+    with open(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME / "initoutput") as f:
+        assert f.read().strip() == "hello world!"
+
+    # check task stuff
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
+    assert_pilot_dirs(
+        len(msgs_outgoing_expected),
+        [
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
+        ],
+        ["initoutput"],
+        has_init_cmd_subdir=True,
     )
