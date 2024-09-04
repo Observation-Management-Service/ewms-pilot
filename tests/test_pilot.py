@@ -240,7 +240,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_001__txt__str_filetype(
     queue_incoming: str,
     queue_outgoing: str,
@@ -283,7 +282,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_100__json__objects(
     queue_incoming: str,
     queue_outgoing: str,
@@ -331,7 +329,6 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_101__json__preserialized(
     queue_incoming: str,
     queue_outgoing: str,
@@ -379,7 +376,6 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_200__pkl_b64(
     queue_incoming: str,
     queue_outgoing: str,
@@ -443,7 +439,6 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("quarantine", [None, 20])
 async def test_400__exception_quarantine(
     queue_incoming: str,
@@ -496,7 +491,6 @@ async def test_400__exception_quarantine(
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_420__timeout(
     queue_incoming: str,
     queue_outgoing: str,
@@ -562,7 +556,6 @@ PREFETCH_TEST_PARAMETERS = sorted(
 )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_500__concurrent_load_max_concurrent_tasks(
     queue_incoming: str,
@@ -620,7 +613,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     delay=1,
     condition=config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE == "rabbitmq",
 )
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     queue_incoming: str,
@@ -694,7 +686,6 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_520__preload_max_concurrent_tasks(
     queue_incoming: str,
@@ -744,7 +735,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
-@pytest.mark.usefixtures("unique_pwd")
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
 async def test_530__preload_max_concurrent_tasks_exceptions(
     queue_incoming: str,
@@ -912,7 +902,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 ########################################################################################
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_2000_init(
     queue_incoming: str,
     queue_outgoing: str,
@@ -1042,7 +1031,6 @@ raise ValueError('no good!')
         assert f.read().strip() == "hello world!"
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_2010_init__use_in_task(
     queue_incoming: str,
     queue_outgoing: str,
@@ -1103,7 +1091,6 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
 ########################################################################################
 
 
-@pytest.mark.usefixtures("unique_pwd")
 async def test_3000_external_directories(
     queue_incoming: str,
     queue_outgoing: str,
