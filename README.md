@@ -21,7 +21,14 @@ The Pilot is designed to be invisible to users. However, some key details are ne
 
 ### Event I/O
 
-An **input event** is provided to the task container as a file. The pilot injects the file path by replacing the string `{{INFILE}}` in the `image_args` of the task directive. Similarly, the task container creates an **output event** by writing to the file path given by `{{OUTFILE}}`. The file extensions are defined by environment variables `EWMS_PILOT_INFILE_EXT` and `EWMS_PILOT_OUTFILE_EXT`: by default, these are `.in` and `.out`, respectively.
+An **input event** is provided to the task container as a file. The task container creates an **output event** by writing to a predetermined location.
+
+The pilot provides the filepaths to the input and output files in two ways:
+
+1. by replacing the placeholder strings, `{{INFILE}}` and `{{OUTFILE}}`, in the `image_args` of the task directive.
+2. by setting the task container's environment variables `EWMS_TASK_INFILE` and `EWMS_TASK_OUTFILE`.
+
+The files' extensions are configured by the pilot's environment variables, `EWMS_PILOT_INFILE_EXT` and `EWMS_PILOT_OUTFILE_EXT`: by default, these are `.in` and `.out`, respectively.
 
 No other event or [message](#message-queue) handling is required by the task container.
 
