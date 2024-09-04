@@ -1259,8 +1259,7 @@ print(output, file=open(os.environ['EWMS_TASK_OUTFILE'],'w'))" """,  # double ca
         ],
     )
 
-
-########################################################################################
+    ########################################################################################
 
 
 async def test_6000__task_env_vars(
@@ -1281,17 +1280,32 @@ async def test_6000__task_env_vars(
         consume_and_reply(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
-import os
-output = open(os.environ['EWMS_TASK_INFILE']).read().strip() * 2;
+output = open('{{INFILE}}').read().strip() * 2;
 assert os.environ['FOO'] == 'BAR' 
-assert os.environ['BAZ'] == '100' 
-print(output, file=open(os.environ['EWMS_TASK_OUTFILE'],'w'))" """,  # double cat
+assert os.environ['BAZ'] == '100'
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            #
+            init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
+            init_args="""python3 -c "
+import os
+os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
+assert os.environ['INIT_FOO'] == 'BOT' 
+assert os.environ['INIT_BAZ'] == '99'
+with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
+    print('writing hello world to a file...')
+    print('hello world!', file=f)
+" """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             timeout_incoming=TIMEOUT_INCOMING,
         ),
     )
 
+    # check init's output
+    with open(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME / "initoutput") as f:
+        assert f.read().strip() == "hello world!"
+
+    # check task stuff
     await assert_results(queue_outgoing, msgs_outgoing_expected)
     assert_pilot_dirs(
         len(msgs_outgoing_expected),
@@ -1303,4 +1317,6 @@ print(output, file=open(os.environ['EWMS_TASK_OUTFILE'],'w'))" """,  # double ca
             "outputs/stdoutfile",
             "outputs/",
         ],
+        ["initoutput"],
+        has_init_cmd_subdir=True,
     )
