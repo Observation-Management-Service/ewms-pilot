@@ -85,7 +85,12 @@ async def consume_and_reply(
         # Init command
         if init_image:
             await run_init_container(
-                ContainerRunner(init_image, init_args, init_timeout),
+                ContainerRunner(
+                    init_image,
+                    init_args,
+                    init_timeout,
+                    ENV.EWMS_PILOT_INIT_ENV_JSON,
+                ),
                 housekeeper,
             )
 
@@ -108,7 +113,12 @@ async def consume_and_reply(
             # timeout=timeout_outgoing,  # no timeout needed b/c this queue is only for pub
         )
 
-        task_runner = ContainerRunner(task_image, task_args, task_timeout)
+        task_runner = ContainerRunner(
+            task_image,
+            task_args,
+            task_timeout,
+            ENV.EWMS_PILOT_TASK_ENV_JSON,
+        )
 
         # MQ tasks
         await _consume_and_reply(
@@ -160,7 +170,9 @@ async def run_init_container(
             dirs.outputs_on_pilot / "stdoutfile",
             dirs.outputs_on_pilot / "stderrfile",
             dirs.assemble_bind_mounts(external_directories=True),
-            f"--env {InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name}={dirs.pilot_data_hub.in_task_container}",
+            {
+                InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name: dirs.pilot_data_hub.in_task_container,
+            },
         )
     )
     pending = set([task])

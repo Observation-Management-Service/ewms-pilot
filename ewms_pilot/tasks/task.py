@@ -47,11 +47,11 @@ async def process_msg_task(
         dirs.outputs_on_pilot / "stderrfile",
         dirs.outputs_on_pilot / "stdoutfile",
         dirs.assemble_bind_mounts(external_directories=True, task_io=True),
-        (
-            f"--env {InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name}={dirs.pilot_data_hub.in_task_container} "
-            f"--env {InTaskContainerEnvVarNames.EWMS_TASK_INFILE.name}={in_container_infile} "
-            f"--env {InTaskContainerEnvVarNames.EWMS_TASK_OUTFILE.name}={in_container_outfile} "
-        ),
+        {
+            InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name: dirs.pilot_data_hub.in_task_container,
+            InTaskContainerEnvVarNames.EWMS_TASK_INFILE.name: in_container_infile,
+            InTaskContainerEnvVarNames.EWMS_TASK_OUTFILE.name: in_container_outfile,
+        },
         infile_arg_replacement=in_container_infile,
         outfile_arg_replacement=in_container_outfile,
     )

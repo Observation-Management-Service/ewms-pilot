@@ -30,10 +30,12 @@ class EnvConfig:
     # task
     EWMS_PILOT_TASK_IMAGE: str = ""  # the image to run for each task
     EWMS_PILOT_TASK_ARGS: str = ""  # the args to run with the task container
+    EWMS_PILOT_TASK_ENV_JSON: str = "{}"  # json dump of env variables + values to set
 
     # init
     EWMS_PILOT_INIT_IMAGE: str = ""  # the image to run once before processing any tasks
     EWMS_PILOT_INIT_ARGS: str = ""  # the args to run with the init container
+    EWMS_PILOT_INIT_ENV_JSON: str = "{}"  # json dump of env variables + values to set
 
     # incoming queue
     EWMS_PILOT_QUEUE_INCOMING: str = ""  # name of the incoming queue
