@@ -1,6 +1,7 @@
 """Configuration constants."""
 
 import dataclasses as dc
+import enum
 import logging
 import os
 from pathlib import Path
@@ -151,4 +152,10 @@ PILOT_DATA_DIR = Path(
 )
 PILOT_DATA_HUB_DIR_NAME = "data-hub"
 
-INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR = "EWMS_TASK_DATA_HUB_DIR"
+
+class InTaskContainerEnvVarNames(enum.Enum):
+    """The names of environment variables that are injected into the task container."""
+
+    EWMS_TASK_DATA_HUB_DIR = enum.auto()
+    EWMS_TASK_INFILE = enum.auto()
+    EWMS_TASK_OUTFILE = enum.auto()

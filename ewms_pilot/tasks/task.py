@@ -13,7 +13,7 @@ from .io import (
 )
 from ..config import (
     ENV,
-    INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR,
+    InTaskContainerEnvVarNames,
 )
 from ..utils.runner import ContainerRunner, DirectoryCatalog
 
@@ -41,13 +41,19 @@ async def process_msg_task(
 
     # do task
     InFileInterface.write(in_msg, dirs.task_io.on_pilot / infile_name)
+    in_container_infile = str(dirs.task_io.in_task_container / infile_name)
+    in_container_outfile = str(dirs.task_io.in_task_container / outfile_name)
     await task_runner.run_container(
         dirs.outputs_on_pilot / "stderrfile",
         dirs.outputs_on_pilot / "stdoutfile",
         dirs.assemble_bind_mounts(external_directories=True, task_io=True),
-        f"--env {INCONTAINER_ENVNAME_TASK_DATA_HUB_DIR}={dirs.pilot_data_hub.in_task_container}",
-        infile_arg_replacement=str(dirs.task_io.in_task_container / infile_name),
-        outfile_arg_replacement=str(dirs.task_io.in_task_container / outfile_name),
+        (
+            f"--env {InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name}={dirs.pilot_data_hub.in_task_container} "
+            f"--env {InTaskContainerEnvVarNames.EWMS_TASK_INFILE.name}={in_container_infile} "
+            f"--env {InTaskContainerEnvVarNames.EWMS_TASK_OUTFILE.name}={in_container_outfile} "
+        ),
+        infile_arg_replacement=in_container_infile,
+        outfile_arg_replacement=in_container_outfile,
     )
 
     # get outfile response
