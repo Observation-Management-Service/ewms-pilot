@@ -1261,6 +1261,7 @@ async def test_6000__task_env_vars(
         consume_and_reply(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
+import os
 output = open('{{INFILE}}').read().strip() * 2;
 assert os.environ['FOO'] == 'BAR'
 assert os.environ['BAZ'] == '100'
