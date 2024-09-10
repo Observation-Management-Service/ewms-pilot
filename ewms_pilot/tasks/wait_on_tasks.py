@@ -14,6 +14,24 @@ LOGGER = logging.getLogger(__name__)
 AsyncioTaskMessages = dict[asyncio.Task, Message]  # type: ignore[type-arg]
 
 
+async def _handle_failed_task(
+    previous_task_errors: list[BaseException],
+    exception: BaseException,
+    sub: mq.queue.ManualQueueSubResource,
+    msg: Message,
+) -> None:  # type: ignore[type-arg]
+    previous_task_errors.append(exception)
+    LOGGER.error(
+        f"TASK FAILED ({repr(exception)}) -- attempting to nack original message..."
+    )
+    try:
+        await sub.nack(msg)
+    except Exception as e:
+        # LOGGER.exception(e)
+        LOGGER.error(f"Could not nack: {repr(e)}")
+    LOGGER.error(all_task_errors_string(previous_task_errors))
+
+
 async def wait_on_tasks_with_ack(
     sub: mq.queue.ManualQueueSubResource,
     pub: mq.queue.QueuePubResource,
@@ -31,18 +49,6 @@ async def wait_on_tasks_with_ack(
     pending: set[asyncio.Task] = set(tasks_msgs.keys())  # type: ignore[type-arg]
     if not pending:
         return {}, previous_task_errors
-
-    async def handle_failed_task(task: asyncio.Task, exception: BaseException) -> None:  # type: ignore[type-arg]
-        previous_task_errors.append(exception)
-        LOGGER.error(
-            f"TASK FAILED ({repr(exception)}) -- attempting to nack original message..."
-        )
-        try:
-            await sub.nack(tasks_msgs[task])
-        except Exception as e:
-            # LOGGER.exception(e)
-            LOGGER.error(f"Could not nack: {repr(e)}")
-        LOGGER.error(all_task_errors_string(previous_task_errors))
 
     # wait for next task
     LOGGER.debug("Waiting on tasks...")
@@ -63,7 +69,7 @@ async def wait_on_tasks_with_ack(
         except Exception as e:
             LOGGER.exception(e)
             # FAILED TASK!
-            await handle_failed_task(task, e)
+            await _handle_failed_task(previous_task_errors, e, sub, tasks_msgs[task])
             continue
 
         # SUCCESSFUL TASK -> send result
@@ -76,7 +82,7 @@ async def wait_on_tasks_with_ack(
                 f"Failed to send finished task's result: {repr(e)}"
                 f" -- task now considered as failed"
             )
-            await handle_failed_task(task, e)
+            await _handle_failed_task(previous_task_errors, e, sub, tasks_msgs[task])
             continue
 
         # SUCCESSFUL TASK -> result sent -> ack original message
