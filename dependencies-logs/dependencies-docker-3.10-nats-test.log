@@ -19,7 +19,7 @@ nkeys==0.2.0
 oms-mqclient==2.6.0
 packaging==24.1
 pluggy==1.5.0
-pytest==8.3.2
+pytest==8.3.3
 pytest-asyncio==0.24.0
 pytest-retry==1.6.3
 requests==2.32.3
@@ -46,22 +46,22 @@ ewms-pilot
     └── zstd [required: Any, installed: 1.5.5.1]
 nats-py==2.9.0
 nkeys==0.2.0
-pipdeptree==2.23.1
-├── packaging [required: >=23.1, installed: 24.1]
-└── pip [required: >=23.1.2, installed: 24.2]
+pipdeptree==2.23.3
+├── packaging [required: >=24.1, installed: 24.1]
+└── pip [required: >=24.2, installed: 24.2]
 pytest-asyncio==0.24.0
-└── pytest [required: >=8.2,<9, installed: 8.3.2]
+└── pytest [required: >=8.2,<9, installed: 8.3.3]
     ├── exceptiongroup [required: >=1.0.0rc8, installed: 1.2.2]
     ├── iniconfig [required: Any, installed: 2.0.0]
     ├── packaging [required: Any, installed: 24.1]
     ├── pluggy [required: >=1.5,<2, installed: 1.5.0]
     └── tomli [required: >=1, installed: 2.0.1]
 pytest-retry==1.6.3
-└── pytest [required: >=7.0.0, installed: 8.3.2]
+└── pytest [required: >=7.0.0, installed: 8.3.3]
     ├── exceptiongroup [required: >=1.0.0rc8, installed: 1.2.2]
     ├── iniconfig [required: Any, installed: 2.0.0]
     ├── packaging [required: Any, installed: 24.1]
     ├── pluggy [required: >=1.5,<2, installed: 1.5.0]
     └── tomli [required: >=1, installed: 2.0.1]
-setuptools==70.1.0
-wheel==0.43.0
+setuptools==74.1.2
+wheel==0.44.0
