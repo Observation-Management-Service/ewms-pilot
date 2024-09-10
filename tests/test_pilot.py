@@ -8,7 +8,9 @@ import os
 import pickle
 import re
 import time
+import uuid
 from datetime import date, timedelta
+from pathlib import Path
 from pprint import pprint
 from typing import List, Optional
 from unittest.mock import patch
@@ -28,6 +30,16 @@ logging.getLogger("pika").setLevel(logging.WARNING)
 TIMEOUT_INCOMING = 3
 
 MSGS_TO_SUBPROC = ["item" + str(i) for i in range(30)]
+
+
+@pytest.fixture
+def unique_pwd() -> None:
+    """Create unique directory and cd to it.
+    Enables tests to be ran in parallel without file conflicts.
+    """
+    root = Path(uuid.uuid4().hex)
+    root.mkdir()
+    os.chdir(root)
 
 
 @pytest.fixture
@@ -162,6 +174,7 @@ TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
         TEST_1000_SLEEP / 10,  # will have no hb issues
     ],
 )
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_1000__heartbeat_workaround__rabbitmq_only(
     queue_incoming: str,
     queue_outgoing: str,
@@ -199,6 +212,7 @@ async def test_1000__heartbeat_workaround__rabbitmq_only(
         ),
     ],
 )
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_000(
     image_envvar: str,
     queue_incoming: str,
@@ -240,6 +254,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_001__txt__str_filetype(
     queue_incoming: str,
     queue_outgoing: str,
@@ -282,6 +297,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     )
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_100__json__objects(
     queue_incoming: str,
     queue_outgoing: str,
@@ -329,6 +345,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_101__json__preserialized(
     queue_incoming: str,
     queue_outgoing: str,
@@ -376,6 +393,7 @@ json.dump(output, open('{{OUTFILE}}','w'))" """,
     )
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_200__pkl_b64(
     queue_incoming: str,
     queue_outgoing: str,
@@ -440,6 +458,7 @@ print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
 
 
 @pytest.mark.parametrize("quarantine", [None, 20])
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_400__exception_quarantine(
     queue_incoming: str,
     queue_outgoing: str,
@@ -491,6 +510,7 @@ async def test_400__exception_quarantine(
     )
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_420__timeout(
     queue_incoming: str,
     queue_outgoing: str,
@@ -557,6 +577,7 @@ PREFETCH_TEST_PARAMETERS = sorted(
 
 
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_500__concurrent_load_max_concurrent_tasks(
     queue_incoming: str,
     queue_outgoing: str,
@@ -614,6 +635,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
     condition=config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE == "rabbitmq",
 )
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
@@ -687,6 +709,7 @@ raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
 
 
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_520__preload_max_concurrent_tasks(
     queue_incoming: str,
     queue_outgoing: str,
@@ -736,6 +759,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 
 
 @pytest.mark.parametrize("prefetch", PREFETCH_TEST_PARAMETERS)
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_530__preload_max_concurrent_tasks_exceptions(
     queue_incoming: str,
     queue_outgoing: str,
@@ -902,6 +926,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
 ########################################################################################
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_2000_init(
     queue_incoming: str,
     queue_outgoing: str,
@@ -958,6 +983,7 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     )
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_2001_init__timeout_error(
     queue_incoming: str,
     queue_outgoing: str,
@@ -996,6 +1022,7 @@ time.sleep({init_timeout})
         assert f.read().strip() == "hello world!"
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_2002_init__exception(
     queue_incoming: str,
     queue_outgoing: str,
@@ -1031,6 +1058,7 @@ raise ValueError('no good!')
         assert f.read().strip() == "hello world!"
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_2010_init__use_in_task(
     queue_incoming: str,
     queue_outgoing: str,
@@ -1091,6 +1119,7 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
 ########################################################################################
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_3000_external_directories(
     queue_incoming: str,
     queue_outgoing: str,
@@ -1150,6 +1179,7 @@ assert open(file_two).read().strip() == 'beta'
 ########################################################################################
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_4000__no_output_ok(
     queue_incoming: str,
     queue_outgoing: str,
@@ -1191,6 +1221,7 @@ async def test_4000__no_output_ok(
 ########################################################################################
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_5000__io_from_envvars(
     queue_incoming: str,
     queue_outgoing: str,
@@ -1234,6 +1265,7 @@ print(output, file=open(os.environ['EWMS_TASK_OUTFILE'],'w'))" """,  # double ca
     ########################################################################################
 
 
+@pytest.mark.usefixtures("unique_pwd")  # needed specifically for nats on docker
 async def test_6000__task_env_vars(
     queue_incoming: str,
     queue_outgoing: str,
