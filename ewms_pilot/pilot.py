@@ -318,7 +318,7 @@ async def _consume_and_reply(
                 sub,
                 pub,
                 pending,
-                previous_task_errors=task_errors,
+                prev_task_errors=task_errors,
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
@@ -343,7 +343,7 @@ async def _consume_and_reply(
                 sub,
                 pub,
                 pending,
-                previous_task_errors=task_errors,
+                prev_task_errors=task_errors,
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
