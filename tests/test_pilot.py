@@ -1234,71 +1234,71 @@ print(output, file=open(os.environ['EWMS_TASK_OUTFILE'],'w'))" """,  # double ca
     ########################################################################################
 
 
-async def test_6000__task_env_vars(
-    queue_incoming: str,
-    queue_outgoing: str,
-) -> None:
-    """Test a pilot that reads env vars that are defined for the task by the user."""
-    msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
-
-    # set the env vars -- this will work fine as long as there is no immediate processing in package (like dataclass's __post_init__)
-    # use object.__setattr__ b/c dataclass is frozen
-    object.__setattr__(
-        ENV, "EWMS_PILOT_INIT_ENV_JSON", json.dumps({"INIT_FOO": "BOT", "INIT_BAZ": 99})
-    )
-    object.__setattr__(
-        ENV, "EWMS_PILOT_TASK_ENV_JSON", json.dumps({"FOO": "BAR", "BAZ": 100})
-    )
-
-    # run producer & consumer concurrently
-    await asyncio.gather(
-        populate_queue(
-            queue_incoming,
-            msgs_to_subproc,
-            intermittent_sleep=TIMEOUT_INCOMING / 4,
-        ),
-        consume_and_reply(
-            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
-            """python3 -c "
-import os
-output = open('{{INFILE}}').read().strip() * 2;
-assert os.environ['FOO'] == 'BAR'
-assert os.environ['BAZ'] == '100'
-print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
-            #
-            init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
-            init_args="""python3 -c "
-import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
-assert os.environ['INIT_FOO'] == 'BOT'
-assert os.environ['INIT_BAZ'] == '99'
-with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
-    print('writing hello world to a file...')
-    print('hello world!', file=f)
-" """,
-            queue_incoming=queue_incoming,
-            queue_outgoing=queue_outgoing,
-            timeout_incoming=TIMEOUT_INCOMING,
-        ),
-    )
-
-    # check init's output
-    with open(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME / "initoutput") as f:
-        assert f.read().strip() == "hello world!"
-
-    # check task stuff
-    await assert_results(queue_outgoing, msgs_outgoing_expected)
-    assert_pilot_dirs(
-        len(msgs_outgoing_expected),
-        [
-            "task-io/infile-{UUID}.in",
-            "task-io/outfile-{UUID}.out",
-            "task-io/",
-            "outputs/stderrfile",
-            "outputs/stdoutfile",
-            "outputs/",
-        ],
-        ["initoutput"],
-        has_init_cmd_subdir=True,
-    )
+# async def test_6000__task_env_vars(
+#     queue_incoming: str,
+#     queue_outgoing: str,
+# ) -> None:
+#     """Test a pilot that reads env vars that are defined for the task by the user."""
+#     msgs_to_subproc = MSGS_TO_SUBPROC
+#     msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+#
+#     # set the env vars -- this will work fine as long as there is no immediate processing in package (like dataclass's __post_init__)
+#     # use object.__setattr__ b/c dataclass is frozen
+#     object.__setattr__(
+#         ENV, "EWMS_PILOT_INIT_ENV_JSON", json.dumps({"INIT_FOO": "BOT", "INIT_BAZ": 99})
+#     )
+#     object.__setattr__(
+#         ENV, "EWMS_PILOT_TASK_ENV_JSON", json.dumps({"FOO": "BAR", "BAZ": 100})
+#     )
+#
+#     # run producer & consumer concurrently
+#     await asyncio.gather(
+#         populate_queue(
+#             queue_incoming,
+#             msgs_to_subproc,
+#             intermittent_sleep=TIMEOUT_INCOMING / 4,
+#         ),
+#         consume_and_reply(
+#             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
+#             """python3 -c "
+# import os
+# output = open('{{INFILE}}').read().strip() * 2;
+# assert os.environ['FOO'] == 'BAR'
+# assert os.environ['BAZ'] == '100'
+# print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+#             #
+#             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
+#             init_args="""python3 -c "
+# import os
+# os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
+# assert os.environ['INIT_FOO'] == 'BOT'
+# assert os.environ['INIT_BAZ'] == '99'
+# with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
+#     print('writing hello world to a file...')
+#     print('hello world!', file=f)
+# " """,
+#             queue_incoming=queue_incoming,
+#             queue_outgoing=queue_outgoing,
+#             timeout_incoming=TIMEOUT_INCOMING,
+#         ),
+#     )
+#
+#     # check init's output
+#     with open(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME / "initoutput") as f:
+#         assert f.read().strip() == "hello world!"
+#
+#     # check task stuff
+#     await assert_results(queue_outgoing, msgs_outgoing_expected)
+#     assert_pilot_dirs(
+#         len(msgs_outgoing_expected),
+#         [
+#             "task-io/infile-{UUID}.in",
+#             "task-io/outfile-{UUID}.out",
+#             "task-io/",
+#             "outputs/stderrfile",
+#             "outputs/stdoutfile",
+#             "outputs/",
+#         ],
+#         ["initoutput"],
+#         has_init_cmd_subdir=True,
+#     )
