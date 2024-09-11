@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-version = "0.25.0"
+version = "0.26.0"
 dependencies = ["htchirp", "htcondor", "oms-mqclient"]
 name = "ewms-pilot"
 keywords = ["pilot", "Observation Management Service", "Event Workflow Management Service", "EWMS", "message passing", "MQ", "task"]

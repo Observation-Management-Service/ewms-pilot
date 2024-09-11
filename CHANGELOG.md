@@ -2,6 +2,21 @@
 
 
 
+## v0.26.0 (2024-09-11)
+
+###  
+
+* Fix Message Handling for No-Output Tasks (#98) ([`82f7175`](https://github.com/Observation-Management-Service/ewms-pilot/commit/82f717523dcccd9377cfdf634eb4d338ef01e6e9))
+
+* Update README ([`4aedaff`](https://github.com/Observation-Management-Service/ewms-pilot/commit/4aedaffc1f5e99c9ca7899ae58ed00852a337fde))
+
+### [minor]
+
+* Add `EWMS_PILOT_TASK_ENV_JSON` and `EWMS_PILOT_INIT_ENV_JSON` [minor] (#97) ([`d6a88a5`](https://github.com/Observation-Management-Service/ewms-pilot/commit/d6a88a5f6890a4a5d9b565a18f02bcf51640c124))
+
+* Inject Task IO Filepaths as Env Vars into Task Container [minor] (#96) ([`dad39db`](https://github.com/Observation-Management-Service/ewms-pilot/commit/dad39db557ccca40938ae053ca2d13e24b77921d))
+
+
 ## v0.25.0 (2024-09-04)
 
 ### [minor]
