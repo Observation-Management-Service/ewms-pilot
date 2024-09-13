@@ -191,7 +191,7 @@ jobs:
           
           expected="RuntimeError: Task image was not provided."
           if [[ $( tail -n 1 test.out ) == "$expected" ]]; then
-              echo "passed!"
+              echo "passed! (iow, this is the correct error ^^^)"
           else
               echo "ERROR: the pilot did not fail as expected"
               exit 1
