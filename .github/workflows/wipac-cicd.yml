@@ -189,7 +189,7 @@ jobs:
           #   without error. Real testing is done in 'integration-tests'. This "test"
           #   ends on the following error, which is relatively early in the pilot...
           
-          expected="RuntimeError: Must define provide arg 'task_image'"
+          expected="RuntimeError: Task image was not provided."
           if [[ $( tail -n 1 test.out ) == "$expected" ]]; then
               echo "passed!"
           else
