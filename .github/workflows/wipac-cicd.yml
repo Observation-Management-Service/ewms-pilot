@@ -170,7 +170,6 @@ jobs:
       EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: blah
       EWMS_PILOT_QUEUE_INCOMING: foo
       EWMS_PILOT_QUEUE_OUTGOING: bar
-      EWMS_PILOT_TASK_IMAGE: python:alpine
     steps:
       - uses: actions/checkout@v4
       - name: build docker image
@@ -180,7 +179,22 @@ jobs:
       - run: |
           docker run --rm \
               $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-              ${{ env.DOCKER_IMAGE_NAME }}
+              ${{ env.DOCKER_IMAGE_NAME }} \
+              >> test.out 2>&1
+          cat test.out
+          
+          # The intent of this test is to confirm that the pilot runs as a CL script
+          #   without error. Real testing is done in 'integration-tests'. This "test"
+          #   ends on the following error, which is relatively early in the pilot...
+          
+          expected="RuntimeError: Must define provide arg 'task_image'"
+          if [[ $( tail -n 1 test.out ) == "$expected" ]]; then
+              echo "passed!"
+          else
+              echo "ERROR: the pilot did not fail as expected"
+              exit 1
+          fi
+
 
   integration-tests:
     needs: [ py-versions ]
