@@ -15,8 +15,8 @@ oms-mqclient==2.6.0
 pulsar-client==3.5.0
 requests==2.32.3
 typing_extensions==4.12.2
-urllib3==2.2.2
-wipac-dev-tools==1.12.0
+urllib3==2.2.3
+wipac-dev-tools==1.12.1
 zstd==1.5.5.1
 ########################################################################
 #  pipdeptree
@@ -25,12 +25,12 @@ ewms-pilot
 ├── htchirp [required: Any, installed: 3.0]
 ├── htcondor [required: Any, installed: 23.9.6]
 └── oms-mqclient [required: Any, installed: 2.6.0]
-    ├── wipac-dev-tools [required: Any, installed: 1.12.0]
+    ├── wipac-dev-tools [required: Any, installed: 1.12.1]
     │   ├── requests [required: Any, installed: 2.32.3]
     │   │   ├── certifi [required: >=2017.4.17, installed: 2024.8.30]
     │   │   ├── charset-normalizer [required: >=2,<4, installed: 3.3.2]
     │   │   ├── idna [required: >=2.5,<4, installed: 3.8]
-    │   │   └── urllib3 [required: >=1.21.1,<3, installed: 2.2.2]
+    │   │   └── urllib3 [required: >=1.21.1,<3, installed: 2.2.3]
     │   └── typing_extensions [required: Any, installed: 4.12.2]
     └── zstd [required: Any, installed: 1.5.5.1]
 pipdeptree==2.23.3
