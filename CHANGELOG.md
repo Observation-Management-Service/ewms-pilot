@@ -2,6 +2,13 @@
 
 
 
+## v0.26.1 (2024-09-13)
+
+###  
+
+* Add Test: Run Default Container (#99) ([`0a51514`](https://github.com/Observation-Management-Service/ewms-pilot/commit/0a51514ed35dacbce97faf94b71c32cba56695d3))
+
+
 ## v0.26.0 (2024-09-11)
 
 ###  
