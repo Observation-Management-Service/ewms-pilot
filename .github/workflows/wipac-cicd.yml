@@ -182,7 +182,7 @@ jobs:
           docker run --rm \
               $(env | grep '^EWMS_' | awk '$0="--env "$0') \
               ${{ env.DOCKER_IMAGE_NAME }} \
-              >> test.out 2>&1
+              2>&1 | tee -a test.out 
           cat test.out
           
           # The intent of this test is to confirm that the pilot runs as a CL script
