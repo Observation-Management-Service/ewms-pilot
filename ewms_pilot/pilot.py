@@ -79,6 +79,9 @@ async def consume_and_reply(
     if not queue_incoming or not queue_outgoing:
         raise RuntimeError("Must define an incoming and an outgoing queue")
 
+    if not task_image:
+        raise RuntimeError("Must define provide arg 'task_image'")
+
     housekeeper = Housekeeping(chirper)
 
     try:
