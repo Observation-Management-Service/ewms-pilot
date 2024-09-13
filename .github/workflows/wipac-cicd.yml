@@ -170,6 +170,7 @@ jobs:
       EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS: blah
       EWMS_PILOT_QUEUE_INCOMING: foo
       EWMS_PILOT_QUEUE_OUTGOING: bar
+      EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: 1
     steps:
       - uses: actions/checkout@v4
       - name: build docker image
