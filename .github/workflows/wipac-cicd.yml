@@ -160,6 +160,19 @@ jobs:
           cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
 
+  vanilla-run:
+    needs: [ py-versions ]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: build docker image
+        run: |
+          docker build --tag ${{ env.DOCKER_IMAGE_NAME }} .
+          docker images
+      - run: |
+          docker run --rm \
+              $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+              ${{ env.DOCKER_IMAGE_NAME }}
 
   integration-tests:
     needs: [ py-versions ]
@@ -438,7 +451,8 @@ jobs:
       py-setup,
       py-dependencies,
       test-build-docker,
-      integration-tests
+      integration-tests,
+      vanilla-run
     ]
     runs-on: ubuntu-latest
     concurrency: release  # prevent any possible race conditions
