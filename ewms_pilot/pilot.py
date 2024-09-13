@@ -77,10 +77,10 @@ async def consume_and_reply(
     chirper.initial_chirp()
 
     if not queue_incoming or not queue_outgoing:
-        raise RuntimeError("Must define an incoming and an outgoing queue")
+        raise RuntimeError("Incoming and/or outgoing queues were not provided.")
 
     if not task_image:
-        raise RuntimeError("Must define provide arg 'task_image'")
+        raise RuntimeError("Task image was not provided.")
 
     housekeeper = Housekeeping(chirper)
 
