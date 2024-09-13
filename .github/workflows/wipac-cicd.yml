@@ -177,6 +177,8 @@ jobs:
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} .
           docker images
       - run: |
+          set -ex
+          
           docker run --rm \
               $(env | grep '^EWMS_' | awk '$0="--env "$0') \
               ${{ env.DOCKER_IMAGE_NAME }} \
