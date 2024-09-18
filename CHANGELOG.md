@@ -2,6 +2,15 @@
 
 
 
+## v0.26.2 (2024-09-18)
+
+###  
+
+* &lt;bot&gt; update dependencies*.log files(s) ([`3619f3f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/3619f3fc2c4956c0f665500d9bef289e0a173b71))
+
+* Refactor: Move Init Container Code to Sub-Package (#100) ([`5c67129`](https://github.com/Observation-Management-Service/ewms-pilot/commit/5c671292ff099dcd5c4b137725cc9198fe10c91b))
+
+
 ## v0.26.1 (2024-09-13)
 
 ###  
