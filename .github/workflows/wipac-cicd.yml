@@ -47,7 +47,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
-      - uses: WIPACrepo/wipac-dev-flake8-action@v1.0
+      - uses: WIPACrepo/wipac-dev-flake8-action@max-function-length
 
   mypy:
     needs: [ py-versions ]
