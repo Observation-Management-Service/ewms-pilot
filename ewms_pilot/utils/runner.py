@@ -169,6 +169,10 @@ class ContainerRunner:
 
             case "docker":
                 if ENV.CI:  # optimization during testing, images are *loaded* manually
+                    LOGGER.warning(
+                        f"The pilot is running in a test environment, "
+                        f"skipping 'docker pull {image}' (env var CI=True)"
+                    )
                     return image
                 _run(f"docker pull {image}")
                 return image
