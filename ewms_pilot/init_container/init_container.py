@@ -31,7 +31,7 @@ async def run_init_container(
             {
                 InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name: dirs.pilot_data_hub.in_task_container,
             },
-            datahub_arg_placeholder_replacement=dirs.pilot_data_hub.in_task_container,
+            datahub_arg_replacement=dirs.pilot_data_hub.in_task_container,
         )
     )
     pending = set([task])

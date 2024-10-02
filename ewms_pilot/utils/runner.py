@@ -222,27 +222,26 @@ class ContainerRunner:
         stderrfile: Path,
         mount_bindings: str,
         env_as_dict: dict,
-        infile_arg_placeholder_replacement: str = "",
-        outfile_arg_placeholder_replacement: str = "",
-        datahub_arg_placeholder_replacement: str = "",
+        infile_arg_replacement: str = "",
+        outfile_arg_replacement: str = "",
+        datahub_arg_replacement: str = "",
     ) -> None:
         """Run the container and dump outputs."""
         dump_output = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT
 
-        # insert arg placeholder replacments
+        # insert arg placeholder replacements
+        # -> give an alternative for each token replacement b/c it'd be a shame if
+        #    things broke this late in the game
         inst_args = self.args
-        if infile_arg_placeholder_replacement:
-            inst_args = inst_args.replace(
-                "{{INFILE}}", infile_arg_placeholder_replacement
-            )
-        if outfile_arg_placeholder_replacement:
-            inst_args = inst_args.replace(
-                "{{OUTFILE}}", outfile_arg_placeholder_replacement
-            )
-        if datahub_arg_placeholder_replacement:
-            inst_args = inst_args.replace(
-                "{{DATAHUB}}", datahub_arg_placeholder_replacement
-            )
+        if infile_arg_replacement:
+            for token in ["{{INFILE}}", "{{IN_FILE}}"]:
+                inst_args = inst_args.replace(token, infile_arg_replacement)
+        if outfile_arg_replacement:
+            for token in ["{{OUTFILE}}", "{{OUT_FILE}}"]:
+                inst_args = inst_args.replace(token, outfile_arg_replacement)
+        if datahub_arg_replacement:
+            for token in ["{{DATAHUB}}", "{{DATA_HUB}}"]:
+                inst_args = inst_args.replace(token, datahub_arg_replacement)
 
         # assemble env strings
         env_options = " ".join(
