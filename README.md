@@ -50,7 +50,7 @@ To transfer files between task containers, a shared directory is available to al
 
 The pilot provides the filepath to the "data hub" in two ways:
 
-1. By replacing the placeholder string, `{{DATAHUB}}`, in the container's arguments at runtime.
+1. By replacing the placeholder string, `{{DATA_HUB}}`, in the container's arguments at runtime.
 2. By setting the task container's environment variable: `EWMS_TASK_DATA_HUB_DIR`.
 
 **Note**:

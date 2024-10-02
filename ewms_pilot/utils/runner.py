@@ -240,7 +240,7 @@ class ContainerRunner:
             for token in ["{{OUTFILE}}", "{{OUT_FILE}}"]:
                 inst_args = inst_args.replace(token, outfile_arg_replacement)
         if datahub_arg_replacement:
-            for token in ["{{DATAHUB}}", "{{DATA_HUB}}"]:
+            for token in ["{{DATA_HUB}}", "{{DATAHUB}}"]:
                 inst_args = inst_args.replace(token, datahub_arg_replacement)
 
         # assemble env strings
