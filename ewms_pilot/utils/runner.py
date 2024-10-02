@@ -222,18 +222,27 @@ class ContainerRunner:
         stderrfile: Path,
         mount_bindings: str,
         env_as_dict: dict,
-        infile_arg_replacement: str = "",
-        outfile_arg_replacement: str = "",
+        infile_arg_placeholder_replacement: str = "",
+        outfile_arg_placeholder_replacement: str = "",
+        datahub_arg_placeholder_replacement: str = "",
     ) -> None:
         """Run the container and dump outputs."""
         dump_output = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT
 
-        # insert in/out files *paths* into task_args
+        # insert arg placeholder replacments
         inst_args = self.args
-        if infile_arg_replacement:
-            inst_args = inst_args.replace("{{INFILE}}", infile_arg_replacement)
-        if outfile_arg_replacement:
-            inst_args = inst_args.replace("{{OUTFILE}}", outfile_arg_replacement)
+        if infile_arg_placeholder_replacement:
+            inst_args = inst_args.replace(
+                "{{INFILE}}", infile_arg_placeholder_replacement
+            )
+        if outfile_arg_placeholder_replacement:
+            inst_args = inst_args.replace(
+                "{{OUTFILE}}", outfile_arg_placeholder_replacement
+            )
+        if datahub_arg_placeholder_replacement:
+            inst_args = inst_args.replace(
+                "{{DATAHUB}}", datahub_arg_placeholder_replacement
+            )
 
         # assemble env strings
         env_options = " ".join(

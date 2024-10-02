@@ -30,7 +30,7 @@ An **input event** is provided to the task container as a file. The task contain
 The pilot provides the filepaths to the input and output files in two ways:
 
 1. By replacing the placeholder strings, `{{INFILE}}` and `{{OUTFILE}}`, in the container's arguments at runtime.
-2. By setting the task container's environment variables `EWMS_TASK_INFILE` and `EWMS_TASK_OUTFILE`.
+2. By setting the task container's environment variables: `EWMS_TASK_INFILE` and `EWMS_TASK_OUTFILE`.
 
 The files' extensions are configured by the pilot's environment variables, `EWMS_PILOT_INFILE_EXT` and `EWMS_PILOT_OUTFILE_EXT`: by default, these are `.in` and `.out`, respectively.
 
@@ -46,7 +46,12 @@ Task containers (and [init containers](#the-init-container)) can interact with e
 
 #### Inter-Task Files
 
-To transfer files between task containers, a shared directory is available to all task containers. This is provided by the environment variable `EWMS_TASK_DATA_HUB_DIR`, referred to as the "data hub".
+To transfer files between task containers, a shared directory is available to all task containers and the init container.
+
+The pilot provides the filepath to the "data hub" in two ways:
+
+1. By replacing the placeholder string, `{{DATAHUB}}`, in the container's arguments at runtime.
+2. By setting the task container's environment variable: `EWMS_TASK_DATA_HUB_DIR`.
 
 **Note**:
 

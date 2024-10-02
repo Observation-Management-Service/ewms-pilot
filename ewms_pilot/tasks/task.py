@@ -52,8 +52,9 @@ async def process_msg_task(
             InTaskContainerEnvVarNames.EWMS_TASK_INFILE.name: in_container_infile,
             InTaskContainerEnvVarNames.EWMS_TASK_OUTFILE.name: in_container_outfile,
         },
-        infile_arg_replacement=in_container_infile,
-        outfile_arg_replacement=in_container_outfile,
+        infile_arg_placeholder_replacement=in_container_infile,
+        outfile_arg_placeholder_replacement=in_container_outfile,
+        datahub_arg_placeholder_replacement=dirs.pilot_data_hub.in_task_container,
     )
 
     # get outfile response
