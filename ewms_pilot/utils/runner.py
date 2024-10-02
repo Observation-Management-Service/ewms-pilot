@@ -248,22 +248,24 @@ class ContainerRunner:
             case "docker":
                 cmd = (
                     f"docker run --rm "
-                    f"{
-                        f'--shm-size={ENV._EWMS_PILOT_DOCKER_SHM_SIZE} ' 
-                        if ENV._EWMS_PILOT_DOCKER_SHM_SIZE
-                        else ''
-                    }"
+                    # optional
+                    f"{f'--shm-size={ENV._EWMS_PILOT_DOCKER_SHM_SIZE} ' if ENV._EWMS_PILOT_DOCKER_SHM_SIZE else ''}"
+                    # provided options
                     f"{mount_bindings} "
                     f"{env_options} "
+                    # image + args
                     f"{self.image} {inst_args}"
                 )
             case "apptainer":
                 cmd = (
                     f"apptainer run "
+                    # always add these flags
                     f"--containall "  # don't auto-mount anything
                     f"--no-eval "  # don't interpret CL args
+                    # provided options
                     f"{mount_bindings} "
                     f"{env_options} "
+                    # image + args
                     f"{self.image} {inst_args}"
                 )
             case other:
