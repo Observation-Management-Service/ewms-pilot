@@ -54,7 +54,7 @@ async def process_msg_task(
         },
         infile_arg_replacement=in_container_infile,
         outfile_arg_replacement=in_container_outfile,
-        datahub_arg_replacement=dirs.pilot_data_hub.in_task_container,
+        datahub_arg_replacement=str(dirs.pilot_data_hub.in_task_container),
     )
 
     # get outfile response
