@@ -32,7 +32,6 @@ async def process_msg_task(
 
     # staging-dir logic -- includes stderr/stdout files (see below)
     dirs = DirectoryCatalog(str(in_msg.uuid))
-    dirs.outputs_on_pilot.mkdir(parents=True, exist_ok=False)
     dirs.task_io.on_pilot.mkdir(parents=True, exist_ok=False)
 
     # create in/out file *names* -- piggy-back the uuid since it's unique and trackable

@@ -21,7 +21,6 @@ async def run_init_container(
     await housekeeper.running_init_container()
 
     dirs = DirectoryCatalog(f"init-{uuid.uuid4().hex}")
-    dirs.outputs_on_pilot.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
         init_runner.run_container(

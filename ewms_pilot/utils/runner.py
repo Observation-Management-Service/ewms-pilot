@@ -50,7 +50,7 @@ class DirectoryCatalog:
         in_task_container: Path
 
     def __init__(self, name: str):
-        """Directories are not pre-created; you must `mkdir -p` to use."""
+        """All directories except the task-io dir is pre-created (mkdir)."""
         self._namebased_dir = PILOT_DATA_DIR / name
 
         # for inter-task/init storage: startup data, init container's output, etc.
@@ -58,9 +58,11 @@ class DirectoryCatalog:
             PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME,
             Path(f"/{PILOT_DATA_DIR.name}/{PILOT_DATA_HUB_DIR_NAME}"),
         )
+        self.pilot_data_hub.on_pilot.mkdir(parents=True, exist_ok=True)
 
         # for persisting stderr and stdout
         self.outputs_on_pilot = self._namebased_dir / "outputs"
+        self.outputs_on_pilot.mkdir(parents=True, exist_ok=False)
 
         # for message-based task i/o
         self.task_io = self._ContainerBindMountDirPair(

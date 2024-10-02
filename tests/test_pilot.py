@@ -926,7 +926,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
@@ -979,7 +978,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_args=f"""python3 -c "
 import time
 import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
@@ -1015,7 +1013,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
@@ -1056,7 +1053,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing to a file...')
     print('blue', file=f)
@@ -1111,8 +1107,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
-import os
-os.makedirs('{{DATA_HUB}}', exist_ok=True)
 with open('{{DATA_HUB}}' + '/initoutput', 'w') as f:
     print('writing to a file...')
     print('blue', file=f)
@@ -1326,7 +1320,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
 assert os.environ['INIT_FOO'] == 'BOT'
 assert os.environ['INIT_BAZ'] == '99'
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
