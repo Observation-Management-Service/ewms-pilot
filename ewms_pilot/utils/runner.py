@@ -169,6 +169,10 @@ class ContainerRunner:
 
             case "docker":
                 if ENV.CI:  # optimization during testing, images are *loaded* manually
+                    LOGGER.warning(
+                        f"The pilot is running in a test environment, "
+                        f"skipping 'docker pull {image}' (env var CI=True)"
+                    )
                     return image
                 _run(f"docker pull {image}")
                 return image
@@ -244,17 +248,24 @@ class ContainerRunner:
             case "docker":
                 cmd = (
                     f"docker run --rm "
+                    # optional
+                    f"{f'--shm-size={ENV._EWMS_PILOT_DOCKER_SHM_SIZE} ' if ENV._EWMS_PILOT_DOCKER_SHM_SIZE else ''}"
+                    # provided options
                     f"{mount_bindings} "
                     f"{env_options} "
+                    # image + args
                     f"{self.image} {inst_args}"
                 )
             case "apptainer":
                 cmd = (
                     f"apptainer run "
+                    # always add these flags
                     f"--containall "  # don't auto-mount anything
                     f"--no-eval "  # don't interpret CL args
+                    # provided options
                     f"{mount_bindings} "
                     f"{env_options} "
+                    # image + args
                     f"{self.image} {inst_args}"
                 )
             case other:
