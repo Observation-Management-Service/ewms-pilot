@@ -108,6 +108,9 @@ class EnvConfig:
     CI: bool = False  # github actions sets this to 'true'
 
     def __post_init__(self) -> None:
+        """Do advanced validation."""
+
+        # using the old env var?
         if timeout := os.getenv("EWMS_PILOT_SUBPROC_TIMEOUT"):
             LOGGER.warning(
                 "Using 'EWMS_PILOT_SUBPROC_TIMEOUT'; 'EWMS_PILOT_TASK_TIMEOUT' is preferred."
@@ -120,6 +123,7 @@ class EnvConfig:
                 # b/c frozen
                 object.__setattr__(self, "EWMS_PILOT_TASK_TIMEOUT", int(timeout))
 
+        # must be positive
         if self.EWMS_PILOT_MAX_CONCURRENT_TASKS < 1:
             LOGGER.warning(
                 f"Invalid value for 'EWMS_PILOT_MAX_CONCURRENT_TASKS' ({self.EWMS_PILOT_MAX_CONCURRENT_TASKS}),"
@@ -127,6 +131,7 @@ class EnvConfig:
             )
             object.__setattr__(self, "EWMS_PILOT_CONCURRENT_TASKS", 1)  # b/c frozen
 
+        # mutually exclusive
         if (
             self.EWMS_PILOT_QUARANTINE_TIME
             and not self.EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR
@@ -137,6 +142,7 @@ class EnvConfig:
                 f"'{self.EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR}'"
             )
 
+        # value must be one of these...
         if self.EWMS_PILOT_HTCHIRP_DEST not in ["JOB_EVENT_LOG", "JOB_ATTR"]:
             raise RuntimeError(
                 f"Invalid EWMS_PILOT_HTCHIRP_DEST: {self.EWMS_PILOT_HTCHIRP_DEST}"
