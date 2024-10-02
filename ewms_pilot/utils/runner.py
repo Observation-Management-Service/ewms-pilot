@@ -248,6 +248,11 @@ class ContainerRunner:
             case "docker":
                 cmd = (
                     f"docker run --rm "
+                    f"{
+                        f'--shm-size={ENV._EWMS_PILOT_DOCKER_SHM_SIZE} ' 
+                        if ENV._EWMS_PILOT_DOCKER_SHM_SIZE
+                        else ''
+                    }"
                     f"{mount_bindings} "
                     f"{env_options} "
                     f"{self.image} {inst_args}"
