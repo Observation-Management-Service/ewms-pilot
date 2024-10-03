@@ -2,6 +2,17 @@
 
 
 
+## v0.26.4 (2024-10-03)
+
+###  
+
+* Add `{{DATA_HUB}}` Container Arg Placeholder (#102)
+
+Also, the data hub and outputs directories will be auto-created (mkdir).
+This makes integration testing the pilot via the pypi package much more
+streamlined (see https://github.com/icecube/skymap_scanner/pull/273) ([`738d119`](https://github.com/Observation-Management-Service/ewms-pilot/commit/738d119184b7b91fde3af8721ddd1068c2916a5c))
+
+
 ## v0.26.3 (2024-10-02)
 
 ###  
