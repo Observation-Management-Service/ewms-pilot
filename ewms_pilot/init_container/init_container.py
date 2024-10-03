@@ -21,7 +21,6 @@ async def run_init_container(
     await housekeeper.running_init_container()
 
     dirs = DirectoryCatalog(f"init-{uuid.uuid4().hex}")
-    dirs.outputs_on_pilot.mkdir(parents=True, exist_ok=False)
 
     task = asyncio.create_task(
         init_runner.run_container(
@@ -31,6 +30,7 @@ async def run_init_container(
             {
                 InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name: dirs.pilot_data_hub.in_task_container,
             },
+            datahub_arg_replacement=str(dirs.pilot_data_hub.in_task_container),
         )
     )
     pending = set([task])

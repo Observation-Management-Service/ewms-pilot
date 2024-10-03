@@ -926,7 +926,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
@@ -979,7 +978,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_args=f"""python3 -c "
 import time
 import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
@@ -1015,7 +1013,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
@@ -1031,11 +1028,11 @@ raise ValueError('no good!')
         assert f.read().strip() == "hello world!"
 
 
-async def test_2010_init__use_in_task(
+async def test_2100_use_data_hub_in_init_and_tasks__env_var(
     queue_incoming: str,
     queue_outgoing: str,
 ) -> None:
-    """Test a normal init container's outfile in another task."""
+    """Test a normal init container's data hub file in another task."""
     msgs_to_subproc = MSGS_TO_SUBPROC
     msgs_outgoing_expected = [f"{x}blue\n" for x in msgs_to_subproc]
 
@@ -1056,8 +1053,61 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
+    print('writing to a file...')
+    print('blue', file=f)
+" """,
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
+    )
+
+    # check init's output
+    with open(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME / "initoutput") as f:
+        assert f.read().strip() == "blue"
+
+    # check task stuff
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
+    assert_pilot_dirs(
+        len(msgs_outgoing_expected),
+        [
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
+        ],
+        ["initoutput"],
+        has_init_cmd_subdir=True,
+    )
+
+
+async def test_2110_use_data_hub_in_init_and_tasks__arg_placeholder(
+    queue_incoming: str,
+    queue_outgoing: str,
+) -> None:
+    """Test a normal init container's data hub file in another task."""
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}blue\n" for x in msgs_to_subproc]
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
+        ),
+        consume_and_reply(
+            f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
+            """python3 -c "
+output = open('{{INFILE}}').read().strip() + open('{{DATA_HUB}}' + '/initoutput').read().strip();
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            #
+            init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
+            init_args="""python3 -c "
+with open('{{DATA_HUB}}' + '/initoutput', 'w') as f:
     print('writing to a file...')
     print('blue', file=f)
 " """,
@@ -1270,7 +1320,6 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
 import os
-os.makedirs(os.environ['EWMS_TASK_DATA_HUB_DIR'], exist_ok=True)
 assert os.environ['INIT_FOO'] == 'BOT'
 assert os.environ['INIT_BAZ'] == '99'
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:

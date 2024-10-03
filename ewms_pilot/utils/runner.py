@@ -50,7 +50,7 @@ class DirectoryCatalog:
         in_task_container: Path
 
     def __init__(self, name: str):
-        """Directories are not pre-created; you must `mkdir -p` to use."""
+        """All directories except the task-io dir is pre-created (mkdir)."""
         self._namebased_dir = PILOT_DATA_DIR / name
 
         # for inter-task/init storage: startup data, init container's output, etc.
@@ -58,9 +58,11 @@ class DirectoryCatalog:
             PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME,
             Path(f"/{PILOT_DATA_DIR.name}/{PILOT_DATA_HUB_DIR_NAME}"),
         )
+        self.pilot_data_hub.on_pilot.mkdir(parents=True, exist_ok=True)
 
         # for persisting stderr and stdout
         self.outputs_on_pilot = self._namebased_dir / "outputs"
+        self.outputs_on_pilot.mkdir(parents=True, exist_ok=False)
 
         # for message-based task i/o
         self.task_io = self._ContainerBindMountDirPair(
@@ -224,16 +226,24 @@ class ContainerRunner:
         env_as_dict: dict,
         infile_arg_replacement: str = "",
         outfile_arg_replacement: str = "",
+        datahub_arg_replacement: str = "",
     ) -> None:
         """Run the container and dump outputs."""
         dump_output = ENV.EWMS_PILOT_DUMP_TASK_OUTPUT
 
-        # insert in/out files *paths* into task_args
+        # insert arg placeholder replacements
+        # -> give an alternative for each token replacement b/c it'd be a shame if
+        #    things broke this late in the game
         inst_args = self.args
         if infile_arg_replacement:
-            inst_args = inst_args.replace("{{INFILE}}", infile_arg_replacement)
+            for token in ["{{INFILE}}", "{{IN_FILE}}"]:
+                inst_args = inst_args.replace(token, infile_arg_replacement)
         if outfile_arg_replacement:
-            inst_args = inst_args.replace("{{OUTFILE}}", outfile_arg_replacement)
+            for token in ["{{OUTFILE}}", "{{OUT_FILE}}"]:
+                inst_args = inst_args.replace(token, outfile_arg_replacement)
+        if datahub_arg_replacement:
+            for token in ["{{DATA_HUB}}", "{{DATAHUB}}"]:
+                inst_args = inst_args.replace(token, datahub_arg_replacement)
 
         # assemble env strings
         env_options = " ".join(
