@@ -2,16 +2,16 @@
 
 import asyncio
 import logging
+import time
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message, MessageID
 
 from .io import NoTaskResponseException
+from .map import TaskMapping
 from ..utils.utils import all_task_errors_string
 
 LOGGER = logging.getLogger(__name__)
-
-AsyncioTaskMessagesMap = dict[asyncio.Task, Message]  # type: ignore[type-arg]
 
 
 async def _nack_and_record_error(
@@ -36,20 +36,14 @@ async def _nack_and_record_error(
 async def wait_on_tasks_with_ack(
     sub: mq.queue.ManualQueueSubResource,
     pub: mq.queue.QueuePubResource,
-    tasks_msgs: AsyncioTaskMessagesMap,
+    task_maps: list[TaskMapping],
     prev_task_errors: list[BaseException],
     timeout: int,
-) -> tuple[AsyncioTaskMessagesMap, list[BaseException], list[MessageID]]:
-    """Get finished tasks and ack/nack their messages.
-
-    Returns:
-        Tuple:
-            AsyncioTaskMessages: pending tasks and
-            list[BaseException]: failed tasks' exceptions (plus those in `previous_task_errors`)
-    """
-    pending: set[asyncio.Task] = set(tasks_msgs.keys())  # type: ignore[type-arg]
+) -> tuple[list[TaskMapping], list[BaseException], list[MessageID]]:
+    """Get finished tasks and ack/nack their messages."""
+    pending: set[asyncio.Task] = set(tm.asyncio_task for tm in task_maps)
     if not pending:
-        return {}, prev_task_errors, []
+        return [], prev_task_errors, []
 
     # wait for next task
     LOGGER.debug("Waiting on tasks to finish...")
@@ -61,15 +55,21 @@ async def wait_on_tasks_with_ack(
 
     # HANDLE FINISHED TASK(S)
     # fyi, most likely one task in here, but 2+ could finish at same time
-    for task in done:
+    for asyncio_task in done:
         try:
-            output_event = await task
+            output_event = await asyncio_task
+            TaskMapping.get(task_maps, asyncio_task=asyncio_task).end_time = time.time()
         # SUCCESSFUL TASK W/O OUTPUT -> is ok, but nothing to send...
         except NoTaskResponseException:
             LOGGER.info("TASK FINISHED -- no output-event to send (this is ok).")
         # FAILED TASK! -> nack input message
         except Exception as e:
-            await _nack_and_record_error(prev_task_errors, e, sub, tasks_msgs[task])
+            await _nack_and_record_error(
+                prev_task_errors,
+                e,
+                sub,
+                TaskMapping.get(task_maps, asyncio_task=asyncio_task).message,
+            )
             continue
         # SUCCESSFUL TASK W/ OUTPUT -> send...
         else:
@@ -82,13 +82,20 @@ async def wait_on_tasks_with_ack(
                     f"Failed to send finished task's output-event: {repr(e)}"
                     f" -- the task is now considered failed."
                 )
-                await _nack_and_record_error(prev_task_errors, e, sub, tasks_msgs[task])
+                await _nack_and_record_error(
+                    prev_task_errors,
+                    e,
+                    sub,
+                    TaskMapping.get(task_maps, asyncio_task=asyncio_task).message,
+                )
                 continue
 
         # now, ack input message
         try:
             LOGGER.info("Now, attempting to ack input-event message...")
-            await sub.ack(tasks_msgs[task])
+            await sub.ack(
+                TaskMapping.get(task_maps, asyncio_task=asyncio_task).message,
+            )
         except mq.broker_client_interface.AckException as e:
             # -> task finished -> ack failed = that's okay!
             LOGGER.error(
@@ -102,10 +109,10 @@ async def wait_on_tasks_with_ack(
             )
 
     if done:
-        LOGGER.info(f"{len(tasks_msgs)-len(pending)} Tasks Finished")
+        LOGGER.info(f"{len(task_maps) - len(pending)} Tasks Finished")
 
     return (
-        {t: msg for t, msg in tasks_msgs.items() if t in pending},
-        prev_task_errors,  # this now also includes tasks that finished this round
-        [msg.msg_id for t, msg in tasks_msgs.items() if t in done],  # all done msg ids
+        [tm for tm in task_maps if tm.asyncio_task in pending],
+        prev_task_errors,  # appended errors from tasks that finished this round
+        [tm.message.msg_id for tm in task_maps if tm.asyncio_task in done],
     )

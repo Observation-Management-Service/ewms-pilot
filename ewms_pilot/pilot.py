@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import sys
+import time
 
 import mqclient as mq
 
@@ -14,8 +15,9 @@ from .config import (
 from .housekeeping import Housekeeping
 from .init_container.init_container import run_init_container
 from .tasks.io import FileExtension
+from .tasks.map import TaskMapping
 from .tasks.task import process_msg_task
-from .tasks.wait_on_tasks import AsyncioTaskMessagesMap, wait_on_tasks_with_ack
+from .tasks.wait_on_tasks import wait_on_tasks_with_ack
 from .utils.runner import ContainerRunner
 from .utils.utils import all_task_errors_string
 
@@ -195,7 +197,7 @@ async def _consume_and_reply(
     """
     await housekeeper.basic_housekeeping()
 
-    pending: AsyncioTaskMessagesMap = {}
+    pending_maps: list[TaskMapping] = []
     task_errors: list[BaseException] = []
 
     # timeouts
@@ -237,7 +239,7 @@ async def _consume_and_reply(
             await housekeeper.queue_housekeeping(in_queue, sub, pub)
             #
             # get messages/tasks
-            if len(pending) >= max_concurrent_tasks:
+            if len(pending_maps) >= max_concurrent_tasks:
                 LOGGER.debug("At max task concurrency limit")
             else:
                 LOGGER.debug("Listening for incoming message...")
@@ -260,7 +262,13 @@ async def _consume_and_reply(
                             outfile_ext,
                         )
                     )
-                    pending[task] = in_msg
+                    pending_maps.append(
+                        TaskMapping(
+                            message=in_msg,
+                            asyncio_task=task,
+                            start_time=time.time(),
+                        )
+                    )
                     continue  # we got one message, so maybe the queue is saturated
                 except StopAsyncIteration:
                     # no message this round
@@ -270,16 +278,16 @@ async def _consume_and_reply(
                     message_iterator = sub.iter_messages()
 
             # wait on finished task (or timeout)
-            pending, task_errors, done_msg_ids = await wait_on_tasks_with_ack(
+            pending_maps, task_errors, done_msg_ids = await wait_on_tasks_with_ack(
                 sub,
                 pub,
-                pending,
+                pending_maps,
                 prev_task_errors=task_errors,
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
                 done_msg_ids,
-                total_msg_count - len(pending) - len(task_errors),
+                total_msg_count - len(pending_maps) - len(task_errors),
                 len(task_errors),
             )
 
@@ -290,22 +298,22 @@ async def _consume_and_reply(
         # "clean up loop" -- wait for remaining tasks
         # intermittently halting to process housekeeping things
         #
-        if pending:
+        if pending_maps:
             LOGGER.debug("Waiting for remaining tasks to finish...")
             await housekeeper.pending_remaining_tasks()
-        while pending:
+        while pending_maps:
             await housekeeper.queue_housekeeping(in_queue, sub, pub)
             # wait on finished task (or timeout)
-            pending, task_errors, done_msg_ids = await wait_on_tasks_with_ack(
+            pending_maps, task_errors, done_msg_ids = await wait_on_tasks_with_ack(
                 sub,
                 pub,
-                pending,
+                pending_maps,
                 prev_task_errors=task_errors,
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
                 done_msg_ids,
-                total_msg_count - len(pending) - len(task_errors),
+                total_msg_count - len(pending_maps) - len(task_errors),
                 len(task_errors),
             )
 
