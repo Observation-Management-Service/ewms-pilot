@@ -92,7 +92,7 @@ class Housekeeping:
         pass
 
     @with_basic_housekeeping
-    async def message_recieved(self, total_msg_count: int) -> None:
+    async def message_received(self, total_msg_count: int) -> None:
         """Update message count for chirp."""
         if total_msg_count == 1:
             self.chirper.chirp_status(htchirp_tools.PilotStatus.Tasking)

@@ -3,6 +3,7 @@
 import asyncio
 import logging
 import sys
+import time
 
 import mqclient as mq
 
@@ -14,10 +15,11 @@ from .config import (
 from .housekeeping import Housekeeping
 from .init_container.init_container import run_init_container
 from .tasks.io import FileExtension
+from .tasks.map import TaskMapping
 from .tasks.task import process_msg_task
-from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
+from .tasks.wait_on_tasks import wait_on_tasks_with_ack
 from .utils.runner import ContainerRunner
-from .utils.utils import all_task_errors_string
+from .utils.utils import all_task_errors_string, dump_task_stats
 
 LOGGER = logging.getLogger(__name__)
 
@@ -195,8 +197,7 @@ async def _consume_and_reply(
     """
     await housekeeper.basic_housekeeping()
 
-    pending: AsyncioTaskMessages = {}
-    task_errors: list[BaseException] = []
+    task_maps: list[TaskMapping] = []
 
     # timeouts
     if (
@@ -216,7 +217,6 @@ async def _consume_and_reply(
     msg_waittime_timeout = timeout_wait_for_first_message or timeout_incoming
 
     # GO!
-    total_msg_count = 0
     LOGGER.info(
         "Listening for messages from server to process tasks then send results..."
     )
@@ -232,26 +232,30 @@ async def _consume_and_reply(
         #
         msg_waittime_current = 0.0
         while not listener_loop_exit(
-            task_errors, msg_waittime_current, msg_waittime_timeout
+            [tm.error for tm in task_maps if tm.error],
+            msg_waittime_current,
+            msg_waittime_timeout,
         ):
             await housekeeper.queue_housekeeping(in_queue, sub, pub)
             #
             # get messages/tasks
-            if len(pending) >= max_concurrent_tasks:
+            if len([tm for tm in task_maps if tm.is_pending]) >= max_concurrent_tasks:
                 LOGGER.debug("At max task concurrency limit")
             else:
                 LOGGER.debug("Listening for incoming message...")
-                try:
-                    in_msg = await anext(message_iterator)  # -> in_queue.timeout
+                #
+                # TRY TO GET A MESSAGE
+                try:  # StopAsyncIteration -> in_queue.timeout
+                    in_msg = await anext(message_iterator)
                     msg_waittime_current = 0.0
-                    total_msg_count += 1
-                    LOGGER.info(f"Got a task to process (#{total_msg_count}): {in_msg}")
+                    LOGGER.info(
+                        f"Got a task to process (#{len(task_maps)+1}): {in_msg}"
+                    )
 
                     # after the first message, set the timeout to the "normal" amount
                     msg_waittime_timeout = timeout_incoming
 
-                    await housekeeper.message_recieved(total_msg_count)
-
+                    # start task
                     task = asyncio.create_task(
                         process_msg_task(
                             in_msg,
@@ -260,26 +264,35 @@ async def _consume_and_reply(
                             outfile_ext,
                         )
                     )
-                    pending[task] = in_msg
-                    continue  # we got one message, so maybe the queue is saturated
+                    task_maps.append(
+                        TaskMapping(
+                            message=in_msg,
+                            asyncio_task=task,
+                            start_time=time.time(),
+                        )
+                    )
+                    await housekeeper.message_received(len(task_maps))
+
+                    continue  # we got one message, let's see if there's another
+                #
+                # NO MESSAGE THIS ROUND
                 except StopAsyncIteration:
-                    # no message this round
                     #   incrementing by the timeout value allows us to
                     #   not worry about time not spent waiting for a message
                     msg_waittime_current += in_queue.timeout
                     message_iterator = sub.iter_messages()
 
+            # WE GOT AS MANY CONCURRENT MESSAGES AS POSSIBLE (max concurrency or no message in in-queue)
             # wait on finished task (or timeout)
-            pending, task_errors = await wait_on_tasks_with_ack(
+            await wait_on_tasks_with_ack(
                 sub,
                 pub,
-                pending,
-                prev_task_errors=task_errors,
+                task_maps,
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
-                total_msg_count - len(pending) - len(task_errors),
-                len(task_errors),
+                len([tm for tm in task_maps if tm.is_done and not tm.error]),
+                len([tm for tm in task_maps if tm.error]),
             )
 
         LOGGER.info("Done listening for messages")
@@ -289,31 +302,35 @@ async def _consume_and_reply(
         # "clean up loop" -- wait for remaining tasks
         # intermittently halting to process housekeeping things
         #
-        if pending:
+        if any(tm for tm in task_maps if tm.is_pending):
             LOGGER.debug("Waiting for remaining tasks to finish...")
             await housekeeper.pending_remaining_tasks()
-        while pending:
+        while any(tm for tm in task_maps if tm.is_pending):
             await housekeeper.queue_housekeeping(in_queue, sub, pub)
             # wait on finished task (or timeout)
-            pending, task_errors = await wait_on_tasks_with_ack(
+            await wait_on_tasks_with_ack(
                 sub,
                 pub,
-                pending,
-                prev_task_errors=task_errors,
+                task_maps,
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
-                total_msg_count - len(pending) - len(task_errors),
-                len(task_errors),
+                len([tm for tm in task_maps if tm.is_done and not tm.error]),
+                len([tm for tm in task_maps if tm.error]),
             )
 
     # log/chirp
     await housekeeper.done_tasking()
-    LOGGER.info(f"Done Tasking: completed {total_msg_count} task(s)")
+    LOGGER.info(f"Done Tasking: completed {len(task_maps)} task(s)")
     # check if anything actually processed
-    if not total_msg_count:
+    if not task_maps:
         LOGGER.warning("No Messages Were Received.")
 
     # done
-    if task_errors:
-        raise RuntimeError(all_task_errors_string(task_errors))
+    if any(tm.error for tm in task_maps if tm.error):
+        raise RuntimeError(
+            all_task_errors_string([tm.error for tm in task_maps if tm.error])
+        )
+
+    # dump stats
+    dump_task_stats(task_maps)
