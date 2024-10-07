@@ -2,6 +2,23 @@
 
 
 
+## v0.26.5 (2024-10-07)
+
+###  
+
+* Track Pilot Runtimes (#103)
+
+At the end of the pilot, stats about the tasks&#39; runtimes are dumped into
+the console.
+
+Also, I refactored how the asyncio-task/message/etc. are organized to
+decrease intermittent structures.
+
+---------
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`15db11f`](https://github.com/Observation-Management-Service/ewms-pilot/commit/15db11f4dac52e385f86a5c37228c54c783399f1))
+
+
 ## v0.26.4 (2024-10-03)
 
 ###  
