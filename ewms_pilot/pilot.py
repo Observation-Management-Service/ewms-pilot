@@ -313,7 +313,7 @@ async def _consume_and_reply(
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
-                len([tm for tm in task_maps if tm.done and not tm.error]),
+                len([tm for tm in task_maps if tm.is_done and not tm.error]),
                 len([tm for tm in task_maps if tm.error]),
             )
 
