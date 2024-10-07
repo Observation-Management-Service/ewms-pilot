@@ -47,15 +47,3 @@ class TaskMapping:
     ) -> "TaskMapping":
         """Retrieves the object mapped with the given asyncio task."""
         return next(tm for tm in task_maps if tm.asyncio_task == asyncio_task)
-
-    @staticmethod
-    def calculate_mean_and_median_runtimes(task_maps: list["TaskMapping"]):
-        """Calculate the mean and median runtimes for a list of TaskMapping objects."""
-        runtimes = [
-            tmap.end_time - tmap.start_time for tmap in task_maps if tmap.is_done
-        ]
-
-        if runtimes:
-            return statistics.mean(runtimes), statistics.median(runtimes)
-        else:
-            return 0.0, 0.0

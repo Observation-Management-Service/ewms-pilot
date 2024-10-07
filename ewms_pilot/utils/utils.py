@@ -2,6 +2,7 @@
 
 import json
 import logging
+import statistics
 
 from ewms_pilot.tasks.map import TaskMapping
 
@@ -38,6 +39,11 @@ def dump_task_stats(task_maps: list[TaskMapping]) -> None:
         )
     )
 
-    mean, median = TaskMapping.calculate_mean_and_median_runtimes(task_maps)
-    LOGGER.info(f"Task runtime mean: {mean:.3f} seconds")
-    LOGGER.info(f"Task runtime median: {median:.3f} seconds")
+    runtimes = [tmap.end_time - tmap.start_time for tmap in task_maps if tmap.is_done]
+    if not runtimes:
+        LOGGER.info("no finished tasks")
+
+    LOGGER.info(f"Task runtime min: {min(runtimes):.3f} seconds")
+    LOGGER.info(f"Task runtime max: {max(runtimes):.3f} seconds")
+    LOGGER.info(f"Task runtime mean: {statistics.mean(runtimes):.3f} seconds")
+    LOGGER.info(f"Task runtime median: {statistics.median(runtimes):.3f} seconds")
