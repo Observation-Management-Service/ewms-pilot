@@ -244,6 +244,7 @@ async def _consume_and_reply(
                 LOGGER.debug("At max task concurrency limit")
             else:
                 LOGGER.debug("Listening for incoming message...")
+                #
                 # TRY TO GET A MESSAGE
                 try:  # StopAsyncIteration -> in_queue.timeout
                     in_msg = await anext(message_iterator)
@@ -274,6 +275,7 @@ async def _consume_and_reply(
                     await housekeeper.message_received(len(task_maps))
 
                     continue  # we got one message, let's see if there's another
+                #
                 # NO MESSAGE THIS ROUND
                 except StopAsyncIteration:
                     #   incrementing by the timeout value allows us to
