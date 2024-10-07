@@ -108,8 +108,6 @@ class EnvConfig:
     _EWMS_PILOT_DOCKER_SHM_SIZE: str | None = None  # this should be set to max allowed
     CI: bool = False  # github actions sets this to 'true'
 
-    # TODO: print summary of task runtime stats -- controlled by env var
-
     def __post_init__(self) -> None:
         """Do advanced validation."""
 

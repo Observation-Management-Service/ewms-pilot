@@ -1,14 +1,12 @@
 """Housekeeping logic."""
 
 import asyncio
-import json
 import logging
 import time
 from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
 
 import mqclient as mq
-from mqclient.broker_client_interface import MessageID
 from typing_extensions import ParamSpec
 
 from . import htchirp_tools
@@ -94,18 +92,14 @@ class Housekeeping:
         pass
 
     @with_basic_housekeeping
-    async def message_received(self, msg_id: MessageID, total_msg_count: int) -> None:
+    async def message_received(self, total_msg_count: int) -> None:
         """Update message count for chirp."""
         if total_msg_count == 1:
             self.chirper.chirp_status(htchirp_tools.PilotStatus.Tasking)
         self.chirper.chirp_new_total(total_msg_count)
 
     @with_basic_housekeeping
-    async def new_messages_done(
-        self,
-        n_success: int,
-        n_failed: int,
-    ) -> None:
+    async def new_messages_done(self, n_success: int, n_failed: int) -> None:
         """Update done counts for chirp."""
         self.chirper.chirp_new_failed_total(n_failed)
         self.chirper.chirp_new_success_total(n_success)
@@ -118,9 +112,4 @@ class Housekeeping:
     @with_basic_housekeeping
     async def done_tasking(self) -> None:
         """Basic housekeeping + status chirping (if needed)."""
-        LOGGER.info(
-            json.dumps(
-                {str(k): v for k, v in self.runtime_tracker.items()},
-                indent=4,
-            )
-        )
+        pass
