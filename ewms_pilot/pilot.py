@@ -324,7 +324,7 @@ async def _consume_and_reply(
     await housekeeper.done_tasking()
     LOGGER.info(f"Done Tasking: completed {len(task_maps)} task(s)")
     # check if anything actually processed
-    if not len(task_maps):
+    if not task_maps:
         LOGGER.warning("No Messages Were Received.")
 
     # done
