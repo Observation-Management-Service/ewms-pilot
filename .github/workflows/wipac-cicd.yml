@@ -371,7 +371,7 @@ jobs:
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
                       --env CI=$CI \
-                      ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv $test" \
+                      ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv -s --log-cli-level=DEBUG $test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
           
@@ -396,7 +396,7 @@ jobs:
                       --env CI=$CI \
                       --workdir "$temp_dir" -B "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
-                      /bin/bash -c "ls -l && ls -l / && pytest -vvv /app/$test" \
+                      /bin/bash -c "ls -l && ls -l / && pytest -vvv -s --log-cli-level=DEBUG /app/$test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
           
