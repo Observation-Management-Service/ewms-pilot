@@ -254,8 +254,6 @@ async def _consume_and_reply(
                     # after the first message, set the timeout to the "normal" amount
                     msg_waittime_timeout = timeout_incoming
 
-                    await housekeeper.message_received(len(task_maps) + 1)
-
                     task = asyncio.create_task(
                         process_msg_task(
                             in_msg,
@@ -271,6 +269,8 @@ async def _consume_and_reply(
                             start_time=time.time(),
                         )
                     )
+                    await housekeeper.message_received(len(task_maps))
+
                     continue  # we got one message, so maybe the queue is saturated
                 except StopAsyncIteration:
                     # no message this round
