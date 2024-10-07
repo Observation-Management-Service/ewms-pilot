@@ -272,7 +272,7 @@ async def _consume_and_reply(
                     )
                     await housekeeper.message_received(len(task_maps))
 
-                    continue  # we got one message, so maybe the queue is saturated
+                    continue  # we got one message, let's see if there's another
                 except StopAsyncIteration:
                     # no message this round
                     #   incrementing by the timeout value allows us to
