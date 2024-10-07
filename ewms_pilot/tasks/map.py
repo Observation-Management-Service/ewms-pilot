@@ -33,7 +33,6 @@ class TaskMapping:
         self.end_time = time.time()
 
     @property
-    @property
     def is_pending(self) -> bool:
         """Check if the EWMS task is pending.
 
