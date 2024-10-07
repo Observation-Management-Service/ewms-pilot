@@ -254,6 +254,7 @@ async def _consume_and_reply(
                     # after the first message, set the timeout to the "normal" amount
                     msg_waittime_timeout = timeout_incoming
 
+                    # start task
                     task = asyncio.create_task(
                         process_msg_task(
                             in_msg,
