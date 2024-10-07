@@ -2,7 +2,6 @@
 
 import asyncio
 import dataclasses as dc
-import statistics
 import time
 
 from mqclient.broker_client_interface import Message
