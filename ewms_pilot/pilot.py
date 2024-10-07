@@ -283,6 +283,7 @@ async def _consume_and_reply(
                     msg_waittime_current += in_queue.timeout
                     message_iterator = sub.iter_messages()
 
+            # WE GOT AS MANY CONCURRENT MESSAGES AS POSSIBLE (max concurrency or no message in in-queue)
             # wait on finished task (or timeout)
             await wait_on_tasks_with_ack(
                 sub,
