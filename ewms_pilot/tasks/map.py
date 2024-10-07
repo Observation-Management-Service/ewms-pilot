@@ -2,6 +2,7 @@
 
 import asyncio
 import dataclasses as dc
+import time
 
 from mqclient.broker_client_interface import Message
 
@@ -16,17 +17,28 @@ class TaskMapping:
     start_time: float
     end_time: float = 0.0
 
+    # just b/c the asyncio_task may be done, doesn't mean this object is done
+    is_done: bool = False
+
     # could be the asyncio task exception or an error from downstream handling
     error: BaseException | None = None
 
-    @property
-    def is_done(self) -> bool:
-        """Check if the task is done."""
-        return self.asyncio_task.done()
+    def mark_done(self, error: BaseException | None = None) -> None:
+        """Mark the task done and update attrs."""
+        if self.is_done:
+            raise RuntimeError("Attempted to mark an already-done task as done.")
+        if error:
+            self.error = error
+        self.is_done = True
+        self.end_time = time.time()
 
     @property
+    @property
     def is_pending(self) -> bool:
-        """Check if the task is pending."""
+        """Check if the EWMS task is pending.
+
+        Just b/c the asyncio_task may be no longer pending, doesn't mean this object is.
+        """
         return not self.is_done
 
     @staticmethod

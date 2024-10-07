@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import time
 
 import mqclient as mq
 from mqclient.broker_client_interface import Message
@@ -54,13 +53,13 @@ async def wait_on_tasks_with_ack(
         tmap = TaskMapping.get(task_maps, asyncio_task=asyncio_task)
         try:
             output_event = await asyncio_task
-            tmap.end_time = time.time()
+            tmap.mark_done()
         # SUCCESSFUL TASK W/O OUTPUT -> is ok, but nothing to send...
         except NoTaskResponseException:
             LOGGER.info("TASK FINISHED -- no output-event to send (this is ok).")
         # FAILED TASK! -> nack input message
         except Exception as e:
-            tmap.error = e
+            tmap.mark_done(e)
             await _nack(e, sub, tmap.message)
             continue
         # SUCCESSFUL TASK W/ OUTPUT -> send...
@@ -69,7 +68,7 @@ async def wait_on_tasks_with_ack(
                 LOGGER.info("TASK FINISHED -- attempting to send output-event...")
                 await pub.send(output_event)
             except Exception as e:
-                tmap.error = e
+                tmap.error = e  # already marked as done, see above
                 # -> failed to send = FAILED TASK! -> nack input-event message
                 LOGGER.error(
                     f"Failed to send finished task's output-event: {repr(e)}"
