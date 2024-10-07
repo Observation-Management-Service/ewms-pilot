@@ -126,4 +126,9 @@ class Housekeeping:
     @with_basic_housekeeping
     async def done_tasking(self) -> None:
         """Basic housekeeping + status chirping (if needed)."""
-        LOGGER.info(json.dumps(self.runtime_tracker, indent=4))
+        LOGGER.info(
+            json.dumps(
+                {str(k): v for k, v in self.runtime_tracker.items()},
+                indent=4,
+            )
+        )
