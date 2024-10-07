@@ -42,6 +42,7 @@ def dump_task_stats(task_maps: list[TaskMapping]) -> None:
     runtimes = [tmap.end_time - tmap.start_time for tmap in task_maps if tmap.is_done]
     if not runtimes:
         LOGGER.info("no finished tasks")
+        return
 
     LOGGER.info(f"Task runtime min: {min(runtimes):.3f} seconds")
     LOGGER.info(f"Task runtime max: {max(runtimes):.3f} seconds")
