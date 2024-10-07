@@ -23,12 +23,10 @@ class TaskMapping:
     # could be the asyncio task exception or an error from downstream handling
     error: BaseException | None = None
 
-    def mark_done(self, error: BaseException | None = None) -> None:
+    def mark_done(self) -> None:
         """Mark the task done and update attrs."""
         if self.is_done:
             raise RuntimeError("Attempted to mark an already-done task as done.")
-        if error:
-            self.error = error
         self.is_done = True
         self.end_time = time.time()
 

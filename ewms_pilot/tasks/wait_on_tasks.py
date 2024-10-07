@@ -51,15 +51,15 @@ async def wait_on_tasks_with_ack(
     # fyi, most likely one task in here, but 2+ could finish at same time
     for asyncio_task in newly_done:
         tmap = TaskMapping.get(task_maps, asyncio_task=asyncio_task)
+        tmap.mark_done()
         try:
             output_event = await asyncio_task
-            tmap.mark_done()
         # SUCCESSFUL TASK W/O OUTPUT -> is ok, but nothing to send...
         except NoTaskResponseException:
             LOGGER.info("TASK FINISHED -- no output-event to send (this is ok).")
         # FAILED TASK! -> nack input message
         except Exception as e:
-            tmap.mark_done(e)
+            tmap.error = e  # already marked as done, see above
             await _nack(e, sub, tmap.message)
             continue
         # SUCCESSFUL TASK W/ OUTPUT -> send...
