@@ -254,9 +254,7 @@ async def _consume_and_reply(
                     # after the first message, set the timeout to the "normal" amount
                     msg_waittime_timeout = timeout_incoming
 
-                    await housekeeper.message_received(
-                        in_msg.msg_id, len(task_maps) + 1
-                    )
+                    await housekeeper.message_received(len(task_maps) + 1)
 
                     task = asyncio.create_task(
                         process_msg_task(
