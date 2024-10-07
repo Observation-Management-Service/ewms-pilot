@@ -15,7 +15,19 @@ class TaskMapping:
 
     start_time: float
     end_time: float = 0.0
-    error: str = ""
+
+    # could be the asyncio task exception or an error from downstream handling
+    error: BaseException | None = None
+
+    @property
+    async def is_done(self) -> bool:
+        """Check if the task is done."""
+        return self.asyncio_task.done()
+
+    @property
+    async def is_pending(self) -> bool:
+        """Check if the task is pending."""
+        return not self.is_done
 
     @staticmethod
     def get(

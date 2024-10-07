@@ -41,7 +41,6 @@ class Housekeeping:
     def __init__(self, chirper: htchirp_tools.Chirper) -> None:
         self.prev_rabbitmq_heartbeat = 0.0
         self.chirper = chirper
-        self.runtime_tracker: dict[MessageID, tuple[float, float]] = {}
 
     async def basic_housekeeping(
         self,
@@ -97,7 +96,6 @@ class Housekeeping:
     @with_basic_housekeeping
     async def message_received(self, msg_id: MessageID, total_msg_count: int) -> None:
         """Update message count for chirp."""
-        self.runtime_tracker[msg_id] = (time.time(), 0.0)
         if total_msg_count == 1:
             self.chirper.chirp_status(htchirp_tools.PilotStatus.Tasking)
         self.chirper.chirp_new_total(total_msg_count)
@@ -105,16 +103,10 @@ class Housekeeping:
     @with_basic_housekeeping
     async def new_messages_done(
         self,
-        done_msg_ids: list[MessageID],
         n_success: int,
         n_failed: int,
     ) -> None:
         """Update done counts for chirp."""
-        for msg_id in done_msg_ids:
-            self.runtime_tracker[msg_id] = (
-                self.runtime_tracker[msg_id][0],
-                time.time(),
-            )
         self.chirper.chirp_new_failed_total(n_failed)
         self.chirper.chirp_new_success_total(n_success)
 
