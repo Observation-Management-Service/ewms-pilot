@@ -244,8 +244,9 @@ async def _consume_and_reply(
                 LOGGER.debug("At max task concurrency limit")
             else:
                 LOGGER.debug("Listening for incoming message...")
-                try:
-                    in_msg = await anext(message_iterator)  # -> in_queue.timeout
+                # TRY TO GET A MESSAGE
+                try:  # StopAsyncIteration -> in_queue.timeout
+                    in_msg = await anext(message_iterator)
                     msg_waittime_current = 0.0
                     LOGGER.info(
                         f"Got a task to process (#{len(task_maps)+1}): {in_msg}"
@@ -273,8 +274,8 @@ async def _consume_and_reply(
                     await housekeeper.message_received(len(task_maps))
 
                     continue  # we got one message, let's see if there's another
+                # NO MESSAGE THIS ROUND
                 except StopAsyncIteration:
-                    # no message this round
                     #   incrementing by the timeout value allows us to
                     #   not worry about time not spent waiting for a message
                     msg_waittime_current += in_queue.timeout
