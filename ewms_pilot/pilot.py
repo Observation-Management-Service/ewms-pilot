@@ -15,7 +15,7 @@ from .housekeeping import Housekeeping
 from .init_container.init_container import run_init_container
 from .tasks.io import FileExtension
 from .tasks.task import process_msg_task
-from .tasks.wait_on_tasks import AsyncioTaskMessages, wait_on_tasks_with_ack
+from .tasks.wait_on_tasks import AsyncioTaskMessagesMap, wait_on_tasks_with_ack
 from .utils.runner import ContainerRunner
 from .utils.utils import all_task_errors_string
 
@@ -195,7 +195,7 @@ async def _consume_and_reply(
     """
     await housekeeper.basic_housekeeping()
 
-    pending: AsyncioTaskMessages = {}
+    pending: AsyncioTaskMessagesMap = {}
     task_errors: list[BaseException] = []
 
     # timeouts
@@ -250,7 +250,7 @@ async def _consume_and_reply(
                     # after the first message, set the timeout to the "normal" amount
                     msg_waittime_timeout = timeout_incoming
 
-                    await housekeeper.message_recieved(total_msg_count)
+                    await housekeeper.message_received(in_msg.msg_id, total_msg_count)
 
                     task = asyncio.create_task(
                         process_msg_task(
@@ -270,7 +270,7 @@ async def _consume_and_reply(
                     message_iterator = sub.iter_messages()
 
             # wait on finished task (or timeout)
-            pending, task_errors = await wait_on_tasks_with_ack(
+            pending, task_errors, done_msg_ids = await wait_on_tasks_with_ack(
                 sub,
                 pub,
                 pending,
@@ -278,6 +278,7 @@ async def _consume_and_reply(
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
+                done_msg_ids,
                 total_msg_count - len(pending) - len(task_errors),
                 len(task_errors),
             )
@@ -295,7 +296,7 @@ async def _consume_and_reply(
         while pending:
             await housekeeper.queue_housekeeping(in_queue, sub, pub)
             # wait on finished task (or timeout)
-            pending, task_errors = await wait_on_tasks_with_ack(
+            pending, task_errors, done_msg_ids = await wait_on_tasks_with_ack(
                 sub,
                 pub,
                 pending,
@@ -303,6 +304,7 @@ async def _consume_and_reply(
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
+                done_msg_ids,
                 total_msg_count - len(pending) - len(task_errors),
                 len(task_errors),
             )

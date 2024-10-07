@@ -1,12 +1,14 @@
 """Housekeeping logic."""
 
 import asyncio
+import json
 import logging
 import time
 from functools import wraps
 from typing import Any, Callable, Coroutine, TypeVar
 
 import mqclient as mq
+from mqclient.broker_client_interface import MessageID
 from typing_extensions import ParamSpec
 
 from . import htchirp_tools
@@ -39,6 +41,7 @@ class Housekeeping:
     def __init__(self, chirper: htchirp_tools.Chirper) -> None:
         self.prev_rabbitmq_heartbeat = 0.0
         self.chirper = chirper
+        self.runtime_tracker: dict[MessageID, tuple[float, float]] = {}
 
     async def basic_housekeeping(
         self,
@@ -92,15 +95,26 @@ class Housekeeping:
         pass
 
     @with_basic_housekeeping
-    async def message_recieved(self, total_msg_count: int) -> None:
+    async def message_received(self, msg_id: MessageID, total_msg_count: int) -> None:
         """Update message count for chirp."""
+        self.runtime_tracker[msg_id] = (time.time(), 0.0)
         if total_msg_count == 1:
             self.chirper.chirp_status(htchirp_tools.PilotStatus.Tasking)
         self.chirper.chirp_new_total(total_msg_count)
 
     @with_basic_housekeeping
-    async def new_messages_done(self, n_success: int, n_failed: int) -> None:
+    async def new_messages_done(
+        self,
+        done_msg_ids: list[MessageID],
+        n_success: int,
+        n_failed: int,
+    ) -> None:
         """Update done counts for chirp."""
+        for msg_id in done_msg_ids:
+            self.runtime_tracker[msg_id] = (
+                self.runtime_tracker[msg_id][0],
+                time.time(),
+            )
         self.chirper.chirp_new_failed_total(n_failed)
         self.chirper.chirp_new_success_total(n_success)
 
@@ -112,4 +126,4 @@ class Housekeeping:
     @with_basic_housekeeping
     async def done_tasking(self) -> None:
         """Basic housekeeping + status chirping (if needed)."""
-        pass
+        LOGGER.info(json.dumps(self.runtime_tracker, indent=4))
