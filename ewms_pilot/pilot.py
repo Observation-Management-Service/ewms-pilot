@@ -1,7 +1,6 @@
 """API for launching an MQ-task pilot."""
 
 import asyncio
-import json
 import logging
 import sys
 import time
@@ -20,7 +19,7 @@ from .tasks.map import TaskMapping
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import wait_on_tasks_with_ack
 from .utils.runner import ContainerRunner
-from .utils.utils import all_task_errors_string
+from .utils.utils import all_task_errors_string, dump_task_stats
 
 LOGGER = logging.getLogger(__name__)
 
@@ -334,17 +333,4 @@ async def _consume_and_reply(
         )
 
     # dump stats
-    LOGGER.info("Task runtime stats:")
-    LOGGER.info(
-        json.dumps(
-            [
-                {
-                    "start": tm.start_time,
-                    "end": tm.end_time,
-                    "runtime": tm.end_time - tm.start_time,
-                }
-                for tm in task_maps
-            ],
-            indent=4,
-        )
-    )
+    dump_task_stats(task_maps)
