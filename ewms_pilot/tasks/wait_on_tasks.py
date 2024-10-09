@@ -96,11 +96,11 @@ async def wait_on_tasks_with_ack(
     # log
     if newly_done:
         # new tallies
-        LOGGER.info(f"Update (just now):")
+        LOGGER.info("Update (just now):")
         dump_all_taskmaps(newly_done)
         dump_tallies(newly_done, dump_n_pending=False)
 
         # overall tallies
-        LOGGER.info(f"Overall:")
+        LOGGER.info("Overall:")
         dump_tallies(task_maps)
         dump_task_runtime_stats(task_maps)
