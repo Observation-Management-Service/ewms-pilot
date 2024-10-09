@@ -12,6 +12,8 @@ LOGGER = logging.getLogger(__name__)
 
 def all_task_errors_string(task_errors: list[BaseException]) -> str:
     """Make a string from the multiple task exceptions."""
+    if not task_errors:
+        return ""
     for exception in task_errors:
         LOGGER.error(exception)
     return (
