@@ -95,24 +95,27 @@ async def wait_on_tasks_with_ack(
 
     # log
     if newly_done:
-        _new_errors = [
-            tm.error for tm in task_maps if tm.error and tm.asyncio_task in newly_done
-        ]
+        # new tallies
         LOGGER.info(
             f"Update: {len(newly_done)} Tasks Just Finished "
             f"("
-            f"{len(newly_done)-len(_new_errors)} succeeded, "
-            f"{len(_new_errors)} failed"
+            f"{TaskMapping.n_successful(newly_done)} succeeded, "
+            f"{TaskMapping.n_failed(newly_done)} failed"
             f")"
         )
+        if _errors := [
+            tm.error for tm in task_maps if tm.error and tm.asyncio_task in newly_done
+        ]:
+            LOGGER.error(all_task_errors_string(_errors))
+        # overall tallies
         LOGGER.info(
             f"Overall: "
-            f"{len([tm for tm in task_maps if tm.is_pending])} Pending Tasks"
-            f"{len([tm for tm in task_maps if tm.is_done])} Finished Tasks "
+            f"{TaskMapping.n_pending(task_maps)} Pending Tasks"
+            f"{TaskMapping.n_done(task_maps)} Finished Tasks "
             f"("
-            f"{len([tm for tm in task_maps if tm.is_done])-len([tm for tm in task_maps if tm.is_done and not tm.error])} succeeded, "
-            f"{len([tm for tm in task_maps if tm.is_done])-len([tm for tm in task_maps if tm.is_done and tm.error])} failed"
+            f"{TaskMapping.n_successful(task_maps)} succeeded, "
+            f"{TaskMapping.n_failed(task_maps)} failed"
             f")"
         )
-        if _new_errors:
-            LOGGER.error(all_task_errors_string(_new_errors))
+        if _errors := [tm.error for tm in task_maps if tm.error]:
+            LOGGER.error(all_task_errors_string(_errors))
