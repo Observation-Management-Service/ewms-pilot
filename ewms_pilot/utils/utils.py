@@ -22,11 +22,8 @@ def all_task_errors_string(task_errors: list[BaseException]) -> str:
     )
 
 
-def dump_task_stats(task_maps: list[TaskMapping]) -> None:
-    """Dump stats about the given task maps."""
-    LOGGER.info("Task runtime stats:")
-
-    # dump all
+def dump_all_taskmaps(task_maps: list[TaskMapping]) -> None:
+    """Dump all the task maps."""
     LOGGER.debug(
         json.dumps(
             [
@@ -43,10 +40,16 @@ def dump_task_stats(task_maps: list[TaskMapping]) -> None:
         )
     )
 
-    # get runtimes
-    runtimes = [tmap.end_time - tmap.start_time for tmap in task_maps if tmap.is_done]
+
+def dump_task_runtime_stats(task_maps: list[TaskMapping]) -> None:
+    """Dump stats about the given task maps."""
+    LOGGER.info("Task runtime stats (successful tasks):")
+
+    runtimes = [
+        tm.end_time - tm.start_time for tm in task_maps if tm.is_done and not tm.error
+    ]
     if not runtimes:
-        LOGGER.info("no finished tasks")
+        LOGGER.info("no finished successful tasks")
         return
 
     data_np = np.array(runtimes)
@@ -72,3 +75,21 @@ def dump_task_stats(task_maps: list[TaskMapping]) -> None:
         bin_range = f"[{bin_edges[i]:.2f}, {bin_edges[i + 1]:.2f})"
         bar = "#" * hist[i]
         LOGGER.info(f"{bin_range:20} | {bar}")
+
+
+def dump_tallies(task_maps: list[TaskMapping], dump_n_pending: bool = True) -> None:
+    """Dump tallies about the given task maps."""
+    string = ""
+    if dump_n_pending:
+        string += f"{TaskMapping.n_pending(task_maps)} Pending Tasks "
+    string += (
+        f"{TaskMapping.n_done(task_maps)} Finished Tasks "
+        f"("
+        f"{TaskMapping.n_successful(task_maps)} succeeded, "
+        f"{TaskMapping.n_failed(task_maps)} failed"
+        f")"
+    )
+    LOGGER.info(string)
+
+    if _errors := [tm.error for tm in task_maps if tm.error]:
+        LOGGER.error(all_task_errors_string(_errors))

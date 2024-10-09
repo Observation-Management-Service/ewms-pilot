@@ -19,7 +19,12 @@ from .tasks.map import TaskMapping
 from .tasks.task import process_msg_task
 from .tasks.wait_on_tasks import wait_on_tasks_with_ack
 from .utils.runner import ContainerRunner
-from .utils.utils import all_task_errors_string, dump_task_stats
+from .utils.utils import (
+    all_task_errors_string,
+    dump_all_taskmaps,
+    dump_tallies,
+    dump_task_runtime_stats,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -332,5 +337,7 @@ async def _consume_and_reply(
             all_task_errors_string([tm.error for tm in task_maps if tm.error])
         )
 
-    # dump stats
-    dump_task_stats(task_maps)
+    # dumps about tasks
+    dump_all_taskmaps(task_maps)
+    dump_tallies(task_maps)
+    dump_task_runtime_stats(task_maps)
