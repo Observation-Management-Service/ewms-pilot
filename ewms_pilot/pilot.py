@@ -239,7 +239,7 @@ async def _consume_and_reply(
             await housekeeper.queue_housekeeping(in_queue, sub, pub)
             #
             # get messages/tasks
-            if len([tm for tm in task_maps if tm.is_pending]) >= max_concurrent_tasks:
+            if TaskMapping.n_pending(task_maps) >= max_concurrent_tasks:
                 LOGGER.debug("At max task concurrency limit")
             else:
                 LOGGER.debug("Listening for incoming message...")
@@ -291,8 +291,8 @@ async def _consume_and_reply(
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
-                len([tm for tm in task_maps if tm.is_done and not tm.error]),
-                len([tm for tm in task_maps if tm.error]),
+                TaskMapping.n_successful(task_maps),
+                TaskMapping.n_failed(task_maps),
             )
 
         LOGGER.info("Done listening for messages")
@@ -315,8 +315,8 @@ async def _consume_and_reply(
                 timeout=REFRESH_INTERVAL,
             )
             await housekeeper.new_messages_done(
-                len([tm for tm in task_maps if tm.is_done and not tm.error]),
-                len([tm for tm in task_maps if tm.error]),
+                TaskMapping.n_successful(task_maps),
+                TaskMapping.n_failed(task_maps),
             )
 
     # log/chirp
