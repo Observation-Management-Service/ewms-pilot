@@ -46,3 +46,23 @@ class TaskMapping:
     ) -> "TaskMapping":
         """Retrieves the object mapped with the given asyncio task."""
         return next(tm for tm in task_maps if tm.asyncio_task == asyncio_task)
+
+    @staticmethod
+    def n_pending(task_maps: list["TaskMapping"]) -> int:
+        """Returns the number of pending tasks."""
+        return len([tm for tm in task_maps if tm.is_pending])
+
+    @staticmethod
+    def n_done(task_maps: list["TaskMapping"]) -> int:
+        """Returns the number of done tasks."""
+        return len([tm for tm in task_maps if tm.is_done])
+
+    @staticmethod
+    def n_successful(task_maps: list["TaskMapping"]) -> int:
+        """Returns the number of successful tasks."""
+        return len([tm for tm in task_maps if tm.is_done and not tm.error])
+
+    @staticmethod
+    def n_failed(task_maps: list["TaskMapping"]) -> int:
+        """Returns the number of failed tasks."""
+        return len([tm for tm in task_maps if tm.is_done and tm.error])

@@ -8,7 +8,7 @@ from mqclient.broker_client_interface import Message
 
 from .io import NoTaskResponseException
 from .map import TaskMapping
-from ..utils.utils import all_task_errors_string
+from ..utils.utils import dump_all_taskmaps, dump_tallies, dump_task_runtime_stats
 
 LOGGER = logging.getLogger(__name__)
 
@@ -95,5 +95,15 @@ async def wait_on_tasks_with_ack(
 
     # log
     if newly_done:
-        LOGGER.info(f"{len(newly_done)} Tasks Just Finished")
-    LOGGER.error(all_task_errors_string([tm.error for tm in task_maps if tm.error]))
+        # new tallies
+        LOGGER.info("Update (just now):")
+        dump_all_taskmaps([tm for tm in task_maps if tm.asyncio_task in newly_done])
+        dump_tallies(
+            [tm for tm in task_maps if tm.asyncio_task in newly_done],
+            dump_n_pending=False,
+        )
+
+        # overall tallies
+        LOGGER.info("Overall:")
+        dump_tallies(task_maps)
+        dump_task_runtime_stats(task_maps)
