@@ -2,6 +2,15 @@
 
 
 
+## v0.26.6 (2024-10-10)
+
+###  
+
+* Dump More Runtime Stats (#104)
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`517ea35`](https://github.com/Observation-Management-Service/ewms-pilot/commit/517ea35db51c7f01ea2b8b9a9ce861583021aab2))
+
+
 ## v0.26.5 (2024-10-07)
 
 ###  
