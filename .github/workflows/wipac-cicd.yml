@@ -149,6 +149,7 @@ jobs:
 
 
   test-build-docker:
+    needs: [ mypy ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
