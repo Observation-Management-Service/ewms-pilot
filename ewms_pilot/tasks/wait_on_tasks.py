@@ -97,8 +97,11 @@ async def wait_on_tasks_with_ack(
     if newly_done:
         # new tallies
         LOGGER.info("Update (just now):")
-        dump_all_taskmaps(newly_done)
-        dump_tallies(newly_done, dump_n_pending=False)
+        dump_all_taskmaps([tm for tm in task_maps if tm.asyncio_task in newly_done])
+        dump_tallies(
+            [tm for tm in task_maps if tm.asyncio_task in newly_done],
+            dump_n_pending=False,
+        )
 
         # overall tallies
         LOGGER.info("Overall:")
