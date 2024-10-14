@@ -2,6 +2,13 @@
 
 
 
+## v0.26.7 (2024-10-14)
+
+###  
+
+* Add Env Var: `EWMS_PILOT_OKAY_ERRORS` ([`6c2b33d`](https://github.com/Observation-Management-Service/ewms-pilot/commit/6c2b33dba4ddf2a5c831b7582b6786cea9cba4c2))
+
+
 ## v0.26.6 (2024-10-10)
 
 ###  
