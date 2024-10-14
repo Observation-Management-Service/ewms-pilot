@@ -169,12 +169,22 @@ def listener_loop_exit(
     msg_waittime_timeout: float,
 ) -> bool:
     """Essentially a big IF condition -- but now with logging!"""
+    # ERRORS?
     if task_errors and ENV.EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR:
-        LOGGER.info("1+ Tasks Failed: waiting for remaining tasks")
-        return True
+        if any(type(e).__name__ not in ENV.EWMS_PILOT_OKAY_ERRORS for e in task_errors):
+            # ^^^ equivalent to "if not all(name in ENV.EWMS_PILOT_OKAY_ERRORS ...):", but faster
+            LOGGER.info("1+ Tasks Failed: no longer receiving incoming messages")
+            return True
+        else:
+            LOGGER.info(
+                "1+ Tasks Failed: but all failed with \"okay\" errors ('EWMS_PILOT_OKAY_ERRORS'), "
+                "continuing to receive incoming messages"
+            )
+    # TIMEOUT?
     if current_msg_waittime > msg_waittime_timeout:
         LOGGER.info(f"Timed out waiting for incoming message: {msg_waittime_timeout=}")
         return True
+    # ALL GOOD, LET'S GET MORE MESSAGES!
     return False
 
 

@@ -91,6 +91,12 @@ class EnvConfig:
         # ex: set to False if on known good compute node (testing cluster),
         #     set to True  if on unknown node (large homogeneous cluster)
     )
+    EWMS_PILOT_OKAY_ERRORS: list[str] = dc.field(
+        default_factory=list
+        # applicable only when EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR=true;
+        #    a list of names for the exceptions that will be ignored by the
+        #    EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR setting
+    )
     EWMS_PILOT_MAX_CONCURRENT_TASKS: int = 1  # max no. of tasks to process in parallel
 
     # misc settings
