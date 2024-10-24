@@ -6,7 +6,7 @@
 ########################################################################
 #  pip freeze
 ########################################################################
-asyncstdlib==3.12.5
+asyncstdlib==3.13.0
 certifi==2024.8.30
 charset-normalizer==3.4.0
 htchirp==3.0
@@ -29,7 +29,7 @@ zstd==1.5.5.1
 ########################################################################
 #  pipdeptree
 ########################################################################
-asyncstdlib==3.12.5
+asyncstdlib==3.13.0
 ewms-pilot
 ├── htchirp [required: Any, installed: 3.0]
 ├── htcondor [required: Any, installed: 23.10.1]
@@ -57,5 +57,5 @@ pytest-retry==1.6.3
     ├── iniconfig [required: Any, installed: 2.0.0]
     ├── packaging [required: Any, installed: 24.1]
     └── pluggy [required: >=1.5,<2, installed: 1.5.0]
-setuptools==75.1.0
+setuptools==75.2.0
 wheel==0.44.0

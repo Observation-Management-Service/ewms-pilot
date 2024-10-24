@@ -47,5 +47,5 @@ nkeys==0.2.1
 pipdeptree==2.23.4
 ├── packaging [required: >=24.1, installed: 24.1]
 └── pip [required: >=24.2, installed: 24.2]
-setuptools==75.1.0
+setuptools==75.2.0
 wheel==0.44.0
