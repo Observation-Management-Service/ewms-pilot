@@ -224,7 +224,7 @@ jobs:
 
 
   integration-tests:
-    needs: [ py-versions ]
+    needs: [ py-versions, mypy ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
