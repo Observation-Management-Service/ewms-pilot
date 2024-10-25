@@ -1012,7 +1012,7 @@ async def test_2002_init__exception(
     with pytest.raises(
         ContainerRunError,
         match=re.escape(
-            repr(
+            str(  # -> only the message part
                 ContainerRunError(
                     1,
                     "ValueError: no good!",
