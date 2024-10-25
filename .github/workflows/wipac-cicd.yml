@@ -459,6 +459,7 @@ jobs:
           file=$(grep -l -m 1 "= FAILURES =" *.test.out | head -1)
           if [ -n "$file" ]; then
               cat $file
+              echo "^^^^ this is the pytest out file -- this step exited with 1 because this *pytest* failed -- the ci step is okay"
               exit 1
           else
               echo "not found"
