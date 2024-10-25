@@ -191,9 +191,17 @@ class ContainerRunner:
             #       not found, try 'modprobe fuse' first`
             #       See https://github.com/Observation-Management-Service/ewms-pilot/pull/86
             case "apptainer":
-                if Path(image).is_dir():
+                if Path(image).exists() and Path(image).is_dir():
                     LOGGER.info("OK: Apptainer image is already in directory format")
                     return image
+                elif ENV._EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT:
+                    # not directory and image-conversions are disallowed
+                    raise ContainerSetupError(
+                        "Image 'not found in filesystem and/or "
+                        "cannot convert to apptainer directory (sandbox) format",
+                        image,
+                    )
+                # CONVERT THE IMAGE
                 # assume non-specified image is docker -- https://apptainer.org/docs/user/latest/build_a_container.html#overview
                 if "." not in image and "://" not in image:
                     # is not a blah.sif file (or other) and doesn't point to a registry
