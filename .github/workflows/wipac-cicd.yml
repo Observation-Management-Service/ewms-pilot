@@ -182,7 +182,7 @@ jobs:
       - name: build apptainer image
         run: |
           docker images
-          apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:local
+          apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}
           ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
 
   vanilla-run:
