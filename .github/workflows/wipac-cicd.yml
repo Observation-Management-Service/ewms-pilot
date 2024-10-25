@@ -173,7 +173,7 @@ jobs:
       - name: build docker image
         run: |
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
-              --build-arg="CONTAINER_PLATFORM=apptainer \
+              --build-arg="CONTAINER_PLATFORM=apptainer" \
               .
           docker images
       - uses: eWaterCycle/setup-apptainer@v2
