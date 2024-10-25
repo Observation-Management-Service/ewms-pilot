@@ -454,7 +454,7 @@ async def test_400__exception_quarantine(
     # run producer & consumer concurrently
     error = ContainerRunError(
         1,
-        "no good!",
+        "ValueError: no good!",
         os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
     )
     with pytest.raises(
@@ -631,7 +631,7 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     # run producer & consumer concurrently
     error = ContainerRunError(
         1,
-        "gotta fail: [^']+",
+        "ValueError: gotta fail: [^']+",
         # ^^^ b/c we don't guarantee in-order delivery, we cannot assert which messages each subproc failed on
         os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
     )
@@ -761,7 +761,7 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
 
     error = ContainerRunError(
         1,
-        "gotta fail: [^']+",
+        "ValueError: gotta fail: [^']+",
         # ^^^ b/c we don't guarantee in-order delivery, we cannot assert which messages each subproc failed on
         os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
     )
@@ -1012,9 +1012,11 @@ async def test_2002_init__exception(
     with pytest.raises(
         ContainerRunError,
         match=re.escape(
-            str(
+            repr(
                 ContainerRunError(
-                    1, "no good!", os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"]
+                    1,
+                    "ValueError: no good!",
+                    os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
                 )
             )
         ),
