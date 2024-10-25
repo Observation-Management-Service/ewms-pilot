@@ -452,15 +452,13 @@ async def test_400__exception_quarantine(
     start_time = time.time()
 
     # run producer & consumer concurrently
+    error = ContainerRunError(
+        1,
+        "no good!",
+        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+    )
     with pytest.raises(
-        ContainerRunError,
-        match=re.escape(
-            str(
-                ContainerRunError(
-                    1, "no good!", os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"]
-                )
-            )
-        ),
+        RuntimeError, match=re.escape(f"1 TASK(S) FAILED: {str(error)}")
     ):
         await asyncio.gather(
             populate_queue(
