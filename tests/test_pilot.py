@@ -458,7 +458,7 @@ async def test_400__exception_quarantine(
         os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
     )
     with pytest.raises(
-        RuntimeError, match=re.escape(f"1 TASK(S) FAILED: {str(error)}")
+        RuntimeError, match=re.escape(f"1 TASK(S) FAILED: {repr(error)}")
     ):
         await asyncio.gather(
             populate_queue(
@@ -638,7 +638,7 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     with pytest.raises(
         RuntimeError,
         match=re.escape(f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: ")
-        + ", ".join(re.escape(str(error)) for _ in range(MAX_CONCURRENT_TASKS)),
+        + ", ".join(re.escape(repr(error)) for _ in range(MAX_CONCURRENT_TASKS)),
     ) as e:
         await asyncio.gather(
             populate_queue(
@@ -768,7 +768,7 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
     with pytest.raises(
         RuntimeError,
         match=re.escape(f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: ")
-        + ", ".join(re.escape(str(error)) for _ in range(MAX_CONCURRENT_TASKS)),
+        + ", ".join(re.escape(repr(error)) for _ in range(MAX_CONCURRENT_TASKS)),
     ) as e:
         await consume_and_reply(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
