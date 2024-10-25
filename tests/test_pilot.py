@@ -631,8 +631,7 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     # run producer & consumer concurrently
     error = ContainerRunError(
         1,
-        "ValueError: gotta fail: [^']+",
-        # ^^^ b/c we don't guarantee in-order delivery, we cannot assert which messages each subproc failed on
+        "ValueError: gotta fail!",
         os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
     )
     with pytest.raises(
@@ -662,7 +661,7 @@ import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))
-raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
+raise ValueError('gotta fail!')" """,  # double cat
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
                 timeout_incoming=TIMEOUT_INCOMING,
@@ -761,8 +760,7 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
 
     error = ContainerRunError(
         1,
-        "ValueError: gotta fail: [^']+",
-        # ^^^ b/c we don't guarantee in-order delivery, we cannot assert which messages each subproc failed on
+        "ValueError: gotta fail!",
         os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
     )
     with pytest.raises(
@@ -777,7 +775,7 @@ import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))
-raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
+raise ValueError('gotta fail!')" """,  # double cat
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             timeout_incoming=TIMEOUT_INCOMING,
