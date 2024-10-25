@@ -28,13 +28,14 @@ def get_last_line(fpath: Path) -> str:
         return line.rstrip()  # remove trailing '\n'
 
 
-class PilotSubprocessError(Exception):
-    """Raised when the subprocess terminates in an error."""
+class ContainerRunError(Exception):
+    """Raised when the container terminates in an error."""
 
-    def __init__(self, return_code: int, stderrfile: Path):
+    def __init__(self, return_code: int, last_line: str, image: str):
         super().__init__(
-            f"Subprocess completed with exit code {return_code}: "
-            f"{get_last_line(stderrfile)}"
+            f"Container completed with exit code {return_code}: "
+            f"'{last_line}' "
+            f"for {image}"
         )
 
 
@@ -113,6 +114,9 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
 class ContainerSetupError(Exception):
     """Exception raised when a container pre-run actions fail."""
 
+    def __init__(self, message: str, image: str):
+        super().__init__(f"{message} for {image}")
+
 
 class ContainerRunner:
     """A utility class to run a container."""
@@ -135,7 +139,8 @@ class ContainerRunner:
                 for k, v in env.items()
             ):
                 raise ContainerSetupError(
-                    "container's env must be a string-dictionary of strings or ints"
+                    "container's env must be a string-dictionary of strings or ints",
+                    image,
                 )
         else:
             env = {}
@@ -165,7 +170,7 @@ class ContainerRunner:
                 print(e.stdout)
                 print(e.stderr, file=sys.stderr)
                 last_line = e.stderr.split("\n")[-1]
-                raise ContainerSetupError(f"{str(e)} [{last_line}]")
+                raise ContainerSetupError(f"{str(e)} [{last_line}]", image)
 
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
 
@@ -309,7 +314,9 @@ class ContainerRunner:
 
             # exception handling (immediately re-handled by 'except' below)
             if proc.returncode:
-                raise PilotSubprocessError(proc.returncode, stderrfile)
+                raise ContainerRunError(
+                    proc.returncode, get_last_line(stderrfile), self.image
+                )
 
         except Exception as e:
             LOGGER.error(f"Subprocess failed: {e}")  # log the time
