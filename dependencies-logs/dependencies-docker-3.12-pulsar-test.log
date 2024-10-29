@@ -6,7 +6,7 @@
 ########################################################################
 #  pip freeze
 ########################################################################
-asyncstdlib==3.12.5
+asyncstdlib==3.13.0
 certifi==2024.8.30
 charset-normalizer==3.4.0
 htchirp==3.0
@@ -29,7 +29,7 @@ zstd==1.5.5.1
 ########################################################################
 #  pipdeptree
 ########################################################################
-asyncstdlib==3.12.5
+asyncstdlib==3.13.0
 ewms-pilot
 ├── htchirp [required: Any, installed: 3.0]
 ├── htcondor [required: Any, installed: 23.10.1]
@@ -45,7 +45,7 @@ ewms-pilot
     └── zstd [required: Any, installed: 1.5.5.1]
 pipdeptree==2.23.4
 ├── packaging [required: >=24.1, installed: 24.1]
-└── pip [required: >=24.2, installed: 24.2]
+└── pip [required: >=24.2, installed: 24.3.1]
 pulsar-client==3.5.0
 └── certifi [required: Any, installed: 2024.8.30]
 pytest-asyncio==0.24.0

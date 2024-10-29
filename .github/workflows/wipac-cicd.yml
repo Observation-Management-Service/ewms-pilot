@@ -23,6 +23,8 @@ env:
   EWMS_PILOT_KEEP_ALL_TASK_FILES: True
   EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST: /blah/
   #
+  _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT: False  # allow real-time conversion
+  #
   DOCKER_IMAGE_NAME: pilot/local
 
 
@@ -162,6 +164,8 @@ jobs:
           cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
 
+
+
   vanilla-run:
     needs: [ py-versions ]
     runs-on: ubuntu-latest
@@ -184,6 +188,7 @@ jobs:
           
           docker run --rm \
               $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+              $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
               ${{ env.DOCKER_IMAGE_NAME }} \
               2>&1 | tee -a test.out 
           cat test.out
@@ -202,7 +207,7 @@ jobs:
 
 
   integration-tests:
-    needs: [ py-versions ]
+    needs: [ py-versions, mypy ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -371,6 +376,7 @@ jobs:
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                      $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
                       --env CI=$CI \
                       ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv -s $test" \
@@ -392,6 +398,7 @@ jobs:
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
+                      $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine_sandbox/" \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF="/saved-images/python_alpine.sif" \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_FROM_DOCKER="python:alpine" \
@@ -430,7 +437,14 @@ jobs:
       - name: pytest first failure
         if: always()
         run: |
-          cat $( grep -l -m 1 *.test.out -e "= FAILURES =" | head -1 ) || echo "not found"
+          file=$(grep -l -m 1 "= FAILURES =" *.test.out | head -1)
+          if [ -n "$file" ]; then
+              cat $file
+              echo "^^^^ this is the pytest out file -- this step exited with 1 because this *pytest* failed -- the ci step is okay"
+              exit 1
+          else
+              echo "not found"
+          fi
 
       - name: pytest container outputs
         if: always()

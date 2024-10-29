@@ -56,22 +56,25 @@ class InFileInterface:
         elif isinstance(in_msg.data, bytes):  # ex: pickled data, jpeg, gif, ...
             with open(fpath, "wb") as f:
                 f.write(in_msg.data)
-        # OBJECT -> json infile
-        elif fpath.suffix == ".json":
-            try:
-                with open(fpath, "w") as f:
-                    json.dump(in_msg.data, f)
-            except TypeError as e:
-                raise InvalidDataForInfileException(str(e), fpath)
-        # OBJECT -> *NOT* json infile
+        # OTHER TYPE
         else:
-            raise InvalidDataForInfileException(
-                (
-                    f"Message data must be json-serializable (with a '.json' infile), "
-                    f"str, or bytes; not {type(in_msg.data)})"
-                ),
-                fpath,
-            )
+            # -> json infile
+            if fpath.suffix == ".json":
+                try:
+                    with open(fpath, "w") as f:
+                        json.dump(in_msg.data, f)
+                except TypeError as e:
+                    raise InvalidDataForInfileException(str(e), fpath)
+            # -> *NOT* json infile
+            else:
+                raise InvalidDataForInfileException(
+                    (
+                        f"Incoming-message data ('{type(in_msg.data)}' type) "
+                        f"must be JSON-serializable *and* use an infile with a '.json' "
+                        f"extension (string or bytes data can have any file extension)"
+                    ),
+                    fpath,
+                )
 
 
 class NoTaskResponseException(Exception):

@@ -6,7 +6,7 @@
 ########################################################################
 #  pip freeze
 ########################################################################
-asyncstdlib==3.12.5
+asyncstdlib==3.13.0
 certifi==2024.8.30
 cffi==1.17.1
 charset-normalizer==3.4.0
@@ -35,7 +35,7 @@ zstd==1.5.5.1
 ########################################################################
 #  pipdeptree
 ########################################################################
-asyncstdlib==3.12.5
+asyncstdlib==3.13.0
 ewms-pilot
 ├── htchirp [required: Any, installed: 3.0]
 ├── htcondor [required: Any, installed: 23.10.1]
@@ -56,7 +56,7 @@ nkeys==0.2.1
         └── pycparser [required: Any, installed: 2.22]
 pipdeptree==2.23.4
 ├── packaging [required: >=24.1, installed: 24.1]
-└── pip [required: >=24.2, installed: 24.2]
+└── pip [required: >=24.2, installed: 24.3.1]
 pytest-asyncio==0.24.0
 └── pytest [required: >=8.2,<9, installed: 8.3.3]
     ├── exceptiongroup [required: >=1.0.0rc8, installed: 1.2.2]
@@ -71,5 +71,5 @@ pytest-retry==1.6.3
     ├── packaging [required: Any, installed: 24.1]
     ├── pluggy [required: >=1.5,<2, installed: 1.5.0]
     └── tomli [required: >=1, installed: 2.0.2]
-setuptools==75.1.0
+setuptools==75.2.0
 wheel==0.44.0

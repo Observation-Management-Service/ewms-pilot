@@ -19,22 +19,24 @@ LOGGER = logging.getLogger(__name__)
 # --------------------------------------------------------------------------------------
 
 
-def get_last_line(fpath: Path) -> str:
-    """Get the last line of the file."""
+def get_last_nonblank_line(fpath: Path) -> str:
+    """Get the last line of the file that is not entirely whitespace."""
+    last_nonblank_line = ""
     with fpath.open() as f:
-        line = ""
         for line in f:
-            pass
-        return line.rstrip()  # remove trailing '\n'
+            if stripped := line.strip():
+                last_nonblank_line = stripped  # removed '\n' and anything else
+        return last_nonblank_line
 
 
-class PilotSubprocessError(Exception):
-    """Raised when the subprocess terminates in an error."""
+class ContainerRunError(Exception):
+    """Raised when the container terminates in an error."""
 
-    def __init__(self, return_code: int, stderrfile: Path):
+    def __init__(self, return_code: int, last_line: str, image: str):
         super().__init__(
-            f"Subprocess completed with exit code {return_code}: "
-            f"{get_last_line(stderrfile)}"
+            f"Container completed with exit code {return_code}: "
+            f"'{last_line}' "
+            f"for {image}"
         )
 
 
@@ -113,6 +115,9 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
 class ContainerSetupError(Exception):
     """Exception raised when a container pre-run actions fail."""
 
+    def __init__(self, message: str, image: str):
+        super().__init__(f"{message} for {image}")
+
 
 class ContainerRunner:
     """A utility class to run a container."""
@@ -135,7 +140,8 @@ class ContainerRunner:
                 for k, v in env.items()
             ):
                 raise ContainerSetupError(
-                    "container's env must be a string-dictionary of strings or ints"
+                    "container's env must be a string-dictionary of strings or ints",
+                    image,
                 )
         else:
             env = {}
@@ -165,7 +171,7 @@ class ContainerRunner:
                 print(e.stdout)
                 print(e.stderr, file=sys.stderr)
                 last_line = e.stderr.split("\n")[-1]
-                raise ContainerSetupError(f"{str(e)} [{last_line}]")
+                raise ContainerSetupError(f"{str(e)} [{last_line}]", image)
 
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
 
@@ -186,9 +192,17 @@ class ContainerRunner:
             #       not found, try 'modprobe fuse' first`
             #       See https://github.com/Observation-Management-Service/ewms-pilot/pull/86
             case "apptainer":
-                if Path(image).is_dir():
+                if Path(image).exists() and Path(image).is_dir():
                     LOGGER.info("OK: Apptainer image is already in directory format")
                     return image
+                elif ENV._EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT:
+                    # not directory and image-conversions are disallowed
+                    raise ContainerSetupError(
+                        "Image 'not found in filesystem and/or "
+                        "cannot convert to apptainer directory (sandbox) format",
+                        image,
+                    )
+                # CONVERT THE IMAGE
                 # assume non-specified image is docker -- https://apptainer.org/docs/user/latest/build_a_container.html#overview
                 if "." not in image and "://" not in image:
                     # is not a blah.sif file (or other) and doesn't point to a registry
@@ -202,7 +216,7 @@ class ContainerRunner:
                 _run(
                     # cd b/c want to *build* in a directory w/ enough space (intermediate files)
                     f"cd {ENV._EWMS_PILOT_APPTAINER_BUILD_WORKDIR} && "
-                    f"apptainer build "
+                    f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}build "
                     f"--fix-perms "
                     f"--sandbox {dir_image} "
                     f"{image}"
@@ -268,7 +282,7 @@ class ContainerRunner:
                 )
             case "apptainer":
                 cmd = (
-                    f"apptainer run "
+                    f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}run "
                     # always add these flags
                     f"--containall "  # don't auto-mount anything
                     f"--no-eval "  # don't interpret CL args
@@ -309,7 +323,9 @@ class ContainerRunner:
 
             # exception handling (immediately re-handled by 'except' below)
             if proc.returncode:
-                raise PilotSubprocessError(proc.returncode, stderrfile)
+                raise ContainerRunError(
+                    proc.returncode, get_last_nonblank_line(stderrfile), self.image
+                )
 
         except Exception as e:
             LOGGER.error(f"Subprocess failed: {e}")  # log the time

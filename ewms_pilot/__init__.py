@@ -1,11 +1,11 @@
 """Init."""
 
 from .pilot import consume_and_reply
-from .utils.runner import PilotSubprocessError
+from .utils.runner import ContainerRunError
 
 __all__ = [
     "consume_and_reply",
-    "PilotSubprocessError",
+    "ContainerRunError",
 ]
 
 # version is a human-readable version number.

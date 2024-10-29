@@ -17,7 +17,7 @@ import asyncstdlib as asl
 import mqclient as mq
 import pytest
 
-from ewms_pilot import PilotSubprocessError, config, consume_and_reply
+from ewms_pilot import ContainerRunError, config, consume_and_reply
 from ewms_pilot.config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
 
 logging.getLogger().setLevel(logging.DEBUG)
@@ -452,10 +452,13 @@ async def test_400__exception_quarantine(
     start_time = time.time()
 
     # run producer & consumer concurrently
+    error = ContainerRunError(
+        1,
+        "ValueError: no good!",
+        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+    )
     with pytest.raises(
-        RuntimeError,
-        match=r"1 TASK\(S\) FAILED: "
-        r"PilotSubprocessError\('Subprocess completed with exit code 1: ValueError: no good!'\)",
+        RuntimeError, match=re.escape(f"1 TASK(S) FAILED: {repr(error)}")
     ):
         await asyncio.gather(
             populate_queue(
@@ -626,13 +629,15 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     start_time = time.time()
 
     # run producer & consumer concurrently
+    error = ContainerRunError(
+        1,
+        "ValueError: gotta fail!",
+        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+    )
     with pytest.raises(
         RuntimeError,
         match=re.escape(f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: ")
-        + ", ".join(  # b/c we don't guarantee in-order delivery, we cannot assert which messages each subproc failed on
-            r"PilotSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: [^']+'\)"
-            for _ in range(MAX_CONCURRENT_TASKS)
-        ),
+        + ", ".join(re.escape(repr(error)) for _ in range(MAX_CONCURRENT_TASKS)),
     ) as e:
         await asyncio.gather(
             populate_queue(
@@ -656,7 +661,7 @@ import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))
-raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
+raise ValueError('gotta fail!')" """,  # double cat
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
                 timeout_incoming=TIMEOUT_INCOMING,
@@ -753,13 +758,15 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
         intermittent_sleep=TIMEOUT_INCOMING / 4,
     )
 
+    error = ContainerRunError(
+        1,
+        "ValueError: gotta fail!",
+        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+    )
     with pytest.raises(
         RuntimeError,
         match=re.escape(f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: ")
-        + ", ".join(  # b/c we don't guarantee in-order delivery, we cannot assert which messages each subproc failed on
-            r"PilotSubprocessError\('Subprocess completed with exit code 1: ValueError: gotta fail: [^']+'\)"
-            for _ in range(MAX_CONCURRENT_TASKS)
-        ),
+        + ", ".join(re.escape(repr(error)) for _ in range(MAX_CONCURRENT_TASKS)),
     ) as e:
         await consume_and_reply(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
@@ -768,7 +775,7 @@ import time
 output = open('{{INFILE}}').read().strip() * 2;
 time.sleep(5)
 print(output, file=open('{{OUTFILE}}','w'))
-raise ValueError('gotta fail: ' + output.strip())" """,  # double cat
+raise ValueError('gotta fail!')" """,  # double cat
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
             timeout_incoming=TIMEOUT_INCOMING,
@@ -1001,8 +1008,16 @@ async def test_2002_init__exception(
     """Test a init command with error."""
 
     with pytest.raises(
-        PilotSubprocessError,
-        match=re.escape("Subprocess completed with exit code 1: ValueError: no good!"),
+        ContainerRunError,
+        match=re.escape(
+            str(  # -> only the message part
+                ContainerRunError(
+                    1,
+                    "ValueError: no good!",
+                    os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+                )
+            )
+        ),
     ):
         await consume_and_reply(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
