@@ -215,7 +215,7 @@ class ContainerRunner:
                 _run(
                     # cd b/c want to *build* in a directory w/ enough space (intermediate files)
                     f"cd {ENV._EWMS_PILOT_APPTAINER_BUILD_WORKDIR} && "
-                    f"apptainer {'--debug' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}build "
+                    f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}build "
                     f"--fix-perms "
                     f"--sandbox {dir_image} "
                     f"{image}"
@@ -281,7 +281,7 @@ class ContainerRunner:
                 )
             case "apptainer":
                 cmd = (
-                    f"apptainer {'--debug' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}run "
+                    f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}run "
                     # always add these flags
                     f"--containall "  # don't auto-mount anything
                     f"--no-eval "  # don't interpret CL args
