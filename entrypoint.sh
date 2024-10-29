@@ -9,7 +9,10 @@
 echo ""
 echo "Setting up the EWMS Task Pilot Container Environment..."
 
+# grab env vars file and source
 echo "----"
+envfile="$PWD/ewms_htcondor_envfile.sh"
+[ -f "$envfile" ] && source "$envfile"  # else, ok
 printenv
 echo "----"
 
