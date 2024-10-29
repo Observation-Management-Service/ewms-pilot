@@ -2,6 +2,15 @@
 
 
 
+## v0.26.8 (2024-10-29)
+
+###  
+
+* Misc Updates from Testing with Skymap Scanner (Pt 2) (#105)
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`bb8e6ff`](https://github.com/Observation-Management-Service/ewms-pilot/commit/bb8e6fff88b657e700f560354beb87afa15db0d6))
+
+
 ## v0.26.7 (2024-10-14)
 
 ###  
