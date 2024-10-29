@@ -19,13 +19,14 @@ LOGGER = logging.getLogger(__name__)
 # --------------------------------------------------------------------------------------
 
 
-def get_last_line(fpath: Path) -> str:
-    """Get the last line of the file."""
+def get_last_nonblank_line(fpath: Path) -> str:
+    """Get the last line of the file that is not entirely whitespace."""
+    last_nonblank_line = ""
     with fpath.open() as f:
-        line = ""
         for line in f:
-            pass
-        return line.rstrip()  # remove trailing '\n'
+            if stripped := line.strip():
+                last_nonblank_line = stripped  # removed '\n' and anything else
+        return last_nonblank_line
 
 
 class ContainerRunError(Exception):
@@ -323,7 +324,7 @@ class ContainerRunner:
             # exception handling (immediately re-handled by 'except' below)
             if proc.returncode:
                 raise ContainerRunError(
-                    proc.returncode, get_last_line(stderrfile), self.image
+                    proc.returncode, get_last_nonblank_line(stderrfile), self.image
                 )
 
         except Exception as e:
