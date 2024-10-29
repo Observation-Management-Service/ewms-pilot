@@ -56,7 +56,7 @@ nkeys==0.2.1
         └── pycparser [required: Any, installed: 2.22]
 pipdeptree==2.23.4
 ├── packaging [required: >=24.1, installed: 24.1]
-└── pip [required: >=24.2, installed: 24.2]
+└── pip [required: >=24.2, installed: 24.3.1]
 pytest-asyncio==0.24.0
 └── pytest [required: >=8.2,<9, installed: 8.3.3]
     ├── exceptiongroup [required: >=1.0.0rc8, installed: 1.2.2]
