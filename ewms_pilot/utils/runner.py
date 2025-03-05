@@ -4,6 +4,7 @@ import asyncio
 import dataclasses as dc
 import json
 import logging
+import re
 import shlex
 import shutil
 import subprocess
@@ -15,18 +16,55 @@ from ..config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
 
 LOGGER = logging.getLogger(__name__)
 
+# Regular expression to detect Apptainer log lines in the format: "<string><space>[<no spaces>]<space>*"
+APPTAINER_PATTERN = re.compile(r"^\S+\s+\[[^\s]+\]\s+")
 
 # --------------------------------------------------------------------------------------
 
 
-def parse_stderrfile_for_error_string(fpath: Path) -> str:
-    """Get the last line of the file that is not entirely whitespace."""
-    last_nonblank_line = ""
-    with fpath.open() as f:
-        for line in f:
-            if stripped := line.strip():
-                last_nonblank_line = stripped  # removed '\n' and anything else
-        return last_nonblank_line
+def extract_error_from_log(log_file_path: Path):
+    """Get a relevant string from the stderrfile."""
+    with open(log_file_path, "r", encoding="utf-8") as file:
+        lines = file.readlines()
+
+    # Reverse iterate to search from the end of the file
+    python_traceback = []
+    non_apptainer_line = None
+    last_apptainer_line = None
+
+    for line in reversed(lines):
+        # Check if the line starts a Python traceback
+        if line.startswith("Traceback (most recent call last):"):
+            python_traceback.insert(0, line)  # Insert the first traceback line
+            # Iterate backward (which is really forward) to collect the entire traceback
+            for traceback_line in reversed(lines[: lines.index(line) + 1]):
+                python_traceback.insert(0, traceback_line)  # Add to the traceback list
+                if APPTAINER_PATTERN.match(line):
+                    break  # Stop collecting once we reach a non-traceback related line
+            return "".join(python_traceback)  # as a single string (with newlines)
+
+        # Capture the first non-Apptainer log error line encountered
+        if not APPTAINER_PATTERN.match(line) and not non_apptainer_line:
+            non_apptainer_line = line.strip()
+
+        # Capture the last Apptainer log line if needed
+        if APPTAINER_PATTERN.match(line) and last_apptainer_line is None:
+            last_apptainer_line = line.strip()
+
+    # Return results based on priority order:
+    # 1. Python traceback if found
+    # 2. First non-Apptainer error line
+    # 3. Last Apptainer log line
+    if non_apptainer_line:
+        return non_apptainer_line
+    elif last_apptainer_line:
+        return last_apptainer_line
+    return "No relevant error found in log."
+
+
+# Example usage:
+# error_message = extract_error_from_log("path/to/logfile.log")
+# print(error_message)
 
 
 class ContainerRunError(Exception):
@@ -325,7 +363,7 @@ class ContainerRunner:
             if proc.returncode:
                 raise ContainerRunError(
                     proc.returncode,
-                    parse_stderrfile_for_error_string(stderrfile),
+                    extract_error_from_log(stderrfile),
                     self.image,
                 )
 
