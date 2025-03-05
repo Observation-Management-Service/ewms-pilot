@@ -9,7 +9,6 @@ import shlex
 import shutil
 import subprocess
 import sys
-from pathlib import Path
 from typing import TextIO
 
 from ..config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
@@ -22,8 +21,27 @@ APPTAINER_PATTERN = re.compile(r"^\S+\s+\[[^\s]+\]\s+")
 # --------------------------------------------------------------------------------------
 
 
-def extract_error_from_log(log_file_path: Path):
-    """Get a relevant string from the stderrfile."""
+import re
+from pathlib import Path
+
+# Regular expression to detect Apptainer log lines in the format: "<string><space>[<no spaces>]<space>*"
+APPTAINER_PATTERN = re.compile(r"^\S+\s+\[[^\s]+\]\s+")
+
+
+def extract_error_from_log(log_file_path: Path) -> str:
+    """Extracts the most relevant error message from a log file.
+
+    The function prioritizes:
+    1. A Python traceback, if present.
+    2. The first non-Apptainer error message.
+    3. The last Apptainer log entry (if no other errors are found).
+
+    Args:
+        log_file_path (Path): Path to the log file.
+
+    Returns:
+        str: The most relevant error message found in the log.
+    """
     with open(log_file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
@@ -36,15 +54,21 @@ def extract_error_from_log(log_file_path: Path):
         # Check if the line starts a Python traceback
         if line.startswith("Traceback (most recent call last):"):
             python_traceback.insert(0, line)  # Insert the first traceback line
+
             # Iterate backward (which is really forward) to collect the entire traceback
             for traceback_line in reversed(lines[: lines.index(line) + 1]):
-                python_traceback.insert(0, traceback_line)  # Add to the traceback list
-                if APPTAINER_PATTERN.match(line):
-                    break  # Stop collecting once we reach a non-traceback related line
-            return "".join(python_traceback)  # as a single string (with newlines)
+                python_traceback.insert(0, traceback_line)  # Add traceback line
+
+                # Stop collecting if an Apptainer log entry is encountered
+                if APPTAINER_PATTERN.match(traceback_line):
+                    break
+
+            return "".join(
+                python_traceback
+            )  # Return the full traceback as a single string
 
         # Capture the first non-Apptainer log error line encountered
-        if not APPTAINER_PATTERN.match(line) and not non_apptainer_line:
+        if not APPTAINER_PATTERN.match(line) and non_apptainer_line is None:
             non_apptainer_line = line.strip()
 
         # Capture the last Apptainer log line if needed
@@ -52,13 +76,12 @@ def extract_error_from_log(log_file_path: Path):
             last_apptainer_line = line.strip()
 
     # Return results based on priority order:
-    # 1. Python traceback if found
-    # 2. First non-Apptainer error line
-    # 3. Last Apptainer log line
     if non_apptainer_line:
-        return non_apptainer_line
+        return non_apptainer_line  # A direct error message not logged by Apptainer
     elif last_apptainer_line:
-        return last_apptainer_line
+        return (
+            last_apptainer_line  # The last Apptainer log message for debugging context
+        )
     return "No relevant error found in log."
 
 
