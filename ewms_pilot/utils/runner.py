@@ -19,7 +19,7 @@ LOGGER = logging.getLogger(__name__)
 # --------------------------------------------------------------------------------------
 
 
-def get_last_nonblank_line(fpath: Path) -> str:
+def parse_stderrfile_for_error_string(fpath: Path) -> str:
     """Get the last line of the file that is not entirely whitespace."""
     last_nonblank_line = ""
     with fpath.open() as f:
@@ -32,10 +32,10 @@ def get_last_nonblank_line(fpath: Path) -> str:
 class ContainerRunError(Exception):
     """Raised when the container terminates in an error."""
 
-    def __init__(self, return_code: int, last_line: str, image: str):
+    def __init__(self, return_code: int, error_string: str, image: str):
         super().__init__(
             f"Container completed with exit code {return_code}: "
-            f"'{last_line}' "
+            f"'{error_string}' "
             f"for {image}"
         )
 
@@ -324,7 +324,9 @@ class ContainerRunner:
             # exception handling (immediately re-handled by 'except' below)
             if proc.returncode:
                 raise ContainerRunError(
-                    proc.returncode, get_last_nonblank_line(stderrfile), self.image
+                    proc.returncode,
+                    parse_stderrfile_for_error_string(stderrfile),
+                    self.image,
                 )
 
         except Exception as e:
