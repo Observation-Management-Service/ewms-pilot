@@ -415,7 +415,7 @@ jobs:
           
                   set -x  # lets see the command
                   sleep "$(($i*$test_offset_delay))" && sudo docker run --rm \
-                      --net=mynet --runtime=sysbox-runc --hostname=syscont \
+                      --net=mynet --runtime=io.containerd.runc.v2 --hostname=syscont \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
