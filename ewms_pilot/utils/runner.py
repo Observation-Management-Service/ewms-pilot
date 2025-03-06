@@ -52,7 +52,7 @@ def extract_error_from_log(log_file_path: Path) -> str:
     for i, line in enumerate(reversed(lines)):
         if not APPTAINER_LOG_PATTERN.match(line):
             has_only_apptainer_lines = False
-            last_non_apptainer_index = len(lines) - (i - 1)  # the line before
+            last_non_apptainer_index = len(lines) - (i + 1)  # previous line's index
             break
 
     # Step 2: Is there any actual good info here, or was this all apptainer logs?
@@ -70,7 +70,7 @@ def extract_error_from_log(log_file_path: Path) -> str:
     if has_only_apptainer_lines:
         # return the very last line, parsed
         try:
-            return lines[-1].split(maxsplit=4)[-1]
+            return " ".join(lines[-1].split(maxsplit=4)[4:])  # Extract message
         except IndexError:
             LOGGER.warning(
                 f"failed to further parse error from apptainer-level log line "
