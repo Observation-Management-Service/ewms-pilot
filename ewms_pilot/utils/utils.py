@@ -136,7 +136,6 @@ class LogParser:
         # Step 2: Is there any actual good info here, or was this all apptainer logs?
         #
         # Example: "Child exited with exit status 255"
-        # ...
         # DEBUG   [U=613,P=1]        sylogBuiltin()                Running action command run
         # FATAL   [U=613,P=1]        StageTwo()                    exec /bin/bash failed: fork/exec /bin/bash: input/output error
         # DEBUG   [U=613,P=47]       startContainer()              stage 2 process reported an error, waiting status
@@ -186,10 +185,7 @@ class LogParser:
         #   File "/usr/local/lib/python3.10/dist-packages/skymap_scanner/recos/millipede_wilks.py", line 73, in setup_reco
         #     self.cascade_service = photonics_service.I3PhotoSplineService(
         # RuntimeError: Error reading table coefficients
-        # DEBUG   [U=59925,P=95]     CleanupContainer()            Cleanup container
-        # DEBUG   [U=59925,P=95]     umount()                      Umount /var/lib/apptainer/mnt/session/final
-        # DEBUG   [U=59925,P=95]     umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
-        # DEBUG   [U=59925,P=95]     Master()                      Child exited with exit status 1
+        # <other lines skipped b/c 'last_line_index'>
         # <EOF>
         #
         # Example 2:
@@ -201,10 +197,7 @@ class LogParser:
         #   File "<frozen importlib._bootstrap_external>", line 1016, in get_code
         #   File "<frozen importlib._bootstrap_external>", line 1073, in get_data
         # OSError: [Errno 107] Transport endpoint is not connected: '/usr/lib/python3/dist-packages/pandas/core/arrays/sparse/array.py'
-        # DEBUG   [U=59925,P=94]     CleanupContainer()            Cleanup container
-        # DEBUG   [U=59925,P=94]     umount()                      Umount /var/lib/apptainer/mnt/session/final
-        # DEBUG   [U=59925,P=94]     umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
-        # DEBUG   [U=59925,P=94]     Master()                      Child exited with exit status 1
+        # <other lines skipped b/c 'last_line_index'>
         # <EOF>
         potential_python_traceback = []
         for line in reversed(lines[: last_line_index + 1]):
@@ -217,10 +210,6 @@ class LogParser:
         # Example: "curl: (22) The requested URL returned error: 404"
         # ...
         # curl: (22) The requested URL returned error: 404
-        # DEBUG   [U=30101,P=1]      StartProcess()                Received signal child exited
-        # DEBUG   [U=30101,P=49]     CleanupContainer()            Cleanup container
-        # DEBUG   [U=30101,P=49]     umount()                      Umount /var/lib/apptainer/mnt/session/final
-        # DEBUG   [U=30101,P=49]     umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
-        # DEBUG   [U=30101,P=49]     Master()                      Child exited with exit status 22
+        # <other lines skipped b/c 'last_line_index'>
         # <EOF>
         return lines[last_line_index]
