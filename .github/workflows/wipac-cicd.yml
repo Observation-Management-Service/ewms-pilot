@@ -265,7 +265,7 @@ jobs:
           set -euo pipefail
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
-              --build-arg="PYTHON=${{ matrix.version }}" \
+              --build-arg="PYTHON=${{ matrix.py3 }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
               --build-arg="CONTAINER_PLATFORM=${{ matrix.container_platform }}" \
               .
