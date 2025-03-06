@@ -11,8 +11,7 @@ def test_000__generic__stacktrace(tmp_path: Path):
     temp_file = tmp_path / "test.log"
 
     traceback = textwrap.dedent(
-        """
-        Traceback (most recent call last):
+        """Traceback (most recent call last):
           File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
             return _run_code(code, main_globals, None,
           File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
@@ -25,8 +24,7 @@ def test_000__generic__stacktrace(tmp_path: Path):
         """
     )
     test_content = textwrap.dedent(  # fixes """-indentation
-        f"""
-        ...
+        f"""...
         foo
         bar
         baz
@@ -36,7 +34,6 @@ def test_000__generic__stacktrace(tmp_path: Path):
         {traceback}
         """
     )
-    test_content = "\n".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -48,8 +45,7 @@ def test_001__generic__stacktrace(tmp_path: Path):
     temp_file = tmp_path / "test.log"
 
     traceback = textwrap.dedent(
-        """
-        Traceback (most recent call last):
+        """Traceback (most recent call last):
           File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
           File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
           File "<frozen importlib._bootstrap_external>", line 1016, in get_code
@@ -58,8 +54,7 @@ def test_001__generic__stacktrace(tmp_path: Path):
         """
     )
     test_content = textwrap.dedent(  # fixes """-indentation
-        f"""
-        ...
+        f"""...
         foo
         bar
         baz
@@ -69,7 +64,6 @@ def test_001__generic__stacktrace(tmp_path: Path):
         {traceback}
         """
     )
-    test_content = "\n".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -81,8 +75,7 @@ def test_010__generic__one_line_error(tmp_path: Path):
     temp_file = tmp_path / "test.log"
 
     test_content = textwrap.dedent(  # fixes """-indentation
-        """
-        ...
+        """...
         foo
         bar
         baz
@@ -90,7 +83,6 @@ def test_010__generic__one_line_error(tmp_path: Path):
         curl: (22) The requested URL returned error: 404
         """
     )
-    test_content = "\n".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -105,8 +97,7 @@ def test_100__apptainer__stacktrace(tmp_path: Path):
     temp_file = tmp_path / "test.log"
 
     traceback = textwrap.dedent(
-        """
-        Traceback (most recent call last):
+        """Traceback (most recent call last):
           File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
             return _run_code(code, main_globals, None,
           File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
@@ -119,8 +110,7 @@ def test_100__apptainer__stacktrace(tmp_path: Path):
         """
     )
     test_content = textwrap.dedent(  # fixes """-indentation
-        f"""
-        ...
+        f"""...
         foo
         bar
         baz
@@ -135,7 +125,6 @@ def test_100__apptainer__stacktrace(tmp_path: Path):
         DEBUG   [U=59925,P=95]     Master()                      Child exited with exit status 1
         """
     )
-    test_content = "\n".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -151,8 +140,7 @@ def test_101__apptainer__stacktrace(tmp_path: Path):
     temp_file = tmp_path / "test.log"
 
     traceback = textwrap.dedent(
-        """
-        Traceback (most recent call last):
+        """Traceback (most recent call last):
           File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
           File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
           File "<frozen importlib._bootstrap_external>", line 1016, in get_code
@@ -161,8 +149,7 @@ def test_101__apptainer__stacktrace(tmp_path: Path):
         """
     )
     test_content = textwrap.dedent(  # fixes """-indentation
-        f"""
-        ...
+        f"""...
         foo
         bar
         baz
@@ -177,7 +164,6 @@ def test_101__apptainer__stacktrace(tmp_path: Path):
         DEBUG   [U=59925,P=94]     Master()                      Child exited with exit status 1
         """
     )
-    test_content = "\n".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -193,8 +179,7 @@ def test_110__apptainer__one_line_error(tmp_path: Path):
     temp_file = tmp_path / "test.log"
 
     test_content = textwrap.dedent(  # fixes """-indentation
-        """
-        ...
+        """...
         foo
         bar
         baz
@@ -207,7 +192,6 @@ def test_110__apptainer__one_line_error(tmp_path: Path):
         DEBUG   [U=30101,P=49]     Master()                      Child exited with exit status 22
         """
     )
-    test_content = "\n".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -225,8 +209,7 @@ def test_120__apptainer__all_apptainer_logs(tmp_path: Path):
     """Test."""
     temp_file = tmp_path / "test.log"
     test_content = textwrap.dedent(  # fixes """-indentation
-        """
-        DEBUG   [U=613,P=1]        sylogBuiltin()                Running action command run
+        """DEBUG   [U=613,P=1]        sylogBuiltin()                Running action command run
         FATAL   [U=613,P=1]        StageTwo()                    exec /bin/bash failed: fork/exec /bin/bash: input/output error
         DEBUG   [U=613,P=47]       startContainer()              stage 2 process reported an error, waiting status
         DEBUG   [U=613,P=47]       CleanupContainer()            Cleanup container
@@ -235,7 +218,6 @@ def test_120__apptainer__all_apptainer_logs(tmp_path: Path):
         DEBUG   [U=613,P=47]       Master()                      Child exited with exit status 255
         """
     )
-    test_content = "\n".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
