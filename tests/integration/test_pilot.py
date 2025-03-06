@@ -142,40 +142,7 @@ def assert_pilot_dirs(
 
 
 ########################################################################################
-# SPECIAL (SLOW) TESTS -- RAN FIRST SO WHEN TESTS ARE PARALLELIZED, THINGS GO FASTER
-########################################################################################
-
-
-TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
-
-
-@pytest.mark.skipif(
-    config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq",
-    reason="test is only for rabbitmq tests",
-)
-@pytest.mark.parametrize(
-    "refresh_interval_rabbitmq_heartbeat_interval",
-    [
-        # note -- the broker hb timeout is ~1 min and is triggered after ~2x
-        TEST_1000_SLEEP * 10,  # won't actually wait this long
-        TEST_1000_SLEEP,  # ~= to ~2x (see above)
-        TEST_1000_SLEEP / 10,  # will have no hb issues
-    ],
-)
-async def test_1000__heartbeat_workaround__rabbitmq_only(
-    queue_incoming: str,
-    queue_outgoing: str,
-    refresh_interval_rabbitmq_heartbeat_interval: float,
-) -> None:
-    await _test_1000__heartbeat_workaround__rabbitmq_only(
-        queue_incoming,
-        queue_outgoing,
-        refresh_interval_rabbitmq_heartbeat_interval,
-    )
-
-
-########################################################################################
-# REGULAR TESTS
+# TESTS
 ########################################################################################
 
 
@@ -238,6 +205,44 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             "outputs/",
         ],
     )
+
+
+########################################################################################
+# SPECIAL (SLOW) TESTS -- RAN FIRST SO WHEN TESTS ARE PARALLELIZED, THINGS GO FASTER
+########################################################################################
+
+
+TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
+
+
+@pytest.mark.skipif(
+    config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq",
+    reason="test is only for rabbitmq tests",
+)
+@pytest.mark.parametrize(
+    "refresh_interval_rabbitmq_heartbeat_interval",
+    [
+        # note -- the broker hb timeout is ~1 min and is triggered after ~2x
+        TEST_1000_SLEEP * 10,  # won't actually wait this long
+        TEST_1000_SLEEP,  # ~= to ~2x (see above)
+        TEST_1000_SLEEP / 10,  # will have no hb issues
+    ],
+)
+async def test_1000__heartbeat_workaround__rabbitmq_only(
+    queue_incoming: str,
+    queue_outgoing: str,
+    refresh_interval_rabbitmq_heartbeat_interval: float,
+) -> None:
+    await _test_1000__heartbeat_workaround__rabbitmq_only(
+        queue_incoming,
+        queue_outgoing,
+        refresh_interval_rabbitmq_heartbeat_interval,
+    )
+
+
+########################################################################################
+# REGULAR TESTS (cont.)
+########################################################################################
 
 
 async def test_001__txt__str_filetype(
