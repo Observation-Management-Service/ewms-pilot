@@ -236,7 +236,7 @@ jobs:
           pytest -vvv tests/unit
 
   integration-tests:
-    needs: [ py-versions, unit-tests ]
+    needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
