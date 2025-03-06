@@ -29,11 +29,8 @@ class ContainerRunError(Exception):
         error_string: str,
         exit_code: int | None = None,
     ):
-        super().__init__(
-            f"{alias} failed"
-            f"{' (exit code ' + str(exit_code) + ')' if exit_code is not None else ""}"
-            f": {error_string}"
-        )
+        exit_str = f" (exit code {exit_code})" if exit_code is not None else ""
+        super().__init__(f"{alias} failed {exit_str}: {error_string}")
 
 
 # --------------------------------------------------------------------------------------

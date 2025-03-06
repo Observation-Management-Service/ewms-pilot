@@ -13,8 +13,8 @@ import htchirp  # type: ignore[import-untyped]
 from htcondor import classad  # type: ignore[import-untyped]
 from typing_extensions import ParamSpec
 
-from . import ContainerRunError
 from .config import ENV
+from .utils.runner import ContainerRunError
 
 LOGGER = logging.getLogger(__name__)
 
