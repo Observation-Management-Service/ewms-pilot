@@ -261,6 +261,9 @@ jobs:
         run: |
           set -euo pipefail
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          docker --version
+          exit 6
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           temp_dir=$(mktemp -d) && cd $temp_dir
           # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
           wget https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_amd64.deb
