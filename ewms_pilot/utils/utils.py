@@ -108,6 +108,16 @@ class LogParser:
     def __init__(self, log_fpath: Path):
         self.log_fpath = log_fpath
 
+    def _get_last_non_apptainer_logline_index(self) -> int | None:
+        with open(self.log_fpath, "r", encoding="utf-8") as file:
+            # no new-lines, no blank lines
+            lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
+
+        for i, line in enumerate(reversed(lines)):
+            if not self.APPTAINER_LOG_PATTERN.match(line):
+                return len(lines) - (i + 1)  # previous line's index
+        return None  # aka it's all apptainer log lines
+
     def apptainer_extract_error(self) -> str:
         """Extracts the most relevant error message from a log file which includes Apptainer logs.
 
@@ -127,11 +137,7 @@ class LogParser:
             return "<no stderr logs>"
 
         # Step 1: Locate the last error line before apptainer log line
-        last_non_apptainer_index = None
-        for i, line in enumerate(reversed(lines)):
-            if not self.APPTAINER_LOG_PATTERN.match(line):
-                last_non_apptainer_index = len(lines) - (i + 1)  # previous line's index
-                break
+        last_non_apptainer_index = self._get_last_non_apptainer_logline_index()
 
         # Step 2: Is there any actual good info here, or was this all apptainer logs?
         #
