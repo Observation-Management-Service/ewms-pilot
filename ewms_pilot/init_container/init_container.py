@@ -24,6 +24,7 @@ async def run_init_container(
 
     task = asyncio.create_task(
         init_runner.run_container(
+            "init-container",
             dirs.outputs_on_pilot / "stdoutfile",
             dirs.outputs_on_pilot / "stderrfile",
             dirs.assemble_bind_mounts(external_directories=True),

@@ -23,11 +23,16 @@ LOGGER = logging.getLogger(__name__)
 class ContainerRunError(Exception):
     """Raised when the container terminates in an error."""
 
-    def __init__(self, return_code: int, error_string: str, image: str):
+    def __init__(
+        self,
+        alias: str,
+        error_string: str,
+        exit_code: int | None = None,
+    ):
         super().__init__(
-            f"Container completed with exit code {return_code}: "
-            f"'{error_string}' "
-            f"for {image}"
+            f"{alias} failed"
+            f"{f' (exit code {exit_code})' if exit_code is not None else ""}"
+            f": {error_string}"
         )
 
 
@@ -225,6 +230,7 @@ class ContainerRunner:
 
     async def run_container(
         self,
+        logging_alias: str,  # what to call this container for logging and error-reporting
         stdoutfile: Path,
         stderrfile: Path,
         mount_bindings: str,
@@ -285,9 +291,9 @@ class ContainerRunner:
                 )
             case other:
                 raise ValueError(
-                    f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
+                    f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other} ({logging_alias})"
                 )
-        LOGGER.info(f"Running command: {cmd}")
+        LOGGER.info(f"Running {logging_alias} command: {cmd}")
 
         # run: call & check outputs
         try:
@@ -306,27 +312,28 @@ class ContainerRunner:
                     )
                 except (TimeoutError, asyncio.exceptions.TimeoutError) as e:
                     # < 3.11 -> asyncio.exceptions.TimeoutError
-                    raise TimeoutError(
-                        f"{self.image} container timed out after {self.timeout}s"
+                    raise ContainerRunError(
+                        logging_alias,
+                        f"timed out after {self.timeout}s",
                     ) from e
 
-            LOGGER.info(f"Container return code: {proc.returncode}")
+            LOGGER.info(f"{logging_alias} return code: {proc.returncode}")
 
             # exception handling (immediately re-handled by 'except' below)
             if proc.returncode:
                 log_parser = LogParser(stderrfile)
                 raise ContainerRunError(
-                    proc.returncode,
+                    logging_alias,
                     (
                         log_parser.apptainer_extract_error()
                         if ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower() == "apptainer"
                         else log_parser.generic_extract_error()
                     ),
-                    self.image,
+                    exit_code=proc.returncode,
                 )
 
         except Exception as e:
-            LOGGER.error(f"Container failed: {e}")  # log the time
+            LOGGER.error(f"{logging_alias} failed: {e}")  # log the time
             dump_output = True
             raise
         finally:

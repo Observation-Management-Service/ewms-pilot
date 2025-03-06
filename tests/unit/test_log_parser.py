@@ -3,6 +3,8 @@
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from ewms_pilot.utils.utils import LogParser
 
 
@@ -15,7 +17,8 @@ def prep_multiline(lines: str) -> str:
     return lines
 
 
-def test_000__generic__stacktrace(tmp_path: Path):
+@pytest.mark.parametrize("parser_type", ["apptainer", "non-apptainer"])
+def test_000__generic__stacktrace(tmp_path: Path, parser_type: str):
     """Test."""
     temp_file = tmp_path / "test.log"
 
@@ -41,7 +44,10 @@ def test_000__generic__stacktrace(tmp_path: Path):
 
     log_parser = LogParser(temp_file)
     assert (
-        log_parser.generic_extract_error()
+        {
+            "non-apptainer": log_parser.generic_extract_error,
+            "apptainer": log_parser.apptainer_extract_error,
+        }[parser_type]()
         == prep_multiline(
             """
         Traceback (most recent call last):
@@ -56,7 +62,8 @@ def test_000__generic__stacktrace(tmp_path: Path):
     )
 
 
-def test_001__generic__stacktrace(tmp_path: Path):
+@pytest.mark.parametrize("parser_type", ["apptainer", "non-apptainer"])
+def test_001__generic__stacktrace(tmp_path: Path, parser_type: str):
     """Test."""
     temp_file = tmp_path / "test.log"
 
@@ -81,7 +88,10 @@ def test_001__generic__stacktrace(tmp_path: Path):
 
     log_parser = LogParser(temp_file)
     assert (
-        log_parser.generic_extract_error()
+        {
+            "non-apptainer": log_parser.generic_extract_error,
+            "apptainer": log_parser.apptainer_extract_error,
+        }[parser_type]()
         == prep_multiline(
             """
         Traceback (most recent call last):
@@ -95,7 +105,8 @@ def test_001__generic__stacktrace(tmp_path: Path):
     )
 
 
-def test_010__generic__one_line_error(tmp_path: Path):
+@pytest.mark.parametrize("parser_type", ["apptainer", "non-apptainer"])
+def test_010__generic__one_line_error(tmp_path: Path, parser_type: str):
     """Test."""
     temp_file = tmp_path / "test.log"
 
@@ -112,10 +123,10 @@ def test_010__generic__one_line_error(tmp_path: Path):
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
-    assert (
-        log_parser.generic_extract_error()
-        == "curl: (22) The requested URL returned error: 404"
-    )
+    assert {
+        "non-apptainer": log_parser.generic_extract_error,
+        "apptainer": log_parser.apptainer_extract_error,
+    }[parser_type]() == "curl: (22) The requested URL returned error: 404"
 
 
 def test_100__apptainer__stacktrace(tmp_path: Path):

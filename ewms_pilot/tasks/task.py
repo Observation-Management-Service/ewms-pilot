@@ -43,6 +43,7 @@ async def process_msg_task(
     in_container_infile = str(dirs.task_io.in_task_container / infile_name)
     in_container_outfile = str(dirs.task_io.in_task_container / outfile_name)
     await task_runner.run_container(
+        "task",
         dirs.outputs_on_pilot / "stderrfile",
         dirs.outputs_on_pilot / "stdoutfile",
         dirs.assemble_bind_mounts(external_directories=True, task_io=True),
