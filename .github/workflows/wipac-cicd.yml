@@ -529,6 +529,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          pip install .[test]
           pytest -vvv tests/unit
 
 
