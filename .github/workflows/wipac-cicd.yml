@@ -30,11 +30,6 @@ env:
 
 jobs:
 
-  #############################################################################
-  # PACKAGING & LINTERS
-  #############################################################################
-
-
   py-versions:
     runs-on: ubuntu-latest
     outputs:
@@ -44,11 +39,22 @@ jobs:
       - id: versions
         uses: WIPACrepo/wipac-dev-py-versions-action@v2.4
 
+
+  #############################################################################
+  # PACKAGING & LINTERS
+  #############################################################################
+
   flake8:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-flake8-action@v1.1
 
   mypy:
@@ -94,7 +100,10 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
+        name: build all images
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
           mkdir docker-build-logs/ && trap 'rm -rf docker-build-logs/' EXIT
@@ -181,9 +190,14 @@ jobs:
       - uses: actions/checkout@v4
       - name: build docker image
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} .
           docker images
-      - run: |
+      - name: test
+        run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -ex
           
           docker run --rm \
@@ -213,13 +227,13 @@ jobs:
       fail-fast: false
       matrix:
         container_platform: [ docker, apptainer ]
-        version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
         broker_client: [ pulsar, rabbitmq, nats ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.version }}
+          python-version: ${{ matrix.py3 }}
 
       - if: ${{ matrix.broker_client == 'rabbitmq' }}
         uses: jlumbroso/free-disk-space@main
@@ -230,6 +244,8 @@ jobs:
       - if: ${{ matrix.container_platform == 'docker' }}
         name: install sysbox (needed for docker-in-docker)
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           temp_dir=$(mktemp -d) && cd $temp_dir && trap 'rm -rf $temp_dir' EXIT  # save disk space
           # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
           wget https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_amd64.deb
@@ -245,6 +261,8 @@ jobs:
 
       - name: build docker image
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
               --build-arg="PYTHON=${{ matrix.version }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
@@ -254,6 +272,8 @@ jobs:
 
       - name: pre-pull & save images for testing
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           mkdir saved-images/
           
@@ -293,18 +313,25 @@ jobs:
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: build apptainer image
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker images
           apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:latest
           ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
 
       - name: get list of pytest tests
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           pip install .[test]  # for the for-loop below
-          pytest --collect-only -q --disable-warnings tests | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
+          pytest --collect-only -q --disable-warnings tests/integration/ | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
           cat $SORTED_LIST_OF_TESTS_FILE
 
       - if: ${{ matrix.container_platform == 'docker' }}
+        name: set up docker network
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           # we're connecting all the containers (broker + apps) in the same docker network
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
@@ -312,6 +339,8 @@ jobs:
       - name: Integrate
         timeout-minutes: ${{ matrix.broker_client == 'rabbitmq' && 20  ||  10  }}  # adjust if fails, remember this is only time for *this* step
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
           # ACTIVATE FOR DOCKER-IN-DOCKER
@@ -437,6 +466,8 @@ jobs:
       - name: pytest first failure
         if: always()
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           file=$(grep -l -m 1 "= FAILURES =" *.test.out | head -1)
           if [ -n "$file" ]; then
               cat $file
@@ -449,6 +480,8 @@ jobs:
       - name: pytest container outputs
         if: always()
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           cat $SORTED_LIST_OF_TESTS_FILE
           while read test; do
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -464,6 +497,8 @@ jobs:
       - name: broker output
         if: always()
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           cat ./broker.out
           if [ -n "$(ls -A ./broker_logs/ 2>/dev/null)" ]; then
@@ -474,7 +509,28 @@ jobs:
       - name: broker docker logs
         if: always()
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker logs $BROKER_CONTAINER_NAME || true
+
+  unit-tests:
+    needs: [ py-versions ]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.py3 }}
+      - name: pytest
+        run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          pytest -vvv tests/unit
+
 
 
   #############################################################################
@@ -493,6 +549,7 @@ jobs:
       py-dependencies,
       test-build-docker,
       integration-tests,
+      unit-tests,
       vanilla-run
     ]
     runs-on: ubuntu-latest
