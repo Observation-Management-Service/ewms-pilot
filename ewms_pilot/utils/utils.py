@@ -174,7 +174,7 @@ class LogParser:
             # no new-lines, no blank lines
             lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
         if last_line_index is None:
-            last_line_index = len(lines) - 1
+            last_line_index = len(lines) - 1  # the actual last line
 
         # Step 1: Check for a Python traceback, then use that
         #

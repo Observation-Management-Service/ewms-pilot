@@ -135,6 +135,10 @@ def test_100__apptainer__stacktrace(tmp_path: Path):
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
+    assert (
+        log_parser._get_last_non_apptainer_logline_index()
+        == len(test_content.splitlines()) - 1 - 4
+    )
     assert log_parser.apptainer_extract_error() == traceback
 
 
@@ -172,6 +176,10 @@ def test_101__apptainer__stacktrace(tmp_path: Path):
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
+    assert (
+        log_parser._get_last_non_apptainer_logline_index()
+        == len(test_content.splitlines()) - 1 - 4
+    )
     assert log_parser.apptainer_extract_error() == traceback
 
 
@@ -198,6 +206,10 @@ def test_110__apptainer__one_line_error(tmp_path: Path):
 
     log_parser = LogParser(temp_file)
     assert (
+        log_parser._get_last_non_apptainer_logline_index()
+        == len(test_content.splitlines()) - 1 - 5
+    )
+    assert (
         log_parser.apptainer_extract_error()
         == "curl: (22) The requested URL returned error: 404"
     )
@@ -220,46 +232,5 @@ def test_120__apptainer__all_apptainer_logs(tmp_path: Path):
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
-    assert log_parser.apptainer_extract_error() == "Child exited with exit status 255"
-
-
-def test_130__apptainer__index_finder(tmp_path: Path):
-    """Test."""
-    temp_file = tmp_path / "test.log"
-    test_content = textwrap.dedent(  # fixes """-indentation
-        """
-        DEBUG   [U=613,P=1]        sylogBuiltin()                Running action command run
-        FATAL   [U=613,P=1]        StageTwo()                    exec /bin/bash failed: fork/exec /bin/bash: input/output error
-        DEBUG   [U=613,P=47]       startContainer()              stage 2 process reported an error, waiting status
-        DEBUG   [U=613,P=47]       CleanupContainer()            Cleanup container
-        DEBUG   [U=613,P=47]       umount()                      Umount /var/lib/apptainer/mnt/session/final
-        DEBUG   [U=613,P=47]       umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
-        DEBUG   [U=613,P=47]       Master()                      Child exited with exit status 255
-        """
-    )
-    temp_file.write_text(test_content, encoding="utf-8")
-
-    log_parser = LogParser(temp_file)
     assert log_parser._get_last_non_apptainer_logline_index() is None
-
-
-def test_131__apptainer__index_finder(tmp_path: Path):
-    """Test."""
-    temp_file = tmp_path / "test.log"
-    test_content = textwrap.dedent(  # fixes """-indentation
-        """
-        ...
-        foo
-        DEBUG   [U=613,P=1]        sylogBuiltin()                Running action command run
-        FATAL   [U=613,P=1]        StageTwo()                    exec /bin/bash failed: fork/exec /bin/bash: input/output error
-        DEBUG   [U=613,P=47]       startContainer()              stage 2 process reported an error, waiting status
-        DEBUG   [U=613,P=47]       CleanupContainer()            Cleanup container
-        DEBUG   [U=613,P=47]       umount()                      Umount /var/lib/apptainer/mnt/session/final
-        DEBUG   [U=613,P=47]       umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
-        DEBUG   [U=613,P=47]       Master()                      Child exited with exit status 255
-        """
-    )
-    temp_file.write_text(test_content, encoding="utf-8")
-
-    log_parser = LogParser(temp_file)
-    assert log_parser._get_last_non_apptainer_logline_index() == 1
+    assert log_parser.apptainer_extract_error() == "Child exited with exit status 255"
