@@ -199,7 +199,7 @@ class LogParser:
         # OSError: [Errno 107] Transport endpoint is not connected: '/usr/lib/python3/dist-packages/pandas/core/arrays/sparse/array.py'
         # <other lines skipped b/c 'last_line_index'>
         # <EOF>
-        potential_python_traceback = []
+        potential_python_traceback: list[str] = []
         for line in reversed(lines[: last_line_index + 1]):
             potential_python_traceback.insert(0, line)
             if line.startswith("Traceback"):  # Start of traceback found
