@@ -41,48 +41,36 @@ def extract_error_from_log(log_file_path: Path) -> str:
         str: The most relevant error message found in the log.
     """
     with open(log_file_path, "r", encoding="utf-8") as file:
-        lines = file.readlines()
+        # no new-lines, no blank lines
+        lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
 
+    if not lines:
+        return "<no error info>"
+
+    # find index of "CleanupContainer()" line
+    revstart_index = len(lines) - 1  # fallback val: aka start at the end
+    for i, line in enumerate(lines):
+        if CLEANUP_PATTERN.match(line):
+            revstart_index = i - 1  # aka start on the line before
+            break
+
+    last_nonapptainer_line = lines[revstart_index]
+
+    # is there any actual good info here, or was this an apptainer error?
+    if APPTAINER_PATTERN.match(last_nonapptainer_line):
+        # return the very last line
+        return lines[-1]  # TODO: remove cols 1 & 2
+
+    # at this point, we may be looking at a python stacktrace
     potential_python_traceback = []
-    last_line = None
-    seen_cleanup_error = False
+    for line in reversed(lines[: revstart_index + 1]):
+        potential_python_traceback.insert(0, line)
+        if line.startswith("Traceback"):  # got to the start of the traceback!
+            return "\n".join(potential_python_traceback)
+    # no, it was not a python traceback
 
-    # Reverse iterate to search from the end of the file
-    reversed_lines = reversed(lines)
-    for line in reversed_lines:
-        line = line.rstrip("\n")
-        if not line.strip():
-            continue
-
-        if not last_line:
-            last_line = line
-
-        if not seen_cleanup_error:
-            continue
-        # Detect if we've hit the "CleanupContainer()" point in the log
-        elif CLEANUP_PATTERN.match(line):
-            seen_cleanup_error = True
-            continue
-
-        # now, this is the line right 'before' "CleanupContainer()"
-        if APPTAINER_PATTERN.match(line):
-            return last_line
-        else:
-            # has traceback?
-            potential_python_traceback.insert(0, line)
-            for tb_line in reversed_lines:  # let's keep going, now!
-                if line.startswith("Traceback"):  # got to the start of the traceback!
-                    potential_python_traceback.insert(0, tb_line)
-                    return "\n".join(potential_python_traceback)
-                if APPTAINER_PATTERN.match(tb_line):
-                    pass
-                potential_python_traceback.insert(0, tb_line)
-            # well, this was not a traceback after all
-            return potential_python_traceback[-1]
-
-    # fall-through reasons:
-    # 1. never saw the "CleanupContainer()" line
-    return last_line
+    # back up plan: grab last non-blank line
+    return last_nonapptainer_line
 
 
 class ContainerRunError(Exception):
