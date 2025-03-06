@@ -2,6 +2,8 @@
 
 import json
 import logging
+import re
+from pathlib import Path
 
 import numpy as np
 
@@ -93,3 +95,132 @@ def dump_tallies(task_maps: list[TaskMapping], dump_n_pending: bool = True) -> N
 
     if _errors := [tm.error for tm in task_maps if tm.error]:
         LOGGER.error(all_task_errors_string(_errors))
+
+
+class LogParser:
+    """A parser for stderr logfiles."""
+
+    # ex:
+    # DEBUG   [U=59925,P=1]      SomeFunction()            Some log message
+    # VERBOSE [U=613,P=42]       AnotherFunc()             Another log entry
+    APPTAINER_LOG_PATTERN = re.compile(r"^[A-Z]+\s+\[U=\d+,P=\d+\]\s+")
+
+    def __init__(self, log_fpath: Path):
+        self.log_fpath = log_fpath
+
+    def apptainer_extract_error(self) -> str:
+        """Extracts the most relevant error message from a log file which includes Apptainer logs.
+
+        Priority order:
+        1. A Python traceback (if present).
+        2. The first non-Apptainer error.
+        3. The last Apptainer log entry, if nothing else is found.
+
+        Returns:
+            str: The most relevant error message found.
+        """
+        with open(self.log_fpath, "r", encoding="utf-8") as file:
+            # no new-lines, no blank lines
+            lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
+
+        if not lines:
+            return "<no stderr logs>"
+
+        # Step 1: Locate the last error line before apptainer log line
+        last_non_apptainer_index = None
+        for i, line in enumerate(reversed(lines)):
+            if not self.APPTAINER_LOG_PATTERN.match(line):
+                last_non_apptainer_index = len(lines) - (i + 1)  # previous line's index
+                break
+
+        # Step 2: Is there any actual good info here, or was this all apptainer logs?
+        #
+        # Example: "Child exited with exit status 255"
+        # ...
+        # DEBUG   [U=613,P=1]        sylogBuiltin()                Running action command run
+        # FATAL   [U=613,P=1]        StageTwo()                    exec /bin/bash failed: fork/exec /bin/bash: input/output error
+        # DEBUG   [U=613,P=47]       startContainer()              stage 2 process reported an error, waiting status
+        # DEBUG   [U=613,P=47]       CleanupContainer()            Cleanup container
+        # DEBUG   [U=613,P=47]       umount()                      Umount /var/lib/apptainer/mnt/session/final
+        # DEBUG   [U=613,P=47]       umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
+        # DEBUG   [U=613,P=47]       Master()                      Child exited with exit status 255
+        # <EOF>
+        if last_non_apptainer_index is None:  # still None b/c only saw apptainer logs
+            # return the very last line, parsed
+            try:
+                return " ".join(lines[-1].split(maxsplit=4)[4:])  # Extract message
+            except IndexError:
+                LOGGER.warning(
+                    f"failed to further parse error from apptainer-level log line "
+                    f"(now, using whole line instead): {lines[-1]}"
+                )
+                return lines[-1]
+
+        self._extract_error(last_non_apptainer_index)
+
+    def generic_extract_error(self) -> str:
+        """Extracts the most relevant error message from a log file."""
+        return self._extract_error(None)
+
+    def _extract_error(self, last_line_index: int | None) -> str:
+        """Extracts the most relevant error message from a log file starting at 'last_line_index'."""
+
+        with open(self.log_fpath, "r", encoding="utf-8") as file:
+            # no new-lines, no blank lines
+            lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
+        if last_line_index is None:
+            last_line_index = len(lines) - 1
+
+        # Step 1: Check for a Python traceback, then use that
+        #
+        # Example 1:
+        # ...
+        # Traceback (most recent call last):
+        #   File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+        #     return _run_code(code, main_globals, None,
+        #   File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+        #     exec(code, run_globals)
+        # ...
+        #   File "/usr/local/lib/python3.10/dist-packages/skymap_scanner/client/reco_icetray.py", line 151, in reco_pixel
+        #     reco.setup_reco()
+        #   File "/usr/local/lib/python3.10/dist-packages/skymap_scanner/recos/millipede_wilks.py", line 73, in setup_reco
+        #     self.cascade_service = photonics_service.I3PhotoSplineService(
+        # RuntimeError: Error reading table coefficients
+        # DEBUG   [U=59925,P=95]     CleanupContainer()            Cleanup container
+        # DEBUG   [U=59925,P=95]     umount()                      Umount /var/lib/apptainer/mnt/session/final
+        # DEBUG   [U=59925,P=95]     umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
+        # DEBUG   [U=59925,P=95]     Master()                      Child exited with exit status 1
+        # <EOF>
+        #
+        # Example 2:
+        # ...
+        # Traceback (most recent call last):
+        #   File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+        #   File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+        # ...
+        #   File "<frozen importlib._bootstrap_external>", line 1016, in get_code
+        #   File "<frozen importlib._bootstrap_external>", line 1073, in get_data
+        # OSError: [Errno 107] Transport endpoint is not connected: '/usr/lib/python3/dist-packages/pandas/core/arrays/sparse/array.py'
+        # DEBUG   [U=59925,P=94]     CleanupContainer()            Cleanup container
+        # DEBUG   [U=59925,P=94]     umount()                      Umount /var/lib/apptainer/mnt/session/final
+        # DEBUG   [U=59925,P=94]     umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
+        # DEBUG   [U=59925,P=94]     Master()                      Child exited with exit status 1
+        # <EOF>
+        potential_python_traceback = []
+        for line in reversed(lines[: last_line_index + 1]):
+            potential_python_traceback.insert(0, line)
+            if line.startswith("Traceback"):  # Start of traceback found
+                return "\n".join(potential_python_traceback)
+
+        # ELSE: If no traceback, return last non-Apptainer error
+        #
+        # Example: "curl: (22) The requested URL returned error: 404"
+        # ...
+        # curl: (22) The requested URL returned error: 404
+        # DEBUG   [U=30101,P=1]      StartProcess()                Received signal child exited
+        # DEBUG   [U=30101,P=49]     CleanupContainer()            Cleanup container
+        # DEBUG   [U=30101,P=49]     umount()                      Umount /var/lib/apptainer/mnt/session/final
+        # DEBUG   [U=30101,P=49]     umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
+        # DEBUG   [U=30101,P=49]     Master()                      Child exited with exit status 22
+        # <EOF>
+        return lines[last_line_index]
