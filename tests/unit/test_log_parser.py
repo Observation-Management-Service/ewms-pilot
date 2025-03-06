@@ -36,6 +36,7 @@ def test_000__generic__stacktrace(tmp_path: Path):
         {traceback}
         """
     )
+    test_content = "".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -68,6 +69,7 @@ def test_001__generic__stacktrace(tmp_path: Path):
         {traceback}
         """
     )
+    test_content = "".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -88,6 +90,7 @@ def test_010__generic__one_line_error(tmp_path: Path):
         curl: (22) The requested URL returned error: 404
         """
     )
+    test_content = "".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -132,6 +135,7 @@ def test_100__apptainer__stacktrace(tmp_path: Path):
         DEBUG   [U=59925,P=95]     Master()                      Child exited with exit status 1
         """
     )
+    test_content = "".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -173,6 +177,7 @@ def test_101__apptainer__stacktrace(tmp_path: Path):
         DEBUG   [U=59925,P=94]     Master()                      Child exited with exit status 1
         """
     )
+    test_content = "".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -202,6 +207,7 @@ def test_110__apptainer__one_line_error(tmp_path: Path):
         DEBUG   [U=30101,P=49]     Master()                      Child exited with exit status 22
         """
     )
+    test_content = "".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
@@ -229,6 +235,7 @@ def test_120__apptainer__all_apptainer_logs(tmp_path: Path):
         DEBUG   [U=613,P=47]       Master()                      Child exited with exit status 255
         """
     )
+    test_content = "".join(ln for ln in test_content.splitlines() if ln.strip())
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
