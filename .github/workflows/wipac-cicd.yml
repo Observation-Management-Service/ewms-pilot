@@ -193,7 +193,7 @@ jobs:
           docker images
       - name: test
         run: |
-          # set -euo pipefail
+          set -euo pipefail
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -ex
           
@@ -201,7 +201,7 @@ jobs:
               $(env | grep '^EWMS_' | awk '$0="--env "$0') \
               $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
               ${{ env.DOCKER_IMAGE_NAME }} \
-              2>&1 | tee -a test.out 
+              2>&1 | tee -a test.out || exit_code=${PIPESTATUS[0]} 
           cat test.out
           
           # The intent of this test is to confirm that the pilot runs as a CL script
