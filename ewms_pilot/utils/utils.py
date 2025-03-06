@@ -206,7 +206,9 @@ class LogParser:
         # <other lines skipped b/c 'last_line_index'>
         # <EOF>
         potential_python_traceback: list[str] = []
+        LOGGER.critical(last_line_index)
         for line in reversed(lines[: last_line_index + 1]):
+            LOGGER.critical(line)
             potential_python_traceback.insert(0, line)
             if line.startswith("Traceback"):  # Start of traceback found
                 return "\n".join(potential_python_traceback)
