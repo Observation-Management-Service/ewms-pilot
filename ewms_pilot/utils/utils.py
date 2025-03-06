@@ -156,7 +156,7 @@ class LogParser:
                 )
                 return lines[-1]
 
-        self._extract_error(last_non_apptainer_index)
+        return self._extract_error(last_non_apptainer_index)
 
     def generic_extract_error(self) -> str:
         """Extracts the most relevant error message from a log file."""
