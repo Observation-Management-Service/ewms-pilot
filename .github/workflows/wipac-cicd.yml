@@ -261,7 +261,7 @@ jobs:
         run: |
           set -euo pipefail
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          temp_dir=$(mktemp -d) && cd $temp_dir && trap 'rm -rf $temp_dir' EXIT  # save disk space
+          sudo temp_dir=$(mktemp -d) && cd $temp_dir && trap 'rm -rf $temp_dir' EXIT  # save disk space
           # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
           wget https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_amd64.deb
           docker rm $(docker ps -a -q) -f  ||  echo "ok: no docker containers to remove"
@@ -434,7 +434,7 @@ jobs:
                   # NOTE: we want to mimic how htcondor launches apptainer-enabled EPs
           
                   set -x  # lets see the command
-                  temp_dir=$(mktemp -d) && trap 'rm -rf $temp_dir' EXIT  # save disk space
+                  sudo temp_dir=$(mktemp -d) && trap 'rm -rf $temp_dir' EXIT  # save disk space
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
                   # '--workdir' allows using host disk instead of memory
                   sleep "$(($i*$test_offset_delay))" && sudo apptainer run \
