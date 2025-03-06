@@ -284,5 +284,5 @@ def test_120__apptainer__all_apptainer_logs(tmp_path: Path):
     assert log_parser._get_last_non_apptainer_logline_index() is None
     assert (
         log_parser.apptainer_extract_error()
-        == "Apptainer-Error: Child exited with exit status 255"
+        == "[Apptainer-Error] Child exited with exit status 255"
     )

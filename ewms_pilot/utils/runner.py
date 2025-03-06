@@ -30,7 +30,7 @@ class ContainerRunError(Exception):
         exit_code: int | None = None,
     ):
         exit_str = f" (exit code {exit_code})" if exit_code is not None else ""
-        super().__init__(f"{alias} failed {exit_str}: {error_string}")
+        super().__init__(f"{alias} failed{exit_str}: {error_string}")
 
 
 # --------------------------------------------------------------------------------------
@@ -311,7 +311,7 @@ class ContainerRunner:
                     # < 3.11 -> asyncio.exceptions.TimeoutError
                     raise ContainerRunError(
                         logging_alias,
-                        f"timed out after {self.timeout}s",
+                        f"[Timeout-Error] timed out after {self.timeout}s",
                     ) from e
 
             LOGGER.info(f"{logging_alias} return code: {proc.returncode}")

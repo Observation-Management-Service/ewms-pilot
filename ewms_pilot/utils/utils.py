@@ -153,7 +153,7 @@ class LogParser:
         if last_non_apptainer_index is None:  # still None b/c only saw apptainer logs
             # return the very last line, parsed
             try:
-                return "Apptainer-Error: " + " ".join(
+                return "[Apptainer-Error] " + " ".join(
                     # Extract message
                     lines[-1].split(maxsplit=3)[3:]
                 )
