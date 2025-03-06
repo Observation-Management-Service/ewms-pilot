@@ -498,7 +498,7 @@ async def test_400__exception_quarantine(
     # run producer & consumer concurrently
     error = ContainerRunError(
         "task",
-        "ValueError: no good!",
+        "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    raise ValueError('no good!')\nValueError: no good!",
         exit_code=1,
     )
     with pytest.raises(
@@ -1057,7 +1057,7 @@ async def test_2002_init__exception(
             str(  # -> only the message part
                 ContainerRunError(
                     "init-container",
-                    "ValueError: no good!",
+                    "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    raise ValueError('no good!')\nValueError: no good!",
                     exit_code=1,
                 )
             )
