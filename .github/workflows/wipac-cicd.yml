@@ -262,7 +262,6 @@ jobs:
           set -euo pipefail
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker --version
-          exit 6
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           temp_dir=$(mktemp -d) && cd $temp_dir
           # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
@@ -418,6 +417,7 @@ jobs:
           
                   set -x  # lets see the command
                   sleep "$(($i*$test_offset_delay))" && sudo docker run --rm \
+                      --privileged \
                       --net=mynet  --hostname=syscont \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
