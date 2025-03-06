@@ -425,7 +425,8 @@ jobs:
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
                       --env CI=$CI \
                       ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv -s $test" \
-                      >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+                      2>&1
+                      # >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
           
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
@@ -451,7 +452,8 @@ jobs:
                       --workdir "$temp_dir" -B "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
                       /bin/bash -c "ls -l && ls -l / && pytest -vvv -s /app/$test" \
-                      >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+                      2>&1
+                      # >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                   set +x
           
               else
@@ -459,7 +461,7 @@ jobs:
                   exit 2  # unknown container_platform
           
               fi
-          
+              exit 5
               sleep .1  # little sleep to help logs
               i=$((i+1))
           done < $SORTED_LIST_OF_TESTS_FILE
