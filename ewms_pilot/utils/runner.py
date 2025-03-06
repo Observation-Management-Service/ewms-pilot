@@ -9,23 +9,20 @@ import shlex
 import shutil
 import subprocess
 import sys
+from pathlib import Path
 from typing import TextIO
 
 from ..config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
 
 LOGGER = logging.getLogger(__name__)
 
-# Regular expression to detect Apptainer log lines in the format: "<string><space>[<no spaces>]<space>*"
-APPTAINER_PATTERN = re.compile(r"^\S+\s+\[[^\s]+\]\s+")
 
 # --------------------------------------------------------------------------------------
 
 
-import re
-from pathlib import Path
-
 # Regular expression to detect Apptainer log lines in the format: "<string><space>[<no spaces>]<space>*"
 APPTAINER_PATTERN = re.compile(r"^\S+\s+\[[^\s]+\]\s+")
+CLEANUP_PATTERN = re.compile(r"^DEBUG\s+\[.*\]\s+CleanupContainer\(\)")
 
 
 def extract_error_from_log(log_file_path: Path) -> str:
@@ -33,8 +30,9 @@ def extract_error_from_log(log_file_path: Path) -> str:
 
     The function prioritizes:
     1. A Python traceback, if present.
-    2. The first non-Apptainer error message.
-    3. The last Apptainer log entry (if no other errors are found).
+    2. The first non-Apptainer error **before CleanupContainer()**, if applicable.
+    3. The first non-Apptainer error.
+    4. The last Apptainer log entry, if no other errors are found.
 
     Args:
         log_file_path (Path): Path to the log file.
@@ -45,49 +43,46 @@ def extract_error_from_log(log_file_path: Path) -> str:
     with open(log_file_path, "r", encoding="utf-8") as file:
         lines = file.readlines()
 
+    potential_python_traceback = []
+    last_line = None
+    seen_cleanup_error = False
+
     # Reverse iterate to search from the end of the file
-    python_traceback = []
-    non_apptainer_line = None
-    last_apptainer_line = None
+    reversed_lines = reversed(lines)
+    for line in reversed_lines:
+        line = line.rstrip("\n")
+        if not line.strip():
+            continue
 
-    for line in reversed(lines):
-        # Check if the line starts a Python traceback
-        if line.startswith("Traceback (most recent call last):"):
-            python_traceback.insert(0, line)  # Insert the first traceback line
+        if not last_line:
+            last_line = line
 
-            # Iterate backward (which is really forward) to collect the entire traceback
-            for traceback_line in reversed(lines[: lines.index(line) + 1]):
-                python_traceback.insert(0, traceback_line)  # Add traceback line
+        if not seen_cleanup_error:
+            continue
+        # Detect if we've hit the "CleanupContainer()" point in the log
+        elif CLEANUP_PATTERN.match(line):
+            seen_cleanup_error = True
+            continue
 
-                # Stop collecting if an Apptainer log entry is encountered
-                if APPTAINER_PATTERN.match(traceback_line):
-                    break
+        # now, this is the line right 'before' "CleanupContainer()"
+        if APPTAINER_PATTERN.match(line):
+            return last_line
+        else:
+            # has traceback?
+            potential_python_traceback.insert(0, line)
+            for tb_line in reversed_lines:  # let's keep going, now!
+                if line.startswith("Traceback"):  # got to the start of the traceback!
+                    potential_python_traceback.insert(0, tb_line)
+                    return "\n".join(potential_python_traceback)
+                if APPTAINER_PATTERN.match(tb_line):
+                    pass
+                potential_python_traceback.insert(0, tb_line)
+            # well, this was not a traceback after all
+            return potential_python_traceback[-1]
 
-            return "".join(
-                python_traceback
-            )  # Return the full traceback as a single string
-
-        # Capture the first non-Apptainer log error line encountered
-        if not APPTAINER_PATTERN.match(line) and non_apptainer_line is None:
-            non_apptainer_line = line.strip()
-
-        # Capture the last Apptainer log line if needed
-        if APPTAINER_PATTERN.match(line) and last_apptainer_line is None:
-            last_apptainer_line = line.strip()
-
-    # Return results based on priority order:
-    if non_apptainer_line:
-        return non_apptainer_line  # A direct error message not logged by Apptainer
-    elif last_apptainer_line:
-        return (
-            last_apptainer_line  # The last Apptainer log message for debugging context
-        )
-    return "No relevant error found in log."
-
-
-# Example usage:
-# error_message = extract_error_from_log("path/to/logfile.log")
-# print(error_message)
+    # fall-through reasons:
+    # 1. never saw the "CleanupContainer()" line
+    return last_line
 
 
 class ContainerRunError(Exception):
