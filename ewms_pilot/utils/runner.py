@@ -57,11 +57,73 @@ def extract_error_from_log(log_file_path: Path) -> str:
     last_nonapptainer_line = lines[revstart_index]
 
     # is there any actual good info here, or was this an apptainer error?
+    #
+    # Example:
+    # ...
+    # DEBUG   [U=613,P=47]       startContainer()              stage 2 process reported an error, waiting status
+    # DEBUG   [U=613,P=47]       CleanupContainer()            Cleanup container
+    # DEBUG   [U=613,P=47]       umount()                      Umount /var/lib/apptainer/mnt/session/final
+    # DEBUG   [U=613,P=47]       umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
+    # DEBUG   [U=613,P=47]       Master()                      Child exited with exit status 255
     if APPTAINER_PATTERN.match(last_nonapptainer_line):
         # return the very last line
         return lines[-1]  # TODO: remove cols 1 & 2
 
     # at this point, we may be looking at a python stacktrace
+    #
+    # Example 1:
+    # ...
+    # Traceback (most recent call last):
+    #   File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    #     return _run_code(code, main_globals, None,
+    #   File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    #     exec(code, run_globals)
+    #   File "/usr/local/lib/python3.10/dist-packages/skymap_scanner/client/__main__.py", line 7, in <module>
+    #     reco_icetray.main()
+    #   File "/usr/local/lib/python3.10/dist-packages/skymap_scanner/client/reco_icetray.py", line 299, in main
+    #     reco_pixel(
+    #   File "/usr/local/lib/python3.10/dist-packages/skymap_scanner/client/reco_icetray.py", line 151, in reco_pixel
+    #     reco.setup_reco()
+    #   File "/usr/local/lib/python3.10/dist-packages/skymap_scanner/recos/millipede_wilks.py", line 73, in setup_reco
+    #     self.cascade_service = photonics_service.I3PhotoSplineService(
+    # RuntimeError: Error reading table coefficients
+    # DEBUG   [U=59925,P=95]     CleanupContainer()            Cleanup container
+    # DEBUG   [U=59925,P=95]     umount()                      Umount /var/lib/apptainer/mnt/session/final
+    # DEBUG   [U=59925,P=95]     umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
+    # DEBUG   [U=59925,P=95]     Master()                      Child exited with exit status 1
+    #
+    # Example 2:
+    # ...
+    # Traceback (most recent call last):
+    #   File "/usr/lib/python3.10/runpy.py", line 196, in _run_module_as_main
+    #   File "/usr/lib/python3.10/runpy.py", line 86, in _run_code
+    #   File "/usr/local/lib/python3.10/dist-packages/skymap_scanner/client/__main__.py", line 3, in <module>
+    #   File "/usr/local/lib/python3.10/dist-packages/skymap_scanner/client/reco_icetray.py", line 29, in <module>
+    #   File "/usr/local/lib/python3.10/dist-packages/skymap_scanner/utils/load_scan_state.py", line 12, in <module>
+    #   File "/usr/local/lib/python3.10/dist-packages/skyreader/__init__.py", line 3, in <module>
+    #   File "/usr/local/lib/python3.10/dist-packages/skyreader/plot/__init__.py", line 1, in <module>
+    #   File "/usr/local/lib/python3.10/dist-packages/skyreader/plot/plot.py", line 30, in <module>
+    #   File "/usr/local/lib/python3.10/dist-packages/skyreader/utils/handle_map_data.py", line 8, in <module>
+    #   File "/usr/local/lib/python3.10/dist-packages/skyreader/result.py", line 19, in <module>
+    #   File "/usr/lib/python3/dist-packages/pandas/__init__.py", line 56, in <module>
+    #   File "/usr/lib/python3/dist-packages/pandas/core/api.py", line 29, in <module>
+    #   File "/usr/lib/python3/dist-packages/pandas/core/arrays/__init__.py", line 11, in <module>
+    #   File "/usr/lib/python3/dist-packages/pandas/core/arrays/interval.py", line 82, in <module>
+    #   File "/usr/lib/python3/dist-packages/pandas/core/indexes/base.py", line 90, in <module>
+    #   File "/usr/lib/python3/dist-packages/pandas/core/dtypes/concat.py", line 26, in <module>
+    #   File "/usr/lib/python3/dist-packages/pandas/core/arrays/sparse/__init__.py", line 3, in <module>
+    #   File "/usr/lib/python3/dist-packages/pandas/core/arrays/sparse/accessor.py", line 13, in <module>
+    #   File "<frozen importlib._bootstrap>", line 1027, in _find_and_load
+    #   File "<frozen importlib._bootstrap>", line 1006, in _find_and_load_unlocked
+    #   File "<frozen importlib._bootstrap>", line 688, in _load_unlocked
+    #   File "<frozen importlib._bootstrap_external>", line 879, in exec_module
+    #   File "<frozen importlib._bootstrap_external>", line 1016, in get_code
+    #   File "<frozen importlib._bootstrap_external>", line 1073, in get_data
+    # OSError: [Errno 107] Transport endpoint is not connected: '/usr/lib/python3/dist-packages/pandas/core/arrays/sparse/array.py'
+    # DEBUG   [U=59925,P=94]     CleanupContainer()            Cleanup container
+    # DEBUG   [U=59925,P=94]     umount()                      Umount /var/lib/apptainer/mnt/session/final
+    # DEBUG   [U=59925,P=94]     umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
+    # DEBUG   [U=59925,P=94]     Master()                      Child exited with exit status 1
     potential_python_traceback = []
     for line in reversed(lines[: revstart_index + 1]):
         potential_python_traceback.insert(0, line)
@@ -70,6 +132,15 @@ def extract_error_from_log(log_file_path: Path) -> str:
     # no, it was not a python traceback
 
     # back up plan: grab last non-blank line
+    #
+    # Example:
+    # ...
+    # curl: (22) The requested URL returned error: 404
+    # DEBUG   [U=30101,P=1]      StartProcess()                Received signal child exited
+    # DEBUG   [U=30101,P=49]     CleanupContainer()            Cleanup container
+    # DEBUG   [U=30101,P=49]     umount()                      Umount /var/lib/apptainer/mnt/session/final
+    # DEBUG   [U=30101,P=49]     umount()                      Umount /var/lib/apptainer/mnt/session/rootfs
+    # DEBUG   [U=30101,P=49]     Master()                      Child exited with exit status 22
     return last_nonapptainer_line
 
 
