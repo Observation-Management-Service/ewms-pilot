@@ -514,7 +514,7 @@ async def test_420__timeout(
     with pytest.raises(
         RuntimeError,
         match=re.escape(
-            f"1 TASK(S) FAILED: TimeoutError('container timed out after {task_timeout}s')"
+            f"1 TASK(S) FAILED: ContainerRunError('task failed: [Timeout-Error] timed out after {task_timeout}s')"
         ),
     ):
         await asyncio.gather(
@@ -977,8 +977,10 @@ async def test_2001_init__timeout_error(
     init_timeout = 10  # something long enough to account for docker time
 
     with pytest.raises(
-        TimeoutError,
-        match=re.escape(f"container timed out after {init_timeout}s"),
+        ContainerRunError,
+        match=re.escape(
+            f"init-container failed: [Timeout-Error] timed out after {init_timeout}s"
+        ),
     ):
         await consume_and_reply(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
