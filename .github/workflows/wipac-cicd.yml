@@ -396,6 +396,7 @@ jobs:
           echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
           
           test_offset_delay=5
+          pidlist=""
 
           # iterate each test, starting each in its own container
           cat $SORTED_LIST_OF_TESTS_FILE
