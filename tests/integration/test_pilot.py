@@ -1020,7 +1020,7 @@ async def test_2002_init__exception(
             str(  # -> only the message part
                 ContainerRunError(
                     "init-container",
-                    "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    raise ValueError('no good!')\nValueError: no good!",
+                    "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('no good!')\nValueError: no good!",
                     exit_code=1,
                 )
             )
