@@ -100,7 +100,7 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
                     break
                 stream.buffer.write(chunk)
     except Exception as e:
-        LOGGER.error(f"Error dumping subprocess output ({stream.name}): {e}")
+        LOGGER.error(f"Error dumping container output ({stream.name}): {e}")
 
 
 class ContainerSetupError(Exception):
@@ -307,10 +307,10 @@ class ContainerRunner:
                 except (TimeoutError, asyncio.exceptions.TimeoutError) as e:
                     # < 3.11 -> asyncio.exceptions.TimeoutError
                     raise TimeoutError(
-                        f"subprocess timed out after {self.timeout}s"
+                        f"{self.image} container timed out after {self.timeout}s"
                     ) from e
 
-            LOGGER.info(f"Subprocess return code: {proc.returncode}")
+            LOGGER.info(f"Container return code: {proc.returncode}")
 
             # exception handling (immediately re-handled by 'except' below)
             if proc.returncode:
@@ -326,7 +326,7 @@ class ContainerRunner:
                 )
 
         except Exception as e:
-            LOGGER.error(f"Subprocess failed: {e}")  # log the time
+            LOGGER.error(f"Container failed: {e}")  # log the time
             dump_output = True
             raise
         finally:
