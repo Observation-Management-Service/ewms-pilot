@@ -146,10 +146,49 @@ def assert_pilot_dirs(
 ########################################################################################
 
 
+async def test_000(
+    queue_incoming: str,
+    queue_outgoing: str,
+) -> None:
+    """Test a normal pilot."""
+    msgs_to_subproc = MSGS_TO_SUBPROC
+    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+
+    # run producer & consumer concurrently
+    await asyncio.gather(
+        populate_queue(
+            queue_incoming,
+            msgs_to_subproc,
+            intermittent_sleep=TIMEOUT_INCOMING / 4,
+        ),
+        consume_and_reply(
+            os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+            """python3 -c "
+output = open('{{INFILE}}').read().strip() * 2;
+print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
+            queue_incoming=queue_incoming,
+            queue_outgoing=queue_outgoing,
+            timeout_incoming=TIMEOUT_INCOMING,
+        ),
+    )
+
+    await assert_results(queue_outgoing, msgs_outgoing_expected)
+    assert_pilot_dirs(
+        len(msgs_outgoing_expected),
+        [
+            "task-io/infile-{UUID}.in",
+            "task-io/outfile-{UUID}.out",
+            "task-io/",
+            "outputs/stderrfile",
+            "outputs/stdoutfile",
+            "outputs/",
+        ],
+    )
+
+
 @pytest.mark.parametrize(
     "image_envvar",
     [
-        "CI_TEST_ALPINE_PYTHON_IMAGE",
         pytest.param(
             "CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF",
             marks=pytest.mark.skipif(
@@ -166,7 +205,7 @@ def assert_pilot_dirs(
         ),
     ],
 )
-async def test_000(
+async def test_000b_other_apptainer_images(
     image_envvar: str,
     queue_incoming: str,
     queue_outgoing: str,
