@@ -39,7 +39,7 @@ def test_000__generic__stacktrace(tmp_path: Path):
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
-    assert log_parser.apptainer_extract_error() == traceback
+    assert log_parser.generic_extract_error() == traceback
 
 
 def test_001__generic__stacktrace(tmp_path: Path):
@@ -71,7 +71,7 @@ def test_001__generic__stacktrace(tmp_path: Path):
     temp_file.write_text(test_content, encoding="utf-8")
 
     log_parser = LogParser(temp_file)
-    assert log_parser.apptainer_extract_error() == traceback
+    assert log_parser.generic_extract_error() == traceback
 
 
 def test_010__generic__one_line_error(tmp_path: Path):
@@ -92,7 +92,7 @@ def test_010__generic__one_line_error(tmp_path: Path):
 
     log_parser = LogParser(temp_file)
     assert (
-        log_parser.apptainer_extract_error()
+        log_parser.generic_extract_error()
         == "curl: (22) The requested URL returned error: 404"
     )
 
