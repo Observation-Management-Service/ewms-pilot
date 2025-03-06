@@ -453,9 +453,9 @@ async def test_400__exception_quarantine(
 
     # run producer & consumer concurrently
     error = ContainerRunError(
-        1,
+        "task",
         "ValueError: no good!",
-        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+        exit_code=1,
     )
     with pytest.raises(
         RuntimeError, match=re.escape(f"1 TASK(S) FAILED: {repr(error)}")
@@ -630,9 +630,9 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
 
     # run producer & consumer concurrently
     error = ContainerRunError(
-        1,
+        "task",
         "ValueError: gotta fail!",
-        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+        exit_code=1,
     )
     with pytest.raises(
         RuntimeError,
@@ -759,9 +759,9 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
     )
 
     error = ContainerRunError(
-        1,
+        "task",
         "ValueError: gotta fail!",
-        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+        exit_code=1,
     )
     with pytest.raises(
         RuntimeError,
@@ -1012,9 +1012,9 @@ async def test_2002_init__exception(
         match=re.escape(
             str(  # -> only the message part
                 ContainerRunError(
-                    1,
+                    "init-container",
                     "ValueError: no good!",
-                    os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+                    exit_code=1,
                 )
             )
         ),
