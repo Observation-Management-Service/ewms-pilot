@@ -367,7 +367,7 @@ jobs:
           # STARTUP BROKER -- this is always in docker container, even in 'apptainer' tests
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
-              source ./tests/integration/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=mynet --runtime=sysbox-runc"
+              source ./tests/integration/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=mynet "
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
@@ -415,7 +415,7 @@ jobs:
           
                   set -x  # lets see the command
                   sleep "$(($i*$test_offset_delay))" && sudo docker run --rm \
-                      --net=mynet --runtime=sysbox-runc --hostname=syscont \
+                      --net=mynet  --hostname=syscont \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
