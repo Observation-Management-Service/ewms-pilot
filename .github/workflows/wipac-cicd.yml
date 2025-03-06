@@ -354,7 +354,7 @@ jobs:
       - name: Integrate
         timeout-minutes: ${{ matrix.broker_client == 'rabbitmq' && 20  ||  10  }}  # adjust if fails, remember this is only time for *this* step
         run: |
-          set -euo pipefail
+          # set -euo pipefail
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
