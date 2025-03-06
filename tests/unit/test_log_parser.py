@@ -137,7 +137,7 @@ def test_100__apptainer__stacktrace(tmp_path: Path):
     log_parser = LogParser(temp_file)
     assert (
         log_parser._get_last_non_apptainer_logline_index()
-        == len(test_content.splitlines()) - 1 - 4
+        == len(test_content.splitlines()) - 1 - 5
     )
     assert log_parser.apptainer_extract_error() == traceback
 
@@ -178,7 +178,7 @@ def test_101__apptainer__stacktrace(tmp_path: Path):
     log_parser = LogParser(temp_file)
     assert (
         log_parser._get_last_non_apptainer_logline_index()
-        == len(test_content.splitlines()) - 1 - 4
+        == len(test_content.splitlines()) - 1 - 5
     )
     assert log_parser.apptainer_extract_error() == traceback
 
@@ -207,7 +207,7 @@ def test_110__apptainer__one_line_error(tmp_path: Path):
     log_parser = LogParser(temp_file)
     assert (
         log_parser._get_last_non_apptainer_logline_index()
-        == len(test_content.splitlines()) - 1 - 5
+        == len(test_content.splitlines()) - 1 - 6
     )
     assert (
         log_parser.apptainer_extract_error()
