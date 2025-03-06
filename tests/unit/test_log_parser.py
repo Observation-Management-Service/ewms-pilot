@@ -20,7 +20,7 @@ def test_000__generic__stacktrace(tmp_path: Path):
     temp_file = tmp_path / "test.log"
 
     test_content = prep_multiline(  # fixes """-indentation & removes leading/trailing empties
-        f"""
+        """
         ...
         foo
         bar
@@ -61,7 +61,7 @@ def test_001__generic__stacktrace(tmp_path: Path):
     temp_file = tmp_path / "test.log"
 
     test_content = prep_multiline(  # fixes """-indentation & removes leading/trailing empties
-        f"""
+        """
         ...
         foo
         bar
@@ -123,7 +123,7 @@ def test_100__apptainer__stacktrace(tmp_path: Path):
     temp_file = tmp_path / "test.log"
 
     test_content = prep_multiline(  # fixes """-indentation & removes leading/trailing empties
-        f"""
+        """
         ...
         foo
         bar
@@ -179,7 +179,7 @@ def test_101__apptainer__stacktrace(tmp_path: Path):
     temp_file = tmp_path / "test.log"
 
     test_content = prep_multiline(  # fixes """-indentation & removes leading/trailing empties
-        f"""
+        """
         ...
         foo
         bar
