@@ -427,7 +427,7 @@ jobs:
                       $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
                       --env CI=$CI \
-                      ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv -s tests/integration/test_pilot.py::test_2000_init" \
+                      ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv -s tests/integration/test_pilot.py::test_2001_init__timeout_error" \
                       2>&1   # -- uncomment to debug
                       exit 5 # -- uncomment to debug
                       # >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
