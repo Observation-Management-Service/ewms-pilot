@@ -75,21 +75,17 @@ async def assert_results(
         address=config.ENV.EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS,
         name=queue_outgoing,
     )
-    received: list = []
+
+    # we do not guarantee deliver-once AND not every msg is hashable
+    # so, stored in set of str-representations
+    received_as_strs: set[str] = set()
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
-            if str(msg) not in [str(r) for r in received]:  # not every msg is hashable
-                # we do not guarantee deliver-once
-                received.append(msg)
+            received_as_strs.add(str(msg))
 
-    assert len(received) == len(msgs_expected)
-
-    # check each entry (special handling for dict-types b/c not hashable)
-    if msgs_expected and isinstance(msgs_expected[0], dict):
-        assert set(str(r) for r in received) == set(str(m) for m in msgs_expected)
-    else:
-        assert set(received) == set(msgs_expected)
+    assert len(received_as_strs) == len(msgs_expected)
+    assert set(received_as_strs) == set(str(m) for m in msgs_expected)
 
 
 def assert_pilot_dirs(
