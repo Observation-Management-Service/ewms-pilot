@@ -966,7 +966,7 @@ async def test_2001_init__timeout_error(
     queue_outgoing: str,
 ) -> None:
     """Test a init command with error."""
-    init_timeout = 10  # something long enough to account for docker time
+    init_timeout = 30  # something long enough to account for docker time
 
     with pytest.raises(
         ContainerRunError,
