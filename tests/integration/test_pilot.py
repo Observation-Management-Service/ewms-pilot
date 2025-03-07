@@ -639,11 +639,7 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
         "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('no good!')\nValueError: gotta fail!",
         exit_code=1,
     )
-    with pytest.raises(
-        RuntimeError,
-        match=re.escape(f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: ")
-        + ", ".join(re.escape(repr(error)) for _ in range(MAX_CONCURRENT_TASKS)),
-    ) as e:
+    with pytest.raises(RuntimeError) as e:
         await asyncio.gather(
             populate_queue(
                 queue_incoming,
@@ -674,10 +670,10 @@ raise ValueError('gotta fail!')" """,  # double cat
                 max_concurrent_tasks=MAX_CONCURRENT_TASKS,
             ),
         )
-    # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
-    # we already know there are MAX_CONCURRENT_TASKS subproc errors
-    for msg in msgs_outgoing_expected:
-        assert str(e.value).count(f"ValueError: gotta fail: {msg.strip()}") <= 1
+    assert str(e.value) == (
+        f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: "
+        + ", ".join(repr(error) for _ in range(MAX_CONCURRENT_TASKS))
+    )
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
@@ -768,11 +764,7 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
         "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('no good!')\nValueError: gotta fail!",
         exit_code=1,
     )
-    with pytest.raises(
-        RuntimeError,
-        match=re.escape(f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: ")
-        + ", ".join(re.escape(repr(error)) for _ in range(MAX_CONCURRENT_TASKS)),
-    ) as e:
+    with pytest.raises(RuntimeError) as e:
         await consume_and_reply(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
@@ -787,10 +779,10 @@ raise ValueError('gotta fail!')" """,  # double cat
             prefetch=prefetch,
             max_concurrent_tasks=MAX_CONCURRENT_TASKS,
         )
-    # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
-    # we already know there are MAX_CONCURRENT_TASKS subproc errors
-    for msg in msgs_outgoing_expected:
-        assert str(e.value).count(f"ValueError: gotta fail: {msg.strip()}") <= 1
+    assert str(e.value) == (
+        f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: "
+        + ", ".join(repr(error) for _ in range(MAX_CONCURRENT_TASKS))
+    )
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
