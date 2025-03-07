@@ -104,39 +104,52 @@ def assert_pilot_dirs(
     if not data_hub_dir_contents:
         data_hub_dir_contents = []
 
-    # check num of dirs
-    if has_init_cmd_subdir:
-        assert (
-            len(list(PILOT_DATA_DIR.iterdir())) == n_tasks + 1 + 1
-        )  # data-hub/ & init*/
-    else:
-        assert len(list(PILOT_DATA_DIR.iterdir())) == n_tasks + 1  # data-hub/
-
+    #
     # check each task's dir contents
-    for subdir in PILOT_DATA_DIR.iterdir():
+    #
+
+    subdirs = list(PILOT_DATA_DIR.iterdir())
+    for subdir in subdirs:
         assert subdir.is_dir()
 
+    # data-hub
+    for subdir in subdirs.copy():
         # is this the data-hub subdir?
-        if subdir.name == "data-hub":
-            assert sorted(
-                str(p.relative_to(subdir)) for p in subdir.rglob("*")
-            ) == sorted(data_hub_dir_contents)
+        if subdir.name != "data-hub":
             continue
-        # is this an init subdir?
-        elif has_init_cmd_subdir and subdir.name.startswith("init"):
+        assert sorted(str(p.relative_to(subdir)) for p in subdir.rglob("*")) == sorted(
+            data_hub_dir_contents
+        )
+        subdirs.remove(subdir)
+        break
+
+    # init dir
+    if has_init_cmd_subdir:
+        for subdir in subdirs.copy():
+            # is this an init subdir?
+            if not subdir.name.startswith("init"):
+                continue
             assert sorted(
                 str(p.relative_to(subdir)) for p in subdir.rglob("*")
             ) == sorted(["outputs/stderrfile", "outputs/stdoutfile", "outputs"])
-            continue
-        # now we know this is a task dir
-        else:
-            task_id = subdir.name
+            subdirs.remove(subdir)
+            break
 
-            # look at files -- flattened tree
-            this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
-            assert sorted(this_task_files) == sorted(
-                str(p.relative_to(subdir)) for p in subdir.rglob("*")
-            )
+    # task dirs
+    n_task_dirs = 0
+    for subdir in subdirs:
+        # now we know this is a task dir
+        task_id = subdir.name
+
+        # look at files -- flattened tree
+        this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
+        assert sorted(this_task_files) == sorted(
+            str(p.relative_to(subdir)) for p in subdir.rglob("*")
+        )
+        n_task_dirs += 1
+
+    # check num of task dirs -- we do not guarantee deliver-once, so must use >=
+    assert n_task_dirs >= n_tasks
 
 
 ########################################################################################
