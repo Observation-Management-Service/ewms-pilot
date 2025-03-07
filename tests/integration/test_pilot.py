@@ -75,12 +75,12 @@ async def assert_results(
         address=config.ENV.EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS,
         name=queue_outgoing,
     )
-
-    received = set()  # we do not guarantee deliver-once
+    received: list = []
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
-            received.add(msg)  # we do not guarantee deliver-once
+            received.append(msg)
+
     assert len(received) == len(msgs_expected)
 
     # check each entry (special handling for dict-types b/c not hashable)
