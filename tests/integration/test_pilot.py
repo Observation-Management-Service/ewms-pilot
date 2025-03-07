@@ -79,7 +79,9 @@ async def assert_results(
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
-            received.append(msg)
+            if str(msg) not in [str(r) for r in received]:  # not every msg is hashable
+                # we do not guarantee deliver-once
+                received.append(msg)
 
     assert len(received) == len(msgs_expected)
 
