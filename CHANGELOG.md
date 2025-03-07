@@ -2,6 +2,30 @@
 
 
 
+## v0.27.0 (2025-03-07)
+
+### [minor]
+
+* Make Error Messages More Helpful for Users [minor] (#106)
+
+Updated the error messages and added unit tests for the stderr parsers
+
+Also, changes in the GitHub actions packages forced updates:
+- changed how apptainer-in-apptainer and docker-in-docker are emulated
+on the test runner
+- updated a test due to a change in docker-in-docker&#39;s cancelation
+handling (ie subprocess timeout)
+- brokers (nats and pulsar) are now double-delivering messages on rare
+occasions--it was always known this was a possibility, mqclient states
+such. Tests had to be updated to reflect this reality
+
+tldr: also removed tech debt :robot:
+
+---------
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`0976b0a`](https://github.com/Observation-Management-Service/ewms-pilot/commit/0976b0aa22a8db435b3e7c9417d8596cd7b08a8a))
+
+
 ## v0.26.8 (2024-10-29)
 
 ###  
