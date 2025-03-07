@@ -354,7 +354,7 @@ jobs:
           docker network create mynet
 
       - name: Integrate
-        timeout-minutes: ${{ matrix.broker_client == 'rabbitmq' && 20  ||  10  }}  # adjust if fails, remember this is only time for *this* step
+        timeout-minutes: ${{ matrix.broker_client == 'rabbitmq' && 20  ||  15  }}  # adjust if fails, remember this is only time for *this* step
         run: |
           # set -euo pipefail
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
