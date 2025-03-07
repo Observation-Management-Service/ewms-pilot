@@ -933,8 +933,6 @@ import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
-    f.flush()
-    os.fsync(f.fileno())
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
@@ -989,9 +987,10 @@ import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
-    f.flush()
-    os.fsync(f.fileno())
-time.sleep({init_timeout})
+    # now flush since the parent container (pilot) may kill the container before flush 
+    f.flush()  # Flush to OS buffer
+    os.fsync(f.fileno())  # Force write to disk
+time.sleep({init_timeout + 1})
 " """,
             init_timeout=init_timeout,
             queue_incoming=queue_incoming,
@@ -1034,8 +1033,6 @@ import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
-    f.flush()
-    os.fsync(f.fileno())
 raise ValueError('gotta fail!')
 " """,
             queue_incoming=queue_incoming,
@@ -1345,8 +1342,8 @@ assert os.environ['INIT_BAZ'] == '99'
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
-    f.flush()
-    os.fsync(f.fileno())
+    f.flush()  # Flush to OS buffer
+    os.fsync(f.fileno())  # Force write to disk
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
