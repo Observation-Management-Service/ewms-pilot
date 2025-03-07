@@ -459,7 +459,7 @@ async def test_400__exception_quarantine(
     # run producer & consumer concurrently
     error = ContainerRunError(
         "task",
-        "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    raise ValueError('no good!')\nValueError: no good!",
+        "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    raise ValueError('gotta fail!')\nValueError: gotta fail!",
         exit_code=1,
     )
     with pytest.raises(
@@ -473,7 +473,7 @@ async def test_400__exception_quarantine(
             ),
             consume_and_reply(
                 f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
-                """python3 -c "raise ValueError('no good!')" """,
+                """python3 -c "raise ValueError('gotta fail!')" """,
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
                 timeout_incoming=TIMEOUT_INCOMING,
@@ -636,7 +636,7 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     # run producer & consumer concurrently
     error = ContainerRunError(
         "task",
-        "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('no good!')\nValueError: gotta fail!",
+        "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('gotta fail!')\nValueError: gotta fail!",
         exit_code=1,
     )
     with pytest.raises(RuntimeError) as e:
@@ -761,7 +761,7 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
 
     error = ContainerRunError(
         "task",
-        "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('no good!')\nValueError: gotta fail!",
+        "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('gotta fail!')\nValueError: gotta fail!",
         exit_code=1,
     )
     with pytest.raises(RuntimeError) as e:
@@ -1012,7 +1012,7 @@ async def test_2002_init__exception(
             str(  # -> only the message part
                 ContainerRunError(
                     "init-container",
-                    "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('no good!')\nValueError: no good!",
+                    "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('gotta fail!')\nValueError: gotta fail!",
                     exit_code=1,
                 )
             )
@@ -1030,7 +1030,7 @@ import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
-raise ValueError('no good!')
+raise ValueError('gotta fail!')
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
