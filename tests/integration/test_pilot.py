@@ -981,7 +981,7 @@ output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
-            init_args=f"""python3 -c "
+            init_args="""python3 -c "
 import time
 import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
