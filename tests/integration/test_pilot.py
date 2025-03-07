@@ -636,7 +636,7 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
     # run producer & consumer concurrently
     error = ContainerRunError(
         "task",
-        "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    raise ValueError('no good!')\nValueError: gotta fail!",
+        "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('no good!')\nValueError: gotta fail!",
         exit_code=1,
     )
     with pytest.raises(
@@ -765,7 +765,7 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
 
     error = ContainerRunError(
         "task",
-        "Traceback (most recent call last):\n  File \"<string>\", line 5, in <module>\n    raise ValueError('no good!')\nValueError: gotta fail!",
+        "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('no good!')\nValueError: gotta fail!",
         exit_code=1,
     )
     with pytest.raises(
