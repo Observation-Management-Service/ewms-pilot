@@ -933,6 +933,8 @@ import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
+    f.flush()
+    os.fsync(f.fileno())
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
@@ -966,7 +968,7 @@ async def test_2001_init__timeout_error(
     queue_outgoing: str,
 ) -> None:
     """Test a init command with error."""
-    init_timeout = 30  # something long enough to account for docker time
+    init_timeout = 10  # something long enough to account for docker time
 
     with pytest.raises(
         ContainerRunError,
@@ -987,6 +989,8 @@ import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
+    f.flush()
+    os.fsync(f.fileno())
 time.sleep({init_timeout})
 " """,
             init_timeout=init_timeout,
@@ -1030,6 +1034,8 @@ import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
+    f.flush()
+    os.fsync(f.fileno())
 raise ValueError('gotta fail!')
 " """,
             queue_incoming=queue_incoming,
@@ -1339,6 +1345,8 @@ assert os.environ['INIT_BAZ'] == '99'
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
+    f.flush()
+    os.fsync(f.fileno())
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
