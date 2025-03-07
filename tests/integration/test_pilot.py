@@ -990,7 +990,9 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     # now flush since the parent container (pilot) may kill the container before flush
     f.flush()  # Flush to OS buffer
     os.fsync(f.fileno())  # Force write to disk
-time.sleep({init_timeout + 1})
+# instead of time.sleep(), go in a for loop, so file can be flushed
+while True:
+    pass
 " """,
             init_timeout=init_timeout,
             queue_incoming=queue_incoming,
