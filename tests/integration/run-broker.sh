@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 set -ex
 
 ########################################################################
@@ -7,7 +8,7 @@ set -ex
 #
 ########################################################################
 
-if [ -z "$1" ] || [ -z "$2" ]; then
+if [ -z "${1-}" ] || [ -z "${2-}" ]; then
     echo "Usage: run-broker.sh BROKER_TYPE BROKER_CONTAINER_NAME [EXTRA_DOCKER_RUN_OPTIONS]"
     exit 1
 else

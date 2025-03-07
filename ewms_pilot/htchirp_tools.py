@@ -14,6 +14,7 @@ from htcondor import classad  # type: ignore[import-untyped]
 from typing_extensions import ParamSpec
 
 from .config import ENV
+from .utils.runner import ContainerRunError
 
 LOGGER = logging.getLogger(__name__)
 
@@ -216,7 +217,12 @@ class Chirper:
 
     def error_chirp(self, exception: Exception) -> None:
         """Send a Condor Chirp signalling that processing ran into an error."""
-        str_error = f"{type(exception).__name__}: {exception}"
+        if isinstance(exception, ContainerRunError):
+            # we know this type -> it already has a lot of useful info in it
+            str_error = str(exception)
+        else:
+            # unknown error -> report everything
+            str_error = f"{type(exception).__name__}: {exception}"
         self._backlog[HTChirpAttr.HTChirpEWMSPilotError] = str_error
 
         if sys.version_info >= (3, 10):

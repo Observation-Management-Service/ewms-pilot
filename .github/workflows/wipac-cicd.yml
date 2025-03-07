@@ -30,11 +30,6 @@ env:
 
 jobs:
 
-  #############################################################################
-  # PACKAGING & LINTERS
-  #############################################################################
-
-
   py-versions:
     runs-on: ubuntu-latest
     outputs:
@@ -44,11 +39,23 @@ jobs:
       - id: versions
         uses: WIPACrepo/wipac-dev-py-versions-action@v2.4
 
+
+  #############################################################################
+  # PACKAGING & LINTERS
+  #############################################################################
+
   flake8:
+    needs: [ py-versions ]
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-flake8-action@v1.1
 
   mypy:
@@ -94,14 +101,18 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
+        name: build all images
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
           mkdir docker-build-logs/ && trap 'rm -rf docker-build-logs/' EXIT
           
           # first, build the vanilla/default image
+          pidlist=""
           docker build --tag "default:py-dep-this" . \
-              >> docker-build-logs/$tag.docker-build.out 2>&1 & pidlist="$pidlist $!"
+              >> docker-build-logs/default.docker-build.out 2>&1 & pidlist="$pidlist $!"
           
           # build all dockerfiles
           for py in $(echo ${{ needs.py-versions.outputs.matrix }} | sed 's/[][]//g; s/,/ /g'); do
@@ -149,9 +160,7 @@ jobs:
   # tests
   #############################################################################
 
-
   test-build-docker:
-    needs: [ mypy ]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -164,10 +173,7 @@ jobs:
           cache-to: type=gha,mode=min
           tags: ${{ env.DOCKER_IMAGE_NAME }}:local
 
-
-
   vanilla-run:
-    needs: [ py-versions ]
     runs-on: ubuntu-latest
     env:
       EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE: rabbitmq
@@ -181,16 +187,21 @@ jobs:
       - uses: actions/checkout@v4
       - name: build docker image
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} .
           docker images
-      - run: |
+      - name: test
+        run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -ex
           
           docker run --rm \
               $(env | grep '^EWMS_' | awk '$0="--env "$0') \
               $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
               ${{ env.DOCKER_IMAGE_NAME }} \
-              2>&1 | tee -a test.out 
+              2>&1 | tee -a test.out || exit_code=${PIPESTATUS[0]} 
           cat test.out
           
           # The intent of this test is to confirm that the pilot runs as a CL script
@@ -205,21 +216,39 @@ jobs:
               exit 1
           fi
 
+  unit-tests:
+    needs: [ py-versions ]
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v4
+        with:
+          python-version: ${{ matrix.py3 }}
+      - name: pytest
+        run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          pip install .[test]
+          pytest -vvv tests/unit
 
   integration-tests:
-    needs: [ py-versions, mypy ]
+    needs: [ py-versions ]
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
         container_platform: [ docker, apptainer ]
-        version: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
+        py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
         broker_client: [ pulsar, rabbitmq, nats ]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v4
         with:
-          python-version: ${{ matrix.version }}
+          python-version: ${{ matrix.py3 }}
 
       - if: ${{ matrix.broker_client == 'rabbitmq' }}
         uses: jlumbroso/free-disk-space@main
@@ -230,7 +259,11 @@ jobs:
       - if: ${{ matrix.container_platform == 'docker' }}
         name: install sysbox (needed for docker-in-docker)
         run: |
-          temp_dir=$(mktemp -d) && cd $temp_dir && trap 'rm -rf $temp_dir' EXIT  # save disk space
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          docker --version
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          temp_dir=$(mktemp -d) && cd $temp_dir
           # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
           wget https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_amd64.deb
           docker rm $(docker ps -a -q) -f  ||  echo "ok: no docker containers to remove"
@@ -245,8 +278,10 @@ jobs:
 
       - name: build docker image
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
-              --build-arg="PYTHON=${{ matrix.version }}" \
+              --build-arg="PYTHON=${{ matrix.py3 }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
               --build-arg="CONTAINER_PLATFORM=${{ matrix.container_platform }}" \
               .
@@ -254,6 +289,8 @@ jobs:
 
       - name: pre-pull & save images for testing
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           mkdir saved-images/
           
@@ -293,25 +330,34 @@ jobs:
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: build apptainer image
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker images
           apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:latest
           ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
 
       - name: get list of pytest tests
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           pip install .[test]  # for the for-loop below
-          pytest --collect-only -q --disable-warnings tests | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
+          pytest --collect-only -q --disable-warnings tests/integration/ | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
           cat $SORTED_LIST_OF_TESTS_FILE
 
       - if: ${{ matrix.container_platform == 'docker' }}
+        name: set up docker network
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           # we're connecting all the containers (broker + apps) in the same docker network
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
 
       - name: Integrate
-        timeout-minutes: ${{ matrix.broker_client == 'rabbitmq' && 20  ||  10  }}  # adjust if fails, remember this is only time for *this* step
+        timeout-minutes: ${{ matrix.broker_client == 'rabbitmq' && 20  ||  15  }}  # adjust if fails, remember this is only time for *this* step
         run: |
+          # set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
           # ACTIVATE FOR DOCKER-IN-DOCKER
@@ -323,12 +369,12 @@ jobs:
           # STARTUP BROKER -- this is always in docker container, even in 'apptainer' tests
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
-              source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=mynet --runtime=sysbox-runc"
+              source ./tests/integration/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=mynet "
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
               # USE THE HOST NETWORK SINCE APPTAINER DOESN'T HAVE AS ISOLATED NETWORKING AS DOCKER DOES 
-              source ./tests/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--network=host"
+              source ./tests/integration/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--network=host"
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else
@@ -352,6 +398,7 @@ jobs:
           echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
           
           test_offset_delay=5
+          pidlist=""
 
           # iterate each test, starting each in its own container
           cat $SORTED_LIST_OF_TESTS_FILE
@@ -370,7 +417,8 @@ jobs:
           
                   set -x  # lets see the command
                   sleep "$(($i*$test_offset_delay))" && docker run --rm \
-                      --net=mynet --runtime=sysbox-runc --hostname=syscont \
+                      --privileged \
+                      --net=mynet  --hostname=syscont \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
@@ -381,6 +429,8 @@ jobs:
                       --env CI=$CI \
                       ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv -s $test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+                      # 2>&1   # -- uncomment to debug
+                      # exit 5 # -- uncomment to debug
                   set +x
           
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
@@ -388,10 +438,10 @@ jobs:
                   # NOTE: we want to mimic how htcondor launches apptainer-enabled EPs
           
                   set -x  # lets see the command
-                  temp_dir=$(mktemp -d) && trap 'rm -rf $temp_dir' EXIT  # save disk space
+                  temp_dir=$(mktemp -d)
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
                   # '--workdir' allows using host disk instead of memory
-                  sleep "$(($i*$test_offset_delay))" && apptainer run \
+                  sleep "$(($i*$test_offset_delay))" && sudo apptainer run \
                       --containall --writable-tmpfs --no-eval \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
@@ -407,6 +457,8 @@ jobs:
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
                       /bin/bash -c "ls -l && ls -l / && pytest -vvv -s /app/$test" \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+                      # 2>&1   # -- uncomment to debug
+                      # exit 5 # -- uncomment to debug
                   set +x
           
               else
@@ -437,9 +489,11 @@ jobs:
       - name: pytest first failure
         if: always()
         run: |
-          file=$(grep -l -m 1 "= FAILURES =" *.test.out | head -1)
-          if [ -n "$file" ]; then
-              cat $file
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          file=$(grep -l -m 1 "= FAILURES =" *.test.out 2>/dev/null | head -1 || true)
+          if [[ -n "$file" ]]; then
+              cat "$file"
               echo "^^^^ this is the pytest out file -- this step exited with 1 because this *pytest* failed -- the ci step is okay"
               exit 1
           else
@@ -449,6 +503,9 @@ jobs:
       - name: pytest container outputs
         if: always()
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          sleep 15  # sleep a bit more in case there are additional failures we want to dig for
           cat $SORTED_LIST_OF_TESTS_FILE
           while read test; do
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
@@ -464,6 +521,8 @@ jobs:
       - name: broker output
         if: always()
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           cat ./broker.out
           if [ -n "$(ls -A ./broker_logs/ 2>/dev/null)" ]; then
@@ -474,13 +533,14 @@ jobs:
       - name: broker docker logs
         if: always()
         run: |
+          set -euo pipefail
+          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker logs $BROKER_CONTAINER_NAME || true
 
 
   #############################################################################
   # GITHUB & PYPI RELEASE
   #############################################################################
-
 
   release:
     # only run on main/master/default
@@ -493,6 +553,7 @@ jobs:
       py-dependencies,
       test-build-docker,
       integration-tests,
+      unit-tests,
       vanilla-run
     ]
     runs-on: ubuntu-latest

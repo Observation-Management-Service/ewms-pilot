@@ -11,6 +11,7 @@ import sys
 from pathlib import Path
 from typing import TextIO
 
+from .utils import LogParser
 from ..config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
 
 LOGGER = logging.getLogger(__name__)
@@ -19,25 +20,17 @@ LOGGER = logging.getLogger(__name__)
 # --------------------------------------------------------------------------------------
 
 
-def get_last_nonblank_line(fpath: Path) -> str:
-    """Get the last line of the file that is not entirely whitespace."""
-    last_nonblank_line = ""
-    with fpath.open() as f:
-        for line in f:
-            if stripped := line.strip():
-                last_nonblank_line = stripped  # removed '\n' and anything else
-        return last_nonblank_line
-
-
 class ContainerRunError(Exception):
     """Raised when the container terminates in an error."""
 
-    def __init__(self, return_code: int, last_line: str, image: str):
-        super().__init__(
-            f"Container completed with exit code {return_code}: "
-            f"'{last_line}' "
-            f"for {image}"
-        )
+    def __init__(
+        self,
+        alias: str,
+        error_string: str,
+        exit_code: int | None = None,
+    ):
+        exit_str = f" (exit code {exit_code})" if exit_code is not None else ""
+        super().__init__(f"{alias} failed{exit_str}: {error_string}")
 
 
 # --------------------------------------------------------------------------------------
@@ -109,7 +102,7 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
                     break
                 stream.buffer.write(chunk)
     except Exception as e:
-        LOGGER.error(f"Error dumping subprocess output ({stream.name}): {e}")
+        LOGGER.error(f"Error dumping container output ({stream.name}): {e}")
 
 
 class ContainerSetupError(Exception):
@@ -234,6 +227,7 @@ class ContainerRunner:
 
     async def run_container(
         self,
+        logging_alias: str,  # what to call this container for logging and error-reporting
         stdoutfile: Path,
         stderrfile: Path,
         mount_bindings: str,
@@ -294,9 +288,9 @@ class ContainerRunner:
                 )
             case other:
                 raise ValueError(
-                    f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
+                    f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other} ({logging_alias})"
                 )
-        LOGGER.info(f"Running command: {cmd}")
+        LOGGER.info(f"Running {logging_alias} command: {cmd}")
 
         # run: call & check outputs
         try:
@@ -315,20 +309,28 @@ class ContainerRunner:
                     )
                 except (TimeoutError, asyncio.exceptions.TimeoutError) as e:
                     # < 3.11 -> asyncio.exceptions.TimeoutError
-                    raise TimeoutError(
-                        f"subprocess timed out after {self.timeout}s"
+                    raise ContainerRunError(
+                        logging_alias,
+                        f"[Timeout-Error] timed out after {self.timeout}s",
                     ) from e
 
-            LOGGER.info(f"Subprocess return code: {proc.returncode}")
+            LOGGER.info(f"{logging_alias} return code: {proc.returncode}")
 
             # exception handling (immediately re-handled by 'except' below)
             if proc.returncode:
+                log_parser = LogParser(stderrfile)
                 raise ContainerRunError(
-                    proc.returncode, get_last_nonblank_line(stderrfile), self.image
+                    logging_alias,
+                    (
+                        log_parser.apptainer_extract_error()
+                        if ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower() == "apptainer"
+                        else log_parser.generic_extract_error()
+                    ),
+                    exit_code=proc.returncode,
                 )
 
         except Exception as e:
-            LOGGER.error(f"Subprocess failed: {e}")  # log the time
+            LOGGER.error(f"{logging_alias} failed: {e}")  # log the time
             dump_output = True
             raise
         finally:

@@ -75,19 +75,17 @@ async def assert_results(
         address=config.ENV.EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS,
         name=queue_outgoing,
     )
-    received: list = []
+
+    # we do not guarantee deliver-once AND not every msg is hashable
+    # so, stored in set of str-representations
+    received_as_strs: set[str] = set()
     async with from_client_q.open_sub() as sub:
         async for i, msg in asl.enumerate(sub):
             print(f"{i}: {msg}")
-            received.append(msg)
+            received_as_strs.add(str(msg))
 
-    assert len(received) == len(msgs_expected)
-
-    # check each entry (special handling for dict-types b/c not hashable)
-    if msgs_expected and isinstance(msgs_expected[0], dict):
-        assert set(str(r) for r in received) == set(str(m) for m in msgs_expected)
-    else:
-        assert set(received) == set(msgs_expected)
+    assert len(received_as_strs) == len(msgs_expected)
+    assert set(received_as_strs) == set(str(m) for m in msgs_expected)
 
 
 def assert_pilot_dirs(
@@ -106,76 +104,56 @@ def assert_pilot_dirs(
     if not data_hub_dir_contents:
         data_hub_dir_contents = []
 
-    # check num of dirs
-    if has_init_cmd_subdir:
-        assert (
-            len(list(PILOT_DATA_DIR.iterdir())) == n_tasks + 1 + 1
-        )  # data-hub/ & init*/
-    else:
-        assert len(list(PILOT_DATA_DIR.iterdir())) == n_tasks + 1  # data-hub/
-
+    #
     # check each task's dir contents
-    for subdir in PILOT_DATA_DIR.iterdir():
+    #
+
+    subdirs = list(PILOT_DATA_DIR.iterdir())
+    for subdir in subdirs:
         assert subdir.is_dir()
 
+    # data-hub
+    for subdir in subdirs.copy():
         # is this the data-hub subdir?
-        if subdir.name == "data-hub":
-            assert sorted(
-                str(p.relative_to(subdir)) for p in subdir.rglob("*")
-            ) == sorted(data_hub_dir_contents)
+        if subdir.name != "data-hub":
             continue
-        # is this an init subdir?
-        elif has_init_cmd_subdir and subdir.name.startswith("init"):
+        assert sorted(str(p.relative_to(subdir)) for p in subdir.rglob("*")) == sorted(
+            data_hub_dir_contents
+        )
+        subdirs.remove(subdir)
+        break
+
+    # init dir
+    if has_init_cmd_subdir:
+        for subdir in subdirs.copy():
+            # is this an init subdir?
+            if not subdir.name.startswith("init"):
+                continue
             assert sorted(
                 str(p.relative_to(subdir)) for p in subdir.rglob("*")
             ) == sorted(["outputs/stderrfile", "outputs/stdoutfile", "outputs"])
-            continue
+            subdirs.remove(subdir)
+            break
+
+    # task dirs
+    n_task_dirs = 0
+    for subdir in subdirs:
         # now we know this is a task dir
-        else:
-            task_id = subdir.name
+        task_id = subdir.name
 
-            # look at files -- flattened tree
-            this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
-            assert sorted(this_task_files) == sorted(
-                str(p.relative_to(subdir)) for p in subdir.rglob("*")
-            )
+        # look at files -- flattened tree
+        this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
+        assert sorted(this_task_files) == sorted(
+            str(p.relative_to(subdir)) for p in subdir.rglob("*")
+        )
+        n_task_dirs += 1
 
-
-########################################################################################
-# SPECIAL (SLOW) TESTS -- RAN FIRST SO WHEN TESTS ARE PARALLELIZED, THINGS GO FASTER
-########################################################################################
-
-
-TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
-
-
-@pytest.mark.skipif(
-    config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq",
-    reason="test is only for rabbitmq tests",
-)
-@pytest.mark.parametrize(
-    "refresh_interval_rabbitmq_heartbeat_interval",
-    [
-        # note -- the broker hb timeout is ~1 min and is triggered after ~2x
-        TEST_1000_SLEEP * 10,  # won't actually wait this long
-        TEST_1000_SLEEP,  # ~= to ~2x (see above)
-        TEST_1000_SLEEP / 10,  # will have no hb issues
-    ],
-)
-async def test_1000__heartbeat_workaround__rabbitmq_only(
-    queue_incoming: str,
-    queue_outgoing: str,
-    refresh_interval_rabbitmq_heartbeat_interval: float,
-) -> None:
-    await _test_1000__heartbeat_workaround__rabbitmq_only(
-        queue_incoming,
-        queue_outgoing,
-        refresh_interval_rabbitmq_heartbeat_interval,
-    )
+    # check num of task dirs -- we do not guarantee deliver-once, so must use >=
+    assert n_task_dirs >= n_tasks
 
 
 ########################################################################################
-# REGULAR TESTS
+# TESTS
 ########################################################################################
 
 
@@ -238,6 +216,44 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             "outputs/",
         ],
     )
+
+
+########################################################################################
+# SPECIAL (SLOW) TESTS -- RAN FIRST SO WHEN TESTS ARE PARALLELIZED, THINGS GO FASTER
+########################################################################################
+
+
+TEST_1000_SLEEP = 150.0  # anything lower doesn't upset rabbitmq enough
+
+
+@pytest.mark.skipif(
+    config.ENV.EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE != "rabbitmq",
+    reason="test is only for rabbitmq tests",
+)
+@pytest.mark.parametrize(
+    "refresh_interval_rabbitmq_heartbeat_interval",
+    [
+        # note -- the broker hb timeout is ~1 min and is triggered after ~2x
+        TEST_1000_SLEEP * 10,  # won't actually wait this long
+        TEST_1000_SLEEP,  # ~= to ~2x (see above)
+        TEST_1000_SLEEP / 10,  # will have no hb issues
+    ],
+)
+async def test_1000__heartbeat_workaround__rabbitmq_only(
+    queue_incoming: str,
+    queue_outgoing: str,
+    refresh_interval_rabbitmq_heartbeat_interval: float,
+) -> None:
+    await _test_1000__heartbeat_workaround__rabbitmq_only(
+        queue_incoming,
+        queue_outgoing,
+        refresh_interval_rabbitmq_heartbeat_interval,
+    )
+
+
+########################################################################################
+# REGULAR TESTS (cont.)
+########################################################################################
 
 
 async def test_001__txt__str_filetype(
@@ -453,9 +469,9 @@ async def test_400__exception_quarantine(
 
     # run producer & consumer concurrently
     error = ContainerRunError(
-        1,
-        "ValueError: no good!",
-        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+        "task",
+        "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    raise ValueError('gotta fail!')\nValueError: gotta fail!",
+        exit_code=1,
     )
     with pytest.raises(
         RuntimeError, match=re.escape(f"1 TASK(S) FAILED: {repr(error)}")
@@ -468,7 +484,7 @@ async def test_400__exception_quarantine(
             ),
             consume_and_reply(
                 f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
-                """python3 -c "raise ValueError('no good!')" """,
+                """python3 -c "raise ValueError('gotta fail!')" """,
                 queue_incoming=queue_incoming,
                 queue_outgoing=queue_outgoing,
                 timeout_incoming=TIMEOUT_INCOMING,
@@ -509,7 +525,7 @@ async def test_420__timeout(
     with pytest.raises(
         RuntimeError,
         match=re.escape(
-            f"1 TASK(S) FAILED: TimeoutError('subprocess timed out after {task_timeout}s')"
+            f"1 TASK(S) FAILED: ContainerRunError('task failed: [Timeout-Error] timed out after {task_timeout}s')"
         ),
     ):
         await asyncio.gather(
@@ -624,21 +640,17 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
 ) -> None:
     """Test max_concurrent_tasks within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
     # run producer & consumer concurrently
     error = ContainerRunError(
-        1,
-        "ValueError: gotta fail!",
-        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+        "task",
+        "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('gotta fail!')\nValueError: gotta fail!",
+        exit_code=1,
     )
-    with pytest.raises(
-        RuntimeError,
-        match=re.escape(f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: ")
-        + ", ".join(re.escape(repr(error)) for _ in range(MAX_CONCURRENT_TASKS)),
-    ) as e:
+    with pytest.raises(RuntimeError) as e:
         await asyncio.gather(
             populate_queue(
                 queue_incoming,
@@ -669,10 +681,10 @@ raise ValueError('gotta fail!')" """,  # double cat
                 max_concurrent_tasks=MAX_CONCURRENT_TASKS,
             ),
         )
-    # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
-    # we already know there are MAX_CONCURRENT_TASKS subproc errors
-    for msg in msgs_outgoing_expected:
-        assert str(e.value).count(f"ValueError: gotta fail: {msg.strip()}") <= 1
+    assert str(e.value) == (
+        f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: "
+        + ", ".join(repr(error) for _ in range(MAX_CONCURRENT_TASKS))
+    )
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
@@ -748,7 +760,7 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
 ) -> None:
     """Test max_concurrent_tasks within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
@@ -759,15 +771,11 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
     )
 
     error = ContainerRunError(
-        1,
-        "ValueError: gotta fail!",
-        os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+        "task",
+        "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('gotta fail!')\nValueError: gotta fail!",
+        exit_code=1,
     )
-    with pytest.raises(
-        RuntimeError,
-        match=re.escape(f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: ")
-        + ", ".join(re.escape(repr(error)) for _ in range(MAX_CONCURRENT_TASKS)),
-    ) as e:
+    with pytest.raises(RuntimeError) as e:
         await consume_and_reply(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
@@ -782,10 +790,10 @@ raise ValueError('gotta fail!')" """,  # double cat
             prefetch=prefetch,
             max_concurrent_tasks=MAX_CONCURRENT_TASKS,
         )
-    # check each exception only occurred n-times -- much easier this way than regex (lots of permutations)
-    # we already know there are MAX_CONCURRENT_TASKS subproc errors
-    for msg in msgs_outgoing_expected:
-        assert str(e.value).count(f"ValueError: gotta fail: {msg.strip()}") <= 1
+    assert str(e.value) == (
+        f"{MAX_CONCURRENT_TASKS} TASK(S) FAILED: "
+        + ", ".join(repr(error) for _ in range(MAX_CONCURRENT_TASKS))
+    )
 
     # it should've taken ~5 seconds to complete all tasks (but we're on 1 cpu so it takes longer)
     print(time.time() - start_time)
@@ -969,11 +977,13 @@ async def test_2001_init__timeout_error(
     queue_outgoing: str,
 ) -> None:
     """Test a init command with error."""
-    init_timeout = 10  # something long enough to account for docker time
+    init_timeout = 30  # something long enough to account for docker time
 
     with pytest.raises(
-        TimeoutError,
-        match=re.escape(f"subprocess timed out after {init_timeout}s"),
+        ContainerRunError,
+        match=re.escape(
+            f"init-container failed: [Timeout-Error] timed out after {init_timeout}s"
+        ),
     ):
         await consume_and_reply(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
@@ -982,13 +992,18 @@ output = open('{{INFILE}}').read().strip() * 2;
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
-            init_args=f"""python3 -c "
+            init_args="""python3 -c "
 import time
 import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
-time.sleep({init_timeout})
+    # now flush since the parent container (pilot) may kill the container before flush
+    f.flush()  # Flush to OS buffer
+    os.fsync(f.fileno())  # Force write to disk
+# instead of time.sleep(), go in a for loop, so file can be flushed
+while True:
+    pass
 " """,
             init_timeout=init_timeout,
             queue_incoming=queue_incoming,
@@ -1012,9 +1027,9 @@ async def test_2002_init__exception(
         match=re.escape(
             str(  # -> only the message part
                 ContainerRunError(
-                    1,
-                    "ValueError: no good!",
-                    os.environ["CI_TEST_ALPINE_PYTHON_IMAGE"],
+                    "init-container",
+                    "Traceback (most recent call last):\n  File \"<string>\", line 6, in <module>\n    raise ValueError('gotta fail!')\nValueError: gotta fail!",
+                    exit_code=1,
                 )
             )
         ),
@@ -1031,7 +1046,7 @@ import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
-raise ValueError('no good!')
+raise ValueError('gotta fail!')
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
@@ -1340,6 +1355,8 @@ assert os.environ['INIT_BAZ'] == '99'
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
+    f.flush()  # Flush to OS buffer
+    os.fsync(f.fileno())  # Force write to disk
 " """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
