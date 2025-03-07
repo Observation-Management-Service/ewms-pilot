@@ -491,9 +491,9 @@ jobs:
         run: |
           set -euo pipefail
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          file=$(grep -l -m 1 "= FAILURES =" *.test.out | head -1)
-          if [ -n "$file" ]; then
-              cat $file
+          file=$(grep -l -m 1 "= FAILURES =" *.test.out 2>/dev/null | head -1 || true)
+          if [[ -n "$file" ]]; then
+              cat "$file"
               echo "^^^^ this is the pytest out file -- this step exited with 1 because this *pytest* failed -- the ci step is okay"
               exit 1
           else
