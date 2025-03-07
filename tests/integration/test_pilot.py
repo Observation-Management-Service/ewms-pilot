@@ -987,7 +987,7 @@ import os
 with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
     print('writing hello world to a file...')
     print('hello world!', file=f)
-    # now flush since the parent container (pilot) may kill the container before flush 
+    # now flush since the parent container (pilot) may kill the container before flush
     f.flush()  # Flush to OS buffer
     os.fsync(f.fileno())  # Force write to disk
 time.sleep({init_timeout + 1})
