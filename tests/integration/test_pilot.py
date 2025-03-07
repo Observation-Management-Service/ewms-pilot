@@ -629,7 +629,7 @@ async def test_510__concurrent_load_max_concurrent_tasks_exceptions(
 ) -> None:
     """Test max_concurrent_tasks within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
@@ -749,7 +749,7 @@ async def test_530__preload_max_concurrent_tasks_exceptions(
 ) -> None:
     """Test max_concurrent_tasks within the pilot."""
     msgs_to_subproc = MSGS_TO_SUBPROC
-    msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
+    # msgs_outgoing_expected = [f"{x}{x}\n" for x in msgs_to_subproc]
 
     start_time = time.time()
 
