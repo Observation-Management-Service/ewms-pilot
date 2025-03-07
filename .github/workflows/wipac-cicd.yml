@@ -416,7 +416,7 @@ jobs:
               if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
           
                   set -x  # lets see the command
-                  sleep "$(($i*$test_offset_delay))" && sudo docker run --rm \
+                  sleep "$(($i*$test_offset_delay))" && docker run --rm \
                       --privileged \
                       --net=mynet  --hostname=syscont \
                       --mount type=bind,source=$(pwd),target=/repo/,readonly \
