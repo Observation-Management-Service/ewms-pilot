@@ -242,7 +242,14 @@ class ContainerRunner:
                         f"skipping 'docker pull {image}' (env var CI=True)"
                     )
                     return image
-                _run(f"docker pull {shlex.quote(image)}")
+                _run(
+                    #
+                    # NOTE: validate & sanitize values HERE--this is the point of no return!
+                    #       (making calls here makes it very clear what is checked)
+                    #
+                    f"docker pull "
+                    f"{shlex.quote(image)}",
+                )
                 return image
 
             # NOTE: We are only are able to run unpacked directory format on condor.
@@ -274,6 +281,10 @@ class ContainerRunner:
                 )
                 # build (convert)
                 _run(
+                    #
+                    # NOTE: validate & sanitize values HERE--this is the point of no return!
+                    #       (making calls here makes it very clear what is checked)
+                    #
                     # cd b/c want to *build* in a directory w/ enough space (intermediate files)
                     f"cd {ENV._EWMS_PILOT_APPTAINER_BUILD_WORKDIR} && "
                     f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}build "
@@ -341,6 +352,10 @@ class ContainerRunner:
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
             case "docker":
                 cmd = (
+                    #
+                    # NOTE: validate & sanitize values HERE--this is the point of no return!
+                    #       (making calls here makes it very clear what is checked)
+                    #
                     f"docker run --rm "
                     # optional
                     f"{f'--shm-size={ENV._EWMS_PILOT_DOCKER_SHM_SIZE} ' if ENV._EWMS_PILOT_DOCKER_SHM_SIZE else ''}"
@@ -366,6 +381,10 @@ class ContainerRunner:
                 )
             case "apptainer":
                 cmd = (
+                    #
+                    # NOTE: validate & sanitize values HERE--this is the point of no return!
+                    #       (making calls here makes it very clear what is checked)
+                    #
                     f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}run "
                     # always add these flags
                     f"--containall "  # don't auto-mount anything
