@@ -297,7 +297,7 @@ class ContainerRunner:
                     # env vars
                     f"{" ".join(
                         f"--env {self._validate_env_var_name(n)}={shlex.quote(str(self._validate_env_var_value(v)))}"
-                        for n, v in (self.env | env_as_dict).items()
+                        for n, v in sorted((self.env | env_as_dict).items())
                         # in case of key conflicts, choose the vals specific to this run
                     )}"
                     # image + args
@@ -321,7 +321,7 @@ class ContainerRunner:
                     # env vars
                     f"{" ".join(
                         f"--env {self._validate_env_var_name(n)}={shlex.quote(str(self._validate_env_var_value(v)))}"
-                        for n, v in (self.env | env_as_dict).items()
+                        for n, v in sorted((self.env | env_as_dict).items())
                         # in case of key conflicts, choose the vals specific to this run
                     )}"
                     # image + args
