@@ -175,7 +175,7 @@ class ContainerRunner:
                         f"skipping 'docker pull {image}' (env var CI=True)"
                     )
                     return image
-                _run(f"docker pull {image}")
+                _run(f"docker pull {shlex.quote(image)}")
                 return image
 
             # NOTE: We are only are able to run unpacked directory format on condor.
@@ -212,7 +212,7 @@ class ContainerRunner:
                     f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}build "
                     f"--fix-perms "
                     f"--sandbox {dir_image} "
-                    f"{image}"
+                    f"{shlex.quote(image)}"
                 )
                 LOGGER.info(
                     f"Image has been converted to Apptainer directory format: {dir_image}"
