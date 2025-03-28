@@ -183,36 +183,46 @@ class InTaskContainerEnvVarNames(enum.Enum):
 
 # Paths in the container where writable mounts must be disallowed
 BIND_MOUNT_IN_CONTAINER_READONLY_DIRS = [
-    Path("/etc"),
-    Path("/usr"),
-    Path("/lib"),
-    Path("/lib64"),
-    Path("/bin"),
-    Path("/sbin"),
-    Path("/root"),
-    Path("/var"),
-    Path("/proc"),
-    Path("/dev"),
-    Path("/sys"),
+    # Core system configuration and binaries
+    Path("/etc"),  # Configuration files
+    Path("/usr"),  # User-installed programs and data
+    Path("/lib"),  # Shared libraries
+    Path("/lib64"),  # 64-bit shared libraries
+    Path("/bin"),  # Essential user binaries
+    Path("/sbin"),  # System binaries
+    # Sensitive user/system directories
+    Path("/root"),  # Root user's home directory
+    Path("/var"),  # Logs, caches, spool data
+    # Virtual and kernel interfaces
+    Path("/proc"),  # Kernel and process interface
+    Path("/dev"),  # Device files
+    Path("/sys"),  # Kernel sysfs interface
 ]
 
 # Host paths that should never be mounted at all (even read-only)
 BIND_MOUNT_ON_PILOT_FORBIDDEN_DIRS = [
-    Path("/proc"),
-    Path("/dev"),
-    Path("/sys"),
-    Path("/boot"),
-    Path("/run"),
+    # Volatile and system-critical virtual filesystems
+    Path("/proc"),  # Kernel and process interface
+    Path("/dev"),  # Device files
+    Path("/sys"),  # Kernel sysfs interface
+    Path("/run"),  # Runtime state (e.g., PID files, sockets)
+    # Boot and system startup
+    Path("/boot"),  # Kernel, initramfs, bootloader
 ]
 
 # Host paths that may be mounted read-only only (never writable)
 BIND_MOUNT_ON_PILOT_READONLY_DIRS = [
-    Path("/etc"),
-    Path("/usr"),
-    Path("/lib"),
-    Path("/lib64"),
-    Path("/bin"),
-    Path("/sbin"),
-    Path("/root"),
-    Path("/var"),
+    # Core system configuration and binaries
+    Path("/etc"),  # Configuration files
+    Path("/usr"),  # User-installed programs and data
+    Path("/lib"),  # Shared libraries
+    Path("/lib64"),  # 64-bit shared libraries
+    Path("/bin"),  # Essential user binaries
+    Path("/sbin"),  # System binaries
+    # Sensitive user/system directories
+    Path("/root"),  # Root user's home directory
+    Path("/var"),  # Logs, caches, spool data
 ]
+
+
+# --------------------------------------------------------------------------------------
