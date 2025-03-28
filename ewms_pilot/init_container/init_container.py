@@ -27,7 +27,7 @@ async def run_init_container(
             "init-container",
             dirs.outputs_on_pilot / "stdoutfile",
             dirs.outputs_on_pilot / "stderrfile",
-            dirs.assemble_bind_mounts(external_directories=True),
+            dirs.assemble_bind_mounts(include_external_directories=True),
             {
                 InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name: dirs.pilot_data_hub.in_task_container,
             },

@@ -77,20 +77,20 @@ class DirectoryCatalog:
 
     def assemble_bind_mounts(
         self,
-        external_directories: bool = False,
-        task_io: bool = False,
+        include_external_directories: bool = False,
+        include_task_io_directory: bool = False,
     ) -> str:
         """Get the docker bind mount string containing the wanted directories."""
         string = f"--mount type=bind,source={self.pilot_data_hub.on_pilot},target={self.pilot_data_hub.in_task_container} "
 
-        if external_directories:
+        if include_external_directories:
             string += "".join(
                 f"--mount type=bind,source={dpath},target={dpath},readonly "
                 for dpath in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
                 if dpath  # skip any blanks
             )
 
-        if task_io:
+        if include_task_io_directory:
             string += f"--mount type=bind,source={self.task_io.on_pilot},target={self.task_io.in_task_container} "
 
         return string

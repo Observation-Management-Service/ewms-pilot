@@ -46,7 +46,9 @@ async def process_msg_task(
         "task",
         dirs.outputs_on_pilot / "stderrfile",
         dirs.outputs_on_pilot / "stdoutfile",
-        dirs.assemble_bind_mounts(external_directories=True, task_io=True),
+        dirs.assemble_bind_mounts(
+            include_external_directories=True, include_task_io_directory=True
+        ),
         {
             InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name: dirs.pilot_data_hub.in_task_container,
             InTaskContainerEnvVarNames.EWMS_TASK_INFILE.name: in_container_infile,
