@@ -349,7 +349,7 @@ class ContainerRunner:
                         f"--mount type=bind,"
                         f"source={shlex.quote(str(m.on_pilot))},"
                         f"target={shlex.quote(str(m.in_task_container))}"
-                        f"{', readonly' if m.is_readonly else ''}" 
+                        f"{', readonly' if m.is_readonly else ''}"
                         for m in bind_mounts
                     )} "
                     # env vars
@@ -375,7 +375,7 @@ class ContainerRunner:
                         f"--mount type=bind,"
                         f"source={shlex.quote(str(m.on_pilot))},"
                         f"target={shlex.quote(str(m.in_task_container))}"
-                        f"{', readonly' if m.is_readonly else ''}" 
+                        f"{', readonly' if m.is_readonly else ''}"
                         for m in bind_mounts
                     )} "
                     # env vars
