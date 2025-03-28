@@ -20,8 +20,7 @@ async def run_init_container(
     """Run the init container with the given arguments."""
     await housekeeper.running_init_container()
 
-    dirs = DirectoryCatalog(f"init-{uuid.uuid4().hex}")
-
+    dirs = DirectoryCatalog(f"init-{uuid.uuid4().hex}", include_task_io_directory=False)
     task = asyncio.create_task(
         init_runner.run_container(
             "init-container",

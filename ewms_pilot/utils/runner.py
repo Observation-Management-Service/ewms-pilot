@@ -26,8 +26,9 @@ ENV_VAR_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 class ContainerSetupError(Exception):
     """Exception raised when a container pre-run actions fail."""
 
-    def __init__(self, message: str, image: str):
-        super().__init__(f"{message} for {image}")
+    def __init__(self, message: str, useful_identifier: str):
+        """`useful_identifier` can be image name, task id, etc."""
+        super().__init__(f"{message} for {useful_identifier}")
 
 
 class ContainerRunError(Exception):
@@ -57,48 +58,69 @@ class DirectoryCatalog:
         in_task_container: Path
         is_readonly: bool = False
 
-    def __init__(self, name: str):
-        """All directories except the task-io dir is pre-created (mkdir)."""
-        self._namebased_dir = PILOT_DATA_DIR / name
+        def __post_init__(self):
+            if not self.on_pilot.is_dir():  # also 'False' if path doesn't exist
+                raise NotADirectoryError(
+                    f"Bind mount does not exist on host: {self.on_pilot}"
+                )
+            for fpath in [self.on_pilot, self.in_task_container]:
+                if not fpath.is_absolute():
+                    raise ValueError(f"Bind mount path must be absolute: {fpath}")
+
+    def __init__(self, name: str, include_task_io_directory: bool):
+        """All directories are auto-created (task_io dir cannot already exist)."""
+        self.name = name
+        self._namebased_dir = PILOT_DATA_DIR / self.name
+
+        def _mkdir(_fpath: Path, exist_ok=True) -> Path:
+            _fpath.mkdir(parents=True, exist_ok=exist_ok)
+            return _fpath
 
         # for inter-task/init storage: startup data, init container's output, etc.
         self.pilot_data_hub = self.ContainerBindMountDirPair(
-            PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME,
+            _mkdir(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME),
             Path(f"/{PILOT_DATA_DIR.name}/{PILOT_DATA_HUB_DIR_NAME}"),
         )
-        self.pilot_data_hub.on_pilot.mkdir(parents=True, exist_ok=True)
 
         # for persisting stderr and stdout
-        self.outputs_on_pilot = self._namebased_dir / "outputs"
-        self.outputs_on_pilot.mkdir(parents=True, exist_ok=False)
+        self.outputs_on_pilot = _mkdir(self._namebased_dir / "outputs")
 
         # for message-based task i/o
-        self.task_io = self.ContainerBindMountDirPair(
-            self._namebased_dir / "task-io",
-            Path(f"/{PILOT_DATA_DIR.name}/task-io"),
-        )
+        if include_task_io_directory:
+            self.task_io = self.ContainerBindMountDirPair(
+                _mkdir(self._namebased_dir / "task-io", exist_ok=False),
+                Path(f"/{PILOT_DATA_DIR.name}/task-io"),
+            )
+        else:
+            self.task_io = None
 
     def assemble_bind_mounts(
         self,
         include_external_directories: bool = False,
-        include_task_io_directory: bool = False,
     ) -> list[ContainerBindMountDirPair]:
         """Get the docker bind mount string containing the wanted directories."""
-        mounts: list[DirectoryCatalog.ContainerBindMountDirPair] = [
+        bind_mounts: list[DirectoryCatalog.ContainerBindMountDirPair] = [
             self.pilot_data_hub,
         ]
 
         if include_external_directories:
-            mounts.extend(
+            bind_mounts.extend(
                 DirectoryCatalog.ContainerBindMountDirPair(d, d, is_readonly=True)
                 for d in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
                 if d  # skip any blanks
             )
 
-        if include_task_io_directory:
-            mounts.append(self.task_io)
+        if self.task_io:
+            bind_mounts.append(self.task_io)
 
-        return mounts
+        targets = [m.in_task_container for m in bind_mounts]
+        if len(set(targets)) != len(targets):
+            raise ContainerSetupError(
+                "Duplicate container mount targets detected",
+                self.name,
+            )
+
+        return bind_mounts
 
     def rm_unique_dirs(self) -> None:
         """Remove all directories (on host) created for use only by this container."""
