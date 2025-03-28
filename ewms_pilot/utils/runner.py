@@ -50,16 +50,19 @@ class DirectoryCatalog:
     """Handles the naming and mapping logic for a task's directories."""
 
     @dc.dataclass
-    class _ContainerBindMountDirPair:
+    class ContainerBindMountDirPair:
+        """A pair of directory paths for use in mounting to a container."""
+
         on_pilot: Path
         in_task_container: Path
+        is_readonly: bool = False
 
     def __init__(self, name: str):
         """All directories except the task-io dir is pre-created (mkdir)."""
         self._namebased_dir = PILOT_DATA_DIR / name
 
         # for inter-task/init storage: startup data, init container's output, etc.
-        self.pilot_data_hub = self._ContainerBindMountDirPair(
+        self.pilot_data_hub = self.ContainerBindMountDirPair(
             PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME,
             Path(f"/{PILOT_DATA_DIR.name}/{PILOT_DATA_HUB_DIR_NAME}"),
         )
@@ -70,7 +73,7 @@ class DirectoryCatalog:
         self.outputs_on_pilot.mkdir(parents=True, exist_ok=False)
 
         # for message-based task i/o
-        self.task_io = self._ContainerBindMountDirPair(
+        self.task_io = self.ContainerBindMountDirPair(
             self._namebased_dir / "task-io",
             Path(f"/{PILOT_DATA_DIR.name}/task-io"),
         )
@@ -79,21 +82,23 @@ class DirectoryCatalog:
         self,
         include_external_directories: bool = False,
         include_task_io_directory: bool = False,
-    ) -> str:
+    ) -> list[ContainerBindMountDirPair]:
         """Get the docker bind mount string containing the wanted directories."""
-        string = f"--mount type=bind,source={self.pilot_data_hub.on_pilot},target={self.pilot_data_hub.in_task_container} "
+        mounts: list[DirectoryCatalog.ContainerBindMountDirPair] = [
+            self.pilot_data_hub,
+        ]
 
         if include_external_directories:
-            string += "".join(
-                f"--mount type=bind,source={dpath},target={dpath},readonly "
-                for dpath in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
-                if dpath  # skip any blanks
+            mounts.extend(
+                DirectoryCatalog.ContainerBindMountDirPair(d, d, is_readonly=True)
+                for d in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
+                if d  # skip any blanks
             )
 
         if include_task_io_directory:
-            string += f"--mount type=bind,source={self.task_io.on_pilot},target={self.task_io.in_task_container} "
+            mounts.append(self.task_io)
 
-        return string
+        return mounts
 
     def rm_unique_dirs(self) -> None:
         """Remove all directories (on host) created for use only by this container."""
@@ -250,7 +255,7 @@ class ContainerRunner:
         logging_alias: str,  # what to call this container for logging and error-reporting
         stdoutfile: Path,
         stderrfile: Path,
-        mount_bindings: str,
+        bind_mounts: list[DirectoryCatalog.ContainerBindMountDirPair],
         env_as_dict: dict,
         infile_arg_replacement: str = "",
         outfile_arg_replacement: str = "",
@@ -274,15 +279,21 @@ class ContainerRunner:
                 inst_args = inst_args.replace(token, datahub_arg_replacement)
 
         # assemble command
-        # NOTE: don't add to mount_bindings (WYSIWYG); also avoid intermediate structures
+        # NOTE: don't add to bind_mounts (WYSIWYG); also avoid intermediate structures
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
             case "docker":
                 cmd = (
                     f"docker run --rm "
                     # optional
                     f"{f'--shm-size={ENV._EWMS_PILOT_DOCKER_SHM_SIZE} ' if ENV._EWMS_PILOT_DOCKER_SHM_SIZE else ''}"
-                    # provided options
-                    f"{mount_bindings} "
+                    # bind mounts
+                    f"{" ".join(
+                        f"--mount type=bind,"
+                        f"source={shlex.quote(str(m.on_pilot))},"
+                        f"target={shlex.quote(str(m.in_task_container))}"
+                        f"{', readonly' if m.is_readonly else ''}" 
+                        for m in bind_mounts
+                    )} "
                     # env vars
                     f"{" ".join(
                         f"--env {self._validate_env_var_name(n)}={shlex.quote(str(self._validate_env_var_value(v)))}"
@@ -299,8 +310,14 @@ class ContainerRunner:
                     # always add these flags
                     f"--containall "  # don't auto-mount anything
                     f"--no-eval "  # don't interpret CL args
-                    # provided options
-                    f"{mount_bindings} "
+                    # bind mounts
+                    f"{" ".join(
+                        f"--mount type=bind,"
+                        f"source={shlex.quote(str(m.on_pilot))},"
+                        f"target={shlex.quote(str(m.in_task_container))}"
+                        f"{', readonly' if m.is_readonly else ''}" 
+                        for m in bind_mounts
+                    )} "
                     # env vars
                     f"{" ".join(
                         f"--env {self._validate_env_var_name(n)}={shlex.quote(str(self._validate_env_var_value(v)))}"
