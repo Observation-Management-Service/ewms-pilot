@@ -32,6 +32,8 @@ async def process_msg_task(
 
     # staging-dir logic -- includes stderr/stdout files (see below)
     dirs = DirectoryCatalog(str(in_msg.uuid), include_task_io_directory=True)
+    if dirs.task_io is None:  # this is just for mypy :)
+        raise RuntimeError("DirectoryCatalog did not assign task_io dir")
 
     # create in/out file *names* -- piggy-back the uuid since it's unique and trackable
     infile_name = f"infile-{in_msg.uuid}.{infile_ext}"
