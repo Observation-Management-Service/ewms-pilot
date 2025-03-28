@@ -4,6 +4,7 @@ import asyncio
 import dataclasses as dc
 import json
 import logging
+import re
 import shlex
 import shutil
 import subprocess
@@ -16,8 +17,17 @@ from ..config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
 
 LOGGER = logging.getLogger(__name__)
 
+ENV_VAR_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
 
 # --------------------------------------------------------------------------------------
+
+
+class ContainerSetupError(Exception):
+    """Exception raised when a container pre-run actions fail."""
+
+    def __init__(self, message: str, image: str):
+        super().__init__(f"{message} for {image}")
 
 
 class ContainerRunError(Exception):
@@ -31,13 +41,6 @@ class ContainerRunError(Exception):
     ):
         exit_str = f" (exit code {exit_code})" if exit_code is not None else ""
         super().__init__(f"{alias} failed{exit_str}: {error_string}")
-
-
-class ContainerSetupError(Exception):
-    """Exception raised when a container pre-run actions fail."""
-
-    def __init__(self, message: str, image: str):
-        super().__init__(f"{message} for {image}")
 
 
 # --------------------------------------------------------------------------------------
@@ -128,6 +131,7 @@ class ContainerRunner:
 
         if env := json.loads(env_json):
             LOGGER.debug(f"Validating env: {env}")
+            # NOTE: there is additional validation before execution--the more validation, the better
             if not isinstance(env, dict) and not all(
                 isinstance(k, str) and isinstance(v, (str | int))
                 for k, v in env.items()
@@ -225,6 +229,22 @@ class ContainerRunner:
                     f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
                 )
 
+    def _validate_env_var_name(self, name: str) -> str:
+        if not ENV_VAR_NAME_RE.match(name):
+            raise ContainerSetupError(
+                f"Invalid environment variable name: {name}",
+                self.image,
+            )
+        return name
+
+    def _validate_env_var_value(self, value: str) -> str:
+        if not isinstance(value, (str | int)):
+            raise ContainerSetupError(
+                f"Invalid environment variable value (not str or int): {value}",
+                self.image,
+            )
+        return value
+
     async def run_container(
         self,
         logging_alias: str,  # what to call this container for logging and error-reporting
@@ -265,8 +285,8 @@ class ContainerRunner:
                     f"{mount_bindings} "
                     # env vars
                     f"{" ".join(
-                        f"--env {var}={shlex.quote(str(val))}"
-                        for var, val in (self.env | env_as_dict).items()
+                        f"--env {self._validate_env_var_name(n)}={shlex.quote(str(self._validate_env_var_value(v)))}"
+                        for n, v in (self.env | env_as_dict).items()
                         # in case of key conflicts, choose the vals specific to this run
                     )}"
                     # image + args
@@ -283,8 +303,8 @@ class ContainerRunner:
                     f"{mount_bindings} "
                     # env vars
                     f"{" ".join(
-                        f"--env {var}={shlex.quote(str(val))}"
-                        for var, val in (self.env | env_as_dict).items()
+                        f"--env {self._validate_env_var_name(n)}={shlex.quote(str(self._validate_env_var_value(v)))}"
+                        for n, v in (self.env | env_as_dict).items()
                         # in case of key conflicts, choose the vals specific to this run
                     )}"
                     # image + args
