@@ -123,7 +123,7 @@ class DirectoryCatalog:
 
         # for message-based task i/o
         if include_task_io_directory:
-            self.task_io = ContainerBindMount(
+            self.task_io: ContainerBindMount | None = ContainerBindMount(
                 _mkdir(self._namebased_dir / "task-io", exist_ok=False),
                 Path(f"/{PILOT_DATA_DIR.name}/task-io"),
             )
@@ -141,7 +141,7 @@ class DirectoryCatalog:
 
         if include_external_directories:
             bind_mounts.extend(
-                ContainerBindMount(d, d, is_readonly=True)
+                ContainerBindMount(Path(d), Path(d), is_readonly=True)
                 for d in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
                 if d  # skip any blanks
             )
