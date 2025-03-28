@@ -7,10 +7,10 @@ version = "0.27.0"
 dependencies = ["htchirp", "htcondor", "oms-mqclient", "numpy"]
 name = "ewms-pilot"
 keywords = ["pilot", "Observation Management Service", "Event Workflow Management Service", "EWMS", "message passing", "MQ", "task"]
-requires-python = ">=3.12, <3.14"
+requires-python = ">=3.10, <3.13"
 description = "EWMS's Pilot: A Job Pilot for Processing EWMS Events/Tasks"
 readme = "README.md"
-classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3.12", "Programming Language :: Python :: 3.13"]
+classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3.10", "Programming Language :: Python :: 3.11", "Programming Language :: Python :: 3.12"]
 
 [[project.authors]]
 name = "WIPAC Developers"
