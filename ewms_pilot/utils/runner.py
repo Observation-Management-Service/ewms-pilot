@@ -33,6 +33,13 @@ class ContainerRunError(Exception):
         super().__init__(f"{alias} failed{exit_str}: {error_string}")
 
 
+class ContainerSetupError(Exception):
+    """Exception raised when a container pre-run actions fail."""
+
+    def __init__(self, message: str, image: str):
+        super().__init__(f"{message} for {image}")
+
+
 # --------------------------------------------------------------------------------------
 
 
@@ -103,13 +110,6 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
                 stream.buffer.write(chunk)
     except Exception as e:
         LOGGER.error(f"Error dumping container output ({stream.name}): {e}")
-
-
-class ContainerSetupError(Exception):
-    """Exception raised when a container pre-run actions fail."""
-
-    def __init__(self, message: str, image: str):
-        super().__init__(f"{message} for {image}")
 
 
 class ContainerRunner:
@@ -253,13 +253,6 @@ class ContainerRunner:
             for token in ["{{DATA_HUB}}", "{{DATAHUB}}"]:
                 inst_args = inst_args.replace(token, datahub_arg_replacement)
 
-        # assemble env strings
-        env_options = " ".join(
-            f"--env {var}={shlex.quote(str(val))}"
-            for var, val in (self.env | env_as_dict).items()
-            # in case of key conflicts, choose the vals specific to this run
-        )
-
         # assemble command
         # NOTE: don't add to mount_bindings (WYSIWYG); also avoid intermediate structures
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
@@ -270,7 +263,12 @@ class ContainerRunner:
                     f"{f'--shm-size={ENV._EWMS_PILOT_DOCKER_SHM_SIZE} ' if ENV._EWMS_PILOT_DOCKER_SHM_SIZE else ''}"
                     # provided options
                     f"{mount_bindings} "
-                    f"{env_options} "
+                    # env vars
+                    f"{" ".join(
+                        f"--env {var}={shlex.quote(str(val))}"
+                        for var, val in (self.env | env_as_dict).items()
+                        # in case of key conflicts, choose the vals specific to this run
+                    )}"
                     # image + args
                     f"{shlex.quote(self.image)} "
                     f"{' '.join(shlex.quote(a) for a in shlex.split(inst_args))}"
@@ -283,7 +281,12 @@ class ContainerRunner:
                     f"--no-eval "  # don't interpret CL args
                     # provided options
                     f"{mount_bindings} "
-                    f"{env_options} "
+                    # env vars
+                    f"{" ".join(
+                        f"--env {var}={shlex.quote(str(val))}"
+                        for var, val in (self.env | env_as_dict).items()
+                        # in case of key conflicts, choose the vals specific to this run
+                    )}"
                     # image + args
                     f"{shlex.quote(self.image)} "
                     f"{' '.join(shlex.quote(a) for a in shlex.split(inst_args))}"
