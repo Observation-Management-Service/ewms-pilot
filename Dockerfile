@@ -1,4 +1,4 @@
-ARG PYTHON=3.12
+ARG PYTHON=3.13
 
 FROM python:${PYTHON}
 
