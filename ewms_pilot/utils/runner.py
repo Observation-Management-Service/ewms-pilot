@@ -289,7 +289,7 @@ class ContainerRunner:
                     f"cd {ENV._EWMS_PILOT_APPTAINER_BUILD_WORKDIR} && "
                     f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}build "
                     f"--fix-perms "
-                    f"--sandbox {dir_image} "
+                    f"--sandbox {shlex.quote(dir_image)} "
                     f"{shlex.quote(image)}"
                 )
                 LOGGER.info(
