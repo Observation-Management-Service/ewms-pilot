@@ -83,6 +83,7 @@ jobs:
         uses: WIPACrepo/wipac-dev-py-setup-action@v4.1
         with:
           python_min: "3.10"
+          python_max: "3.12"
           keywords: pilot "Observation Management Service" "Event Workflow Management Service" EWMS "message passing" MQ task
           pypi_name: ewms-pilot
           author: WIPAC Developers
