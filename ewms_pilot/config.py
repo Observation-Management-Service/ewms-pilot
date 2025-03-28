@@ -176,3 +176,43 @@ class InTaskContainerEnvVarNames(enum.Enum):
     EWMS_TASK_DATA_HUB_DIR = enum.auto()
     EWMS_TASK_INFILE = enum.auto()
     EWMS_TASK_OUTFILE = enum.auto()
+
+
+# --------------------------------------------------------------------------------------
+
+
+# Paths in the container where writable mounts must be disallowed
+BIND_MOUNT_IN_CONTAINER_READONLY_DIRS = [
+    Path("/etc"),
+    Path("/usr"),
+    Path("/lib"),
+    Path("/lib64"),
+    Path("/bin"),
+    Path("/sbin"),
+    Path("/root"),
+    Path("/var"),
+    Path("/proc"),
+    Path("/dev"),
+    Path("/sys"),
+]
+
+# Host paths that should never be mounted at all (even read-only)
+BIND_MOUNT_ON_PILOT_FORBIDDEN_DIRS = [
+    Path("/proc"),
+    Path("/dev"),
+    Path("/sys"),
+    Path("/boot"),
+    Path("/run"),
+]
+
+# Host paths that may be mounted read-only only (never writable)
+BIND_MOUNT_ON_PILOT_READONLY_DIRS = [
+    Path("/etc"),
+    Path("/usr"),
+    Path("/lib"),
+    Path("/lib64"),
+    Path("/bin"),
+    Path("/sbin"),
+    Path("/root"),
+    Path("/var"),
+]

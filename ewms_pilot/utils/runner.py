@@ -13,7 +13,14 @@ from pathlib import Path
 from typing import TextIO
 
 from .utils import LogParser
-from ..config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
+from ..config import (
+    BIND_MOUNT_IN_CONTAINER_READONLY_DIRS,
+    BIND_MOUNT_ON_PILOT_FORBIDDEN_DIRS,
+    BIND_MOUNT_ON_PILOT_READONLY_DIRS,
+    ENV,
+    PILOT_DATA_DIR,
+    PILOT_DATA_HUB_DIR_NAME,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -44,28 +51,57 @@ class ContainerRunError(Exception):
         super().__init__(f"{alias} failed{exit_str}: {error_string}")
 
 
+class InvalidBindMountError(Exception):
+    """Raised when a bind mount is invalid."""
+
+
 # --------------------------------------------------------------------------------------
+
+
+@dc.dataclass
+class ContainerBindMount:
+    """A validated bind mount from host (on_pilot) to container (in_task_container)."""
+
+    on_pilot: Path
+    in_task_container: Path
+    is_readonly: bool = False
+
+    def __post_init__(self):
+        for fpath in (self.on_pilot, self.in_task_container):
+            if not fpath.is_absolute():
+                raise InvalidBindMountError(
+                    f"Bind mount path must be absolute: {fpath}"
+                )
+
+        if not self.on_pilot.is_dir():
+            raise InvalidBindMountError(
+                f"Bind mount does not exist on pilot: {self.on_pilot}"
+            )
+
+        # Disallow all access to forbidden host paths
+        for forbidden in BIND_MOUNT_ON_PILOT_FORBIDDEN_DIRS:
+            if self.on_pilot.resolve(strict=True).is_relative_to(forbidden):
+                raise InvalidBindMountError(
+                    f"Refusing to bind mount forbidden host path: {self.on_pilot}"
+                )
+
+        if not self.is_readonly:
+            # Disallow writable mounts from read-only-only paths
+            for readonly_only in BIND_MOUNT_ON_PILOT_READONLY_DIRS:
+                if self.on_pilot.resolve(strict=True).is_relative_to(readonly_only):
+                    raise InvalidBindMountError(
+                        f"Refusing to bind mount writable host path: {self.on_pilot}"
+                    )
+            # Disallow writing into sensitive container paths
+            for sensitive in BIND_MOUNT_IN_CONTAINER_READONLY_DIRS:
+                if self.in_task_container.is_relative_to(sensitive):
+                    raise InvalidBindMountError(
+                        f"Refusing to mount writable directory to sensitive container path: {self.in_task_container}"
+                    )
 
 
 class DirectoryCatalog:
     """Handles the naming and mapping logic for a task's directories."""
-
-    @dc.dataclass
-    class ContainerBindMountDirPair:
-        """A pair of directory paths for use in mounting to a container."""
-
-        on_pilot: Path
-        in_task_container: Path
-        is_readonly: bool = False
-
-        def __post_init__(self):
-            if not self.on_pilot.is_dir():  # also 'False' if path doesn't exist
-                raise NotADirectoryError(
-                    f"Bind mount does not exist on host: {self.on_pilot}"
-                )
-            for fpath in [self.on_pilot, self.in_task_container]:
-                if not fpath.is_absolute():
-                    raise ValueError(f"Bind mount path must be absolute: {fpath}")
 
     def __init__(self, name: str, include_task_io_directory: bool):
         """All directories are auto-created (task_io dir cannot already exist)."""
@@ -77,7 +113,7 @@ class DirectoryCatalog:
             return _fpath
 
         # for inter-task/init storage: startup data, init container's output, etc.
-        self.pilot_data_hub = self.ContainerBindMountDirPair(
+        self.pilot_data_hub = ContainerBindMount(
             _mkdir(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME),
             Path(f"/{PILOT_DATA_DIR.name}/{PILOT_DATA_HUB_DIR_NAME}"),
         )
@@ -87,7 +123,7 @@ class DirectoryCatalog:
 
         # for message-based task i/o
         if include_task_io_directory:
-            self.task_io = self.ContainerBindMountDirPair(
+            self.task_io = ContainerBindMount(
                 _mkdir(self._namebased_dir / "task-io", exist_ok=False),
                 Path(f"/{PILOT_DATA_DIR.name}/task-io"),
             )
@@ -97,15 +133,15 @@ class DirectoryCatalog:
     def assemble_bind_mounts(
         self,
         include_external_directories: bool = False,
-    ) -> list[ContainerBindMountDirPair]:
+    ) -> list[ContainerBindMount]:
         """Get the docker bind mount string containing the wanted directories."""
-        bind_mounts: list[DirectoryCatalog.ContainerBindMountDirPair] = [
+        bind_mounts: list[ContainerBindMount] = [
             self.pilot_data_hub,
         ]
 
         if include_external_directories:
             bind_mounts.extend(
-                DirectoryCatalog.ContainerBindMountDirPair(d, d, is_readonly=True)
+                ContainerBindMount(d, d, is_readonly=True)
                 for d in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
                 if d  # skip any blanks
             )
@@ -277,7 +313,7 @@ class ContainerRunner:
         logging_alias: str,  # what to call this container for logging and error-reporting
         stdoutfile: Path,
         stderrfile: Path,
-        bind_mounts: list[DirectoryCatalog.ContainerBindMountDirPair],
+        bind_mounts: list[ContainerBindMount],
         env_as_dict: dict,
         infile_arg_replacement: str = "",
         outfile_arg_replacement: str = "",
