@@ -272,7 +272,8 @@ class ContainerRunner:
                     f"{mount_bindings} "
                     f"{env_options} "
                     # image + args
-                    f"{self.image} {inst_args}"
+                    f"{shlex.quote(self.image)} "
+                    f"{' '.join(shlex.quote(a) for a in shlex.split(inst_args))}"
                 )
             case "apptainer":
                 cmd = (
@@ -284,7 +285,8 @@ class ContainerRunner:
                     f"{mount_bindings} "
                     f"{env_options} "
                     # image + args
-                    f"{self.image} {inst_args}"
+                    f"{shlex.quote(self.image)} "
+                    f"{' '.join(shlex.quote(a) for a in shlex.split(inst_args))}"
                 )
             case other:
                 raise ValueError(
