@@ -311,7 +311,7 @@ class ContainerRunner:
             )
         return name
 
-    def _validate_env_var_value(self, value: str) -> str:
+    def _validate_env_var_value_to_str(self, value: str) -> str:
         if not isinstance(value, (str | int | Path)):
             raise ContainerSetupError(
                 f"Invalid environment variable value (not str or int): '{value}'",
@@ -371,7 +371,7 @@ class ContainerRunner:
                     f"{" ".join(
                         f"--env "
                         f"{self._validate_env_var_name(n)}="
-                        f"{shlex.quote(str(self._validate_env_var_value(v)))}"
+                        f"{shlex.quote(self._validate_env_var_value_to_str(v))}"
                         for n, v in sorted((self.env | env_as_dict).items())
                         # in case of key conflicts, choose the vals specific to this run
                     )}"
@@ -401,7 +401,7 @@ class ContainerRunner:
                     f"{" ".join(
                         f"--env "
                         f"{self._validate_env_var_name(n)}="
-                        f"{shlex.quote(str(self._validate_env_var_value(v)))}"
+                        f"{shlex.quote(self._validate_env_var_value_to_str(v))}"
                         for n, v in sorted((self.env | env_as_dict).items())
                         # in case of key conflicts, choose the vals specific to this run
                     )}"
