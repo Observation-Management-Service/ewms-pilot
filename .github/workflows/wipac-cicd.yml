@@ -85,7 +85,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-setup-action@keywords_comma
+        uses: WIPACrepo/wipac-dev-py-setup-action@v4.4
         with:
           python_min: "3.12"
           python_max: "3.12"
@@ -156,7 +156,7 @@ jobs:
           docker system prune --force  # save disk space
 
       - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-dependencies-action@main
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@v2.2
         with:
           use_directory: true
 
