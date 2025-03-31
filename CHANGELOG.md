@@ -2,6 +2,21 @@
 
 
 
+## v0.27.1 (2025-03-31)
+
+###  
+
+* Sanitize User-Supplied Inputs for Subprocess (#107)
+
+Add safety measures
+
+close #87
+
+---------
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`464b6b6`](https://github.com/Observation-Management-Service/ewms-pilot/commit/464b6b66efac7982a0b9cf8f2baddd7ed4d4850b))
+
+
 ## v0.27.0 (2025-03-07)
 
 ### [minor]
