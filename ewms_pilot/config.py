@@ -176,3 +176,53 @@ class InTaskContainerEnvVarNames(enum.Enum):
     EWMS_TASK_DATA_HUB_DIR = enum.auto()
     EWMS_TASK_INFILE = enum.auto()
     EWMS_TASK_OUTFILE = enum.auto()
+
+
+# --------------------------------------------------------------------------------------
+
+
+# Paths in the container where writable mounts must be disallowed
+BIND_MOUNT_IN_CONTAINER_READONLY_DIRS = [
+    # Core system configuration and binaries
+    Path("/etc"),  # Configuration files
+    Path("/usr"),  # User-installed programs and data
+    Path("/lib"),  # Shared libraries
+    Path("/lib64"),  # 64-bit shared libraries
+    Path("/bin"),  # Essential user binaries
+    Path("/sbin"),  # System binaries
+    # Sensitive user/system directories
+    Path("/root"),  # Root user's home directory
+    Path("/var"),  # Logs, caches, spool data
+    # Virtual and kernel interfaces
+    Path("/proc"),  # Kernel and process interface
+    Path("/dev"),  # Device files
+    Path("/sys"),  # Kernel sysfs interface
+]
+
+# Host paths that should never be mounted at all (even read-only)
+BIND_MOUNT_ON_PILOT_FORBIDDEN_DIRS = [
+    # Volatile and system-critical virtual filesystems
+    Path("/proc"),  # Kernel and process interface
+    Path("/dev"),  # Device files
+    Path("/sys"),  # Kernel sysfs interface
+    Path("/run"),  # Runtime state (e.g., PID files, sockets)
+    # Boot and system startup
+    Path("/boot"),  # Kernel, initramfs, bootloader
+]
+
+# Host paths that may be mounted read-only only (never writable)
+BIND_MOUNT_ON_PILOT_READONLY_DIRS = [
+    # Core system configuration and binaries
+    Path("/etc"),  # Configuration files
+    Path("/usr"),  # User-installed programs and data
+    Path("/lib"),  # Shared libraries
+    Path("/lib64"),  # 64-bit shared libraries
+    Path("/bin"),  # Essential user binaries
+    Path("/sbin"),  # System binaries
+    # Sensitive user/system directories
+    Path("/root"),  # Root user's home directory
+    Path("/var"),  # Logs, caches, spool data
+]
+
+
+# --------------------------------------------------------------------------------------

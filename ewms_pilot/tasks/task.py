@@ -31,8 +31,9 @@ async def process_msg_task(
     """Process the message's task in a subprocess using `cmd` & respond."""
 
     # staging-dir logic -- includes stderr/stdout files (see below)
-    dirs = DirectoryCatalog(str(in_msg.uuid))
-    dirs.task_io.on_pilot.mkdir(parents=True, exist_ok=False)
+    dirs = DirectoryCatalog(str(in_msg.uuid), include_task_io_directory=True)
+    if dirs.task_io is None:  # this is just for mypy :)
+        raise RuntimeError("DirectoryCatalog did not assign task_io dir")
 
     # create in/out file *names* -- piggy-back the uuid since it's unique and trackable
     infile_name = f"infile-{in_msg.uuid}.{infile_ext}"
@@ -46,7 +47,7 @@ async def process_msg_task(
         "task",
         dirs.outputs_on_pilot / "stderrfile",
         dirs.outputs_on_pilot / "stdoutfile",
-        dirs.assemble_bind_mounts(external_directories=True, task_io=True),
+        dirs.assemble_bind_mounts(include_external_directories=True),
         {
             InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name: dirs.pilot_data_hub.in_task_container,
             InTaskContainerEnvVarNames.EWMS_TASK_INFILE.name: in_container_infile,

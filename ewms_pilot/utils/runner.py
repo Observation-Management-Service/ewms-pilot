@@ -4,6 +4,7 @@ import asyncio
 import dataclasses as dc
 import json
 import logging
+import re
 import shlex
 import shutil
 import subprocess
@@ -12,12 +13,29 @@ from pathlib import Path
 from typing import TextIO
 
 from .utils import LogParser
-from ..config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
+from ..config import (
+    BIND_MOUNT_IN_CONTAINER_READONLY_DIRS,
+    BIND_MOUNT_ON_PILOT_FORBIDDEN_DIRS,
+    BIND_MOUNT_ON_PILOT_READONLY_DIRS,
+    ENV,
+    PILOT_DATA_DIR,
+    PILOT_DATA_HUB_DIR_NAME,
+)
 
 LOGGER = logging.getLogger(__name__)
 
+ENV_VAR_NAME_RE = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
 
 # --------------------------------------------------------------------------------------
+
+
+class ContainerSetupError(Exception):
+    """Exception raised when a container pre-run actions fail."""
+
+    def __init__(self, message: str, useful_identifier: str):
+        """`useful_identifier` can be image name, task id, etc."""
+        super().__init__(f"{message} for {useful_identifier}")
 
 
 class ContainerRunError(Exception):
@@ -33,57 +51,112 @@ class ContainerRunError(Exception):
         super().__init__(f"{alias} failed{exit_str}: {error_string}")
 
 
+class InvalidBindMountError(Exception):
+    """Raised when a bind mount is invalid."""
+
+
 # --------------------------------------------------------------------------------------
+
+
+@dc.dataclass
+class ContainerBindMount:
+    """A validated bind mount from host (on_pilot) to container (in_task_container)."""
+
+    on_pilot: Path
+    in_task_container: Path
+    is_readonly: bool = False
+
+    def __post_init__(self):
+        for fpath in (self.on_pilot, self.in_task_container):
+            if not fpath.is_absolute():
+                raise InvalidBindMountError(
+                    f"Bind mount path must be absolute: {fpath}"
+                )
+
+        if not self.on_pilot.is_dir():
+            raise InvalidBindMountError(
+                f"Bind mount does not exist on pilot: {self.on_pilot}"
+            )
+
+        # Disallow all access to forbidden host paths
+        for forbidden in BIND_MOUNT_ON_PILOT_FORBIDDEN_DIRS:
+            if self.on_pilot.resolve(strict=True).is_relative_to(forbidden):
+                raise InvalidBindMountError(
+                    f"Refusing to bind mount forbidden host path: {self.on_pilot}"
+                )
+
+        if not self.is_readonly:
+            # Disallow writable mounts from read-only-only paths
+            for readonly_only in BIND_MOUNT_ON_PILOT_READONLY_DIRS:
+                if self.on_pilot.resolve(strict=True).is_relative_to(readonly_only):
+                    raise InvalidBindMountError(
+                        f"Refusing to bind mount writable host path: {self.on_pilot}"
+                    )
+            # Disallow writing into sensitive container paths
+            for sensitive in BIND_MOUNT_IN_CONTAINER_READONLY_DIRS:
+                if self.in_task_container.is_relative_to(sensitive):
+                    raise InvalidBindMountError(
+                        f"Refusing to mount writable directory to sensitive container path: {self.in_task_container}"
+                    )
 
 
 class DirectoryCatalog:
     """Handles the naming and mapping logic for a task's directories."""
 
-    @dc.dataclass
-    class _ContainerBindMountDirPair:
-        on_pilot: Path
-        in_task_container: Path
+    def __init__(self, name: str, include_task_io_directory: bool):
+        """All directories are auto-created (task_io dir cannot already exist)."""
+        self.name = name
+        self._namebased_dir = PILOT_DATA_DIR / self.name
 
-    def __init__(self, name: str):
-        """All directories except the task-io dir is pre-created (mkdir)."""
-        self._namebased_dir = PILOT_DATA_DIR / name
+        def _mkdir(_fpath: Path, exist_ok=True) -> Path:
+            _fpath.mkdir(parents=True, exist_ok=exist_ok)
+            return _fpath
 
         # for inter-task/init storage: startup data, init container's output, etc.
-        self.pilot_data_hub = self._ContainerBindMountDirPair(
-            PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME,
+        self.pilot_data_hub = ContainerBindMount(
+            _mkdir(PILOT_DATA_DIR / PILOT_DATA_HUB_DIR_NAME),
             Path(f"/{PILOT_DATA_DIR.name}/{PILOT_DATA_HUB_DIR_NAME}"),
         )
-        self.pilot_data_hub.on_pilot.mkdir(parents=True, exist_ok=True)
 
         # for persisting stderr and stdout
-        self.outputs_on_pilot = self._namebased_dir / "outputs"
-        self.outputs_on_pilot.mkdir(parents=True, exist_ok=False)
+        self.outputs_on_pilot = _mkdir(self._namebased_dir / "outputs")
 
         # for message-based task i/o
-        self.task_io = self._ContainerBindMountDirPair(
-            self._namebased_dir / "task-io",
-            Path(f"/{PILOT_DATA_DIR.name}/task-io"),
-        )
+        if include_task_io_directory:
+            self.task_io: ContainerBindMount | None = ContainerBindMount(
+                _mkdir(self._namebased_dir / "task-io", exist_ok=False),
+                Path(f"/{PILOT_DATA_DIR.name}/task-io"),
+            )
+        else:
+            self.task_io = None
 
     def assemble_bind_mounts(
         self,
-        external_directories: bool = False,
-        task_io: bool = False,
-    ) -> str:
+        include_external_directories: bool = False,
+    ) -> list[ContainerBindMount]:
         """Get the docker bind mount string containing the wanted directories."""
-        string = f"--mount type=bind,source={self.pilot_data_hub.on_pilot},target={self.pilot_data_hub.in_task_container} "
+        bind_mounts: list[ContainerBindMount] = [
+            self.pilot_data_hub,
+        ]
 
-        if external_directories:
-            string += "".join(
-                f"--mount type=bind,source={dpath},target={dpath},readonly "
-                for dpath in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
-                if dpath  # skip any blanks
+        if include_external_directories:
+            bind_mounts.extend(
+                ContainerBindMount(Path(d), Path(d), is_readonly=True)
+                for d in ENV.EWMS_PILOT_EXTERNAL_DIRECTORIES.split(",")
+                if d  # skip any blanks
             )
 
-        if task_io:
-            string += f"--mount type=bind,source={self.task_io.on_pilot},target={self.task_io.in_task_container} "
+        if self.task_io:
+            bind_mounts.append(self.task_io)
 
-        return string
+        targets = [m.in_task_container for m in bind_mounts]
+        if len(set(targets)) != len(targets):
+            raise ContainerSetupError(
+                "Duplicate container mount targets detected",
+                self.name,
+            )
+
+        return bind_mounts
 
     def rm_unique_dirs(self) -> None:
         """Remove all directories (on host) created for use only by this container."""
@@ -105,13 +178,6 @@ def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
         LOGGER.error(f"Error dumping container output ({stream.name}): {e}")
 
 
-class ContainerSetupError(Exception):
-    """Exception raised when a container pre-run actions fail."""
-
-    def __init__(self, message: str, image: str):
-        super().__init__(f"{message} for {image}")
-
-
 class ContainerRunner:
     """A utility class to run a container."""
 
@@ -128,6 +194,7 @@ class ContainerRunner:
 
         if env := json.loads(env_json):
             LOGGER.debug(f"Validating env: {env}")
+            # NOTE: there is additional validation before execution--the more validation, the better
             if not isinstance(env, dict) and not all(
                 isinstance(k, str) and isinstance(v, (str | int))
                 for k, v in env.items()
@@ -175,7 +242,14 @@ class ContainerRunner:
                         f"skipping 'docker pull {image}' (env var CI=True)"
                     )
                     return image
-                _run(f"docker pull {image}")
+                _run(
+                    #
+                    # NOTE: validate & sanitize values HERE--this is the point of no return!
+                    #       (making calls here makes it very clear what is checked)
+                    #
+                    f"docker pull "
+                    f"{shlex.quote(image)}",
+                )
                 return image
 
             # NOTE: We are only are able to run unpacked directory format on condor.
@@ -207,12 +281,18 @@ class ContainerRunner:
                 )
                 # build (convert)
                 _run(
+                    #
+                    # NOTE: validate & sanitize values HERE--this is the point of no return!
+                    #       (making calls here makes it very clear what is checked)
+                    #
                     # cd b/c want to *build* in a directory w/ enough space (intermediate files)
                     f"cd {ENV._EWMS_PILOT_APPTAINER_BUILD_WORKDIR} && "
-                    f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}build "
+                    f"apptainer "
+                    f"{'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}"
+                    f"build "
                     f"--fix-perms "
-                    f"--sandbox {dir_image} "
-                    f"{image}"
+                    f"--sandbox {shlex.quote(dir_image)} "
+                    f"{shlex.quote(image)}"
                 )
                 LOGGER.info(
                     f"Image has been converted to Apptainer directory format: {dir_image}"
@@ -225,12 +305,28 @@ class ContainerRunner:
                     f"'_EWMS_PILOT_CONTAINER_PLATFORM' is not a supported value: {other}"
                 )
 
+    def _validate_env_var_name(self, name: str) -> str:
+        if not ENV_VAR_NAME_RE.match(name):
+            raise ContainerSetupError(
+                f"Invalid environment variable name: {name}",
+                self.image,
+            )
+        return name
+
+    def _validate_env_var_value_to_str(self, value: str) -> str:
+        if not isinstance(value, (str | int | Path)):
+            raise ContainerSetupError(
+                f"Invalid environment variable value (not str or int): '{value}'",
+                self.image,
+            )
+        return str(value)
+
     async def run_container(
         self,
         logging_alias: str,  # what to call this container for logging and error-reporting
         stdoutfile: Path,
         stderrfile: Path,
-        mount_bindings: str,
+        bind_mounts: list[ContainerBindMount],
         env_as_dict: dict,
         infile_arg_replacement: str = "",
         outfile_arg_replacement: str = "",
@@ -253,38 +349,69 @@ class ContainerRunner:
             for token in ["{{DATA_HUB}}", "{{DATAHUB}}"]:
                 inst_args = inst_args.replace(token, datahub_arg_replacement)
 
-        # assemble env strings
-        env_options = " ".join(
-            f"--env {var}={shlex.quote(str(val))}"
-            for var, val in (self.env | env_as_dict).items()
-            # in case of key conflicts, choose the vals specific to this run
-        )
-
         # assemble command
-        # NOTE: don't add to mount_bindings (WYSIWYG); also avoid intermediate structures
+        # NOTE: don't add to bind_mounts (WYSIWYG); also avoid intermediate structures
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
             case "docker":
                 cmd = (
+                    #
+                    # NOTE: validate & sanitize values HERE--this is the point of no return!
+                    #       (making calls here makes it very clear what is checked)
+                    #
                     f"docker run --rm "
                     # optional
                     f"{f'--shm-size={ENV._EWMS_PILOT_DOCKER_SHM_SIZE} ' if ENV._EWMS_PILOT_DOCKER_SHM_SIZE else ''}"
-                    # provided options
-                    f"{mount_bindings} "
-                    f"{env_options} "
+                    # bind mounts
+                    f"{" ".join(
+                        f"--mount type=bind,"
+                        f"source={shlex.quote(str(m.on_pilot))},"
+                        f"target={shlex.quote(str(m.in_task_container))}"
+                        f"{',readonly' if m.is_readonly else ''}"
+                        for m in bind_mounts
+                    )} "  # <- space
+                    # env vars
+                    f"{" ".join(
+                        f"--env "
+                        f"{self._validate_env_var_name(n)}="
+                        f"{shlex.quote(self._validate_env_var_value_to_str(v))}"
+                        for n, v in sorted((self.env | env_as_dict).items())
+                        # in case of key conflicts, choose the vals specific to this run
+                    )} "  # <- space
                     # image + args
-                    f"{self.image} {inst_args}"
+                    f"{shlex.quote(self.image)} "
+                    f"{' '.join(shlex.quote(a) for a in shlex.split(inst_args))}"
                 )
             case "apptainer":
                 cmd = (
-                    f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}run "
+                    #
+                    # NOTE: validate & sanitize values HERE--this is the point of no return!
+                    #       (making calls here makes it very clear what is checked)
+                    #
+                    f"apptainer "
+                    f"{'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}"
+                    f"run "
                     # always add these flags
                     f"--containall "  # don't auto-mount anything
                     f"--no-eval "  # don't interpret CL args
-                    # provided options
-                    f"{mount_bindings} "
-                    f"{env_options} "
+                    # bind mounts
+                    f"{" ".join(
+                        f"--mount type=bind,"
+                        f"source={shlex.quote(str(m.on_pilot))},"
+                        f"target={shlex.quote(str(m.in_task_container))}"
+                        f"{',readonly' if m.is_readonly else ''}"
+                        for m in bind_mounts
+                    )} "  # <- space
+                    # env vars
+                    f"{" ".join(
+                        f"--env "
+                        f"{self._validate_env_var_name(n)}="
+                        f"{shlex.quote(self._validate_env_var_value_to_str(v))}"
+                        for n, v in sorted((self.env | env_as_dict).items())
+                        # in case of key conflicts, choose the vals specific to this run
+                    )} "  # <- space
                     # image + args
-                    f"{self.image} {inst_args}"
+                    f"{shlex.quote(self.image)} "
+                    f"{' '.join(shlex.quote(a) for a in shlex.split(inst_args))}"
                 )
             case other:
                 raise ValueError(

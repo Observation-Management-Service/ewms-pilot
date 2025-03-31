@@ -37,11 +37,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.4
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.5
 
 
   #############################################################################
-  # PACKAGING & LINTERS
+  # LINTERS
   #############################################################################
 
   flake8:
@@ -53,10 +53,10 @@ jobs:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-flake8-action@v1.1
+      - uses: WIPACrepo/wipac-dev-flake8-action@v1.2
 
   mypy:
     needs: [ py-versions ]
@@ -67,10 +67,15 @@ jobs:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
+
+
+  #############################################################################
+  # PACKAGING
+  #############################################################################
 
   py-setup:
     runs-on: ubuntu-latest
@@ -80,11 +85,11 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
       - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-setup-action@v4.1
+        uses: WIPACrepo/wipac-dev-py-setup-action@v4.4
         with:
-          python_min: "3.10"
+          python_min: "3.12"
           python_max: "3.12"
-          keywords: pilot "Observation Management Service" "Event Workflow Management Service" EWMS "message passing" MQ task
+          keywords_comma: "pilot, Observation Management Service, Event Workflow Management Service, EWMS, message passing, MQ task"
           pypi_name: ewms-pilot
           author: WIPAC Developers
           author_email: developers@icecube.wisc.edu
@@ -151,13 +156,13 @@ jobs:
           docker system prune --force  # save disk space
 
       - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-dependencies-action@v2.0
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@v2.2
         with:
           use_directory: true
 
 
   ############################################################################
-  # tests
+  # TESTS
   #############################################################################
 
   test-build-docker:
@@ -225,7 +230,7 @@ jobs:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
       - name: pytest
@@ -246,7 +251,7 @@ jobs:
         broker_client: [ pulsar, rabbitmq, nats ]
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
 

@@ -20,14 +20,13 @@ async def run_init_container(
     """Run the init container with the given arguments."""
     await housekeeper.running_init_container()
 
-    dirs = DirectoryCatalog(f"init-{uuid.uuid4().hex}")
-
+    dirs = DirectoryCatalog(f"init-{uuid.uuid4().hex}", include_task_io_directory=False)
     task = asyncio.create_task(
         init_runner.run_container(
             "init-container",
             dirs.outputs_on_pilot / "stdoutfile",
             dirs.outputs_on_pilot / "stderrfile",
-            dirs.assemble_bind_mounts(external_directories=True),
+            dirs.assemble_bind_mounts(include_external_directories=True),
             {
                 InTaskContainerEnvVarNames.EWMS_TASK_DATA_HUB_DIR.name: dirs.pilot_data_hub.in_task_container,
             },
