@@ -89,7 +89,7 @@ jobs:
         with:
           python_min: "3.12"
           python_max: "3.12"
-          keywords: "pilot, Observation Management Service, Event Workflow Management Service, EWMS, message passing, MQ task"
+          keywords_comma: "pilot, Observation Management Service, Event Workflow Management Service, EWMS, message passing, MQ task"
           pypi_name: ewms-pilot
           author: WIPAC Developers
           author_email: developers@icecube.wisc.edu
