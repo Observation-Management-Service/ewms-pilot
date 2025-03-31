@@ -156,7 +156,7 @@ jobs:
           docker system prune --force  # save disk space
 
       - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-dependencies-action@v2.2
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@main
         with:
           use_directory: true
 
