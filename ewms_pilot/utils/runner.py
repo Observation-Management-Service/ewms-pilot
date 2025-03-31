@@ -366,7 +366,7 @@ class ContainerRunner:
                         f"target={shlex.quote(str(m.in_task_container))}"
                         f"{',readonly' if m.is_readonly else ''}"
                         for m in bind_mounts
-                    )} "
+                    )} "  # <- space
                     # env vars
                     f"{" ".join(
                         f"--env "
@@ -374,7 +374,7 @@ class ContainerRunner:
                         f"{shlex.quote(self._validate_env_var_value_to_str(v))}"
                         for n, v in sorted((self.env | env_as_dict).items())
                         # in case of key conflicts, choose the vals specific to this run
-                    )}"
+                    )} "  # <- space
                     # image + args
                     f"{shlex.quote(self.image)} "
                     f"{' '.join(shlex.quote(a) for a in shlex.split(inst_args))}"
@@ -396,7 +396,7 @@ class ContainerRunner:
                         f"target={shlex.quote(str(m.in_task_container))}"
                         f"{',readonly' if m.is_readonly else ''}"
                         for m in bind_mounts
-                    )} "
+                    )} "  # <- space
                     # env vars
                     f"{" ".join(
                         f"--env "
@@ -404,7 +404,7 @@ class ContainerRunner:
                         f"{shlex.quote(self._validate_env_var_value_to_str(v))}"
                         for n, v in sorted((self.env | env_as_dict).items())
                         # in case of key conflicts, choose the vals specific to this run
-                    )}"
+                    )} "  # <- space
                     # image + args
                     f"{shlex.quote(self.image)} "
                     f"{' '.join(shlex.quote(a) for a in shlex.split(inst_args))}"
