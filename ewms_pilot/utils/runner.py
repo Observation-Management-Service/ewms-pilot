@@ -312,12 +312,12 @@ class ContainerRunner:
         return name
 
     def _validate_env_var_value(self, value: str) -> str:
-        if not isinstance(value, (str | int)):
+        if not isinstance(value, (str | int | Path)):
             raise ContainerSetupError(
-                f"Invalid environment variable value (not str or int): {value}",
+                f"Invalid environment variable value (not str or int): '{value}'",
                 self.image,
             )
-        return value
+        return str(value)
 
     async def run_container(
         self,
