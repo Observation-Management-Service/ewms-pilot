@@ -287,7 +287,9 @@ class ContainerRunner:
                     #
                     # cd b/c want to *build* in a directory w/ enough space (intermediate files)
                     f"cd {ENV._EWMS_PILOT_APPTAINER_BUILD_WORKDIR} && "
-                    f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}build "
+                    f"apptainer "
+                    f"{'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}"
+                    f"build "
                     f"--fix-perms "
                     f"--sandbox {shlex.quote(dir_image)} "
                     f"{shlex.quote(image)}"
@@ -385,7 +387,9 @@ class ContainerRunner:
                     # NOTE: validate & sanitize values HERE--this is the point of no return!
                     #       (making calls here makes it very clear what is checked)
                     #
-                    f"apptainer {'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}run "
+                    f"apptainer "
+                    f"{'--debug ' if ENV.EWMS_PILOT_CONTAINER_DEBUG else ''}"
+                    f"run "
                     # always add these flags
                     f"--containall "  # don't auto-mount anything
                     f"--no-eval "  # don't interpret CL args
