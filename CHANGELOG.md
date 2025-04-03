@@ -2,6 +2,23 @@
 
 
 
+## v1.0.0 (2025-04-03)
+
+###  
+
+* &lt;bot&gt; update dependencies*.log files(s) ([`e3f0ecf`](https://github.com/Observation-Management-Service/ewms-pilot/commit/e3f0ecff1868174e0b02e170a52b39b2c94bb339))
+
+* &lt;bot&gt; update pyproject.toml ([`8396583`](https://github.com/Observation-Management-Service/ewms-pilot/commit/8396583274816147fc9a7e946fcd7d15e89d62ed))
+
+* &lt;bot&gt; update pyproject.toml ([`01c1d3e`](https://github.com/Observation-Management-Service/ewms-pilot/commit/01c1d3e4d3c5ca0f73fe7321855da49a1d292140))
+
+### [major]
+
+* Version 1 [major] (#108)
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`04e753a`](https://github.com/Observation-Management-Service/ewms-pilot/commit/04e753a687d981427b50921aa89ac7b09a0fecda))
+
+
 ## v0.27.1 (2025-03-31)
 
 ###  
