@@ -2,6 +2,13 @@
 
 
 
+## v1.0.1 (2025-04-03)
+
+###  
+
+* &lt;bot&gt; update pyproject.toml ([`ca57a1e`](https://github.com/Observation-Management-Service/ewms-pilot/commit/ca57a1eb759a829434a998c9cea0197c095dd559))
+
+
 ## v1.0.0 (2025-04-03)
 
 ###  
