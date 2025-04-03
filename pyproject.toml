@@ -10,7 +10,7 @@ keywords = ["pilot", "Observation Management Service", "Event Workflow Managemen
 requires-python = ">=3.12, <3.13"
 description = "EWMS's Pilot: A Job Pilot for Processing EWMS Events/Tasks"
 readme = "README.md"
-classifiers = ["Development Status :: 4 - Beta", "Programming Language :: Python :: 3.12"]
+classifiers = ["Development Status :: 5 - Production/Stable", "Programming Language :: Python :: 3.12"]
 
 [[project.authors]]
 name = "WIPAC Developers"
