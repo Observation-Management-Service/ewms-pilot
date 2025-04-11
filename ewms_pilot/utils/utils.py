@@ -97,6 +97,10 @@ def dump_tallies(task_maps: list[TaskMapping], dump_n_pending: bool = True) -> N
         LOGGER.error(all_task_errors_string(_errors))
 
 
+class NoLogsInFileException(Exception):
+    """Raised when there are no logs in a log file."""
+
+
 class LogParser:
     """A parser for stderr logfiles."""
 
@@ -108,11 +112,17 @@ class LogParser:
     def __init__(self, log_fpath: Path):
         self.log_fpath = log_fpath
 
-    def _get_last_non_apptainer_logline_index(self) -> int | None:
+    def _get_nonblank_lines(self) -> list[str]:
         with open(self.log_fpath, "r", encoding="utf-8") as file:
             # no new-lines, no blank lines
             lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
+        if not lines:
+            LOGGER.info("No lines in log file.")
+            raise NoLogsInFileException()
+        return lines
 
+    def _get_last_non_apptainer_logline_index(self) -> int | None:
+        lines = self._get_nonblank_lines()
         for i, line in enumerate(reversed(lines)):
             if not self.APPTAINER_LOG_PATTERN.match(line):
                 return len(lines) - (i + 1)  # previous line's index
@@ -129,11 +139,13 @@ class LogParser:
         Returns:
             str: The most relevant error message found.
         """
-        with open(self.log_fpath, "r", encoding="utf-8") as file:
-            # no new-lines, no blank lines
-            lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
+        LOGGER.info(f"Extracting Apptainer logs from log file ({self.log_fpath})...")
 
-        if not lines:
+        # prep
+        try:
+            lines = self._get_nonblank_lines()
+        except NoLogsInFileException:
+            LOGGER.info("No lines in log file.")
             return "<no stderr logs>"
 
         # Step 1: Locate the last error line before apptainer log line
@@ -151,6 +163,7 @@ class LogParser:
         # DEBUG   [U=613,P=47]       Master()                      Child exited with exit status 255
         # <EOF>
         if last_non_apptainer_index is None:  # still None b/c only saw apptainer logs
+            LOGGER.info("Log file only contains apptainer logs--using the final one.")
             # return the very last line, parsed
             try:
                 return "[Apptainer-Error] " + " ".join(
@@ -171,11 +184,18 @@ class LogParser:
         return self._extract_error(None)
 
     def _extract_error(self, last_line_index: int | None) -> str:
-        """Extracts the most relevant error message from a log file starting at 'last_line_index'."""
+        """Extracts the most relevant error message from a log file.
 
-        with open(self.log_fpath, "r", encoding="utf-8") as file:
-            # no new-lines, no blank lines
-            lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
+        'last_line_index' controls how far to look into file (iow don't look at very end).
+        """
+        LOGGER.info(f"Extracting logs from log file ({self.log_fpath})...")
+
+        # prep
+        try:
+            lines = self._get_nonblank_lines()
+        except NoLogsInFileException:
+            LOGGER.info("No lines in log file.")
+            return "<no stderr logs>"
         if last_line_index is None:
             last_line_index = len(lines) - 1  # the actual last line
 
@@ -212,6 +232,7 @@ class LogParser:
         for line in reversed(lines[: last_line_index + 1]):
             potential_python_traceback.insert(0, line)
             if line.startswith("Traceback"):  # Start of traceback found
+                LOGGER.info("Logs contain a python traceback--using final traceback.")
                 return "\n".join(potential_python_traceback)
 
         # ELSE: If no traceback, return last non-Apptainer error
@@ -221,4 +242,7 @@ class LogParser:
         # curl: (22) The requested URL returned error: 404
         # <other lines skipped b/c 'last_line_index'>
         # <EOF>
+        LOGGER.info(
+            f"Using {'last line' if last_line_index == len(lines) - 1 else f'line #{last_line_index}'}."
+        )
         return lines[last_line_index]

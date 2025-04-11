@@ -166,14 +166,20 @@ class DirectoryCatalog:
 # --------------------------------------------------------------------------------------
 
 
-def _dump_binary_file(fpath: Path, stream: TextIO) -> None:
+def _dump_binary_file(fpath: Path, stream: TextIO, name: str) -> None:
+    start_line = f"--- start: {name} ({stream.name}) "
+    end_line = f"--- end: {name} ({stream.name}) "
     try:
+        stream.write(start_line.ljust(60, "-") + "\n")
+        stream.flush()
         with open(fpath, "rb") as file:
             while True:
                 chunk = file.read(4096)
                 if not chunk:
                     break
                 stream.buffer.write(chunk)
+        stream.write(end_line.ljust(60, "-") + "\n")
+        stream.flush()
     except Exception as e:
         LOGGER.error(f"Error dumping container output ({stream.name}): {e}")
 
@@ -462,5 +468,5 @@ class ContainerRunner:
             raise
         finally:
             if dump_output:
-                _dump_binary_file(stdoutfile, sys.stdout)
-                _dump_binary_file(stderrfile, sys.stderr)
+                _dump_binary_file(stdoutfile, sys.stdout, logging_alias)
+                _dump_binary_file(stderrfile, sys.stderr, logging_alias)
