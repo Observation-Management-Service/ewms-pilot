@@ -2,6 +2,15 @@
 
 
 
+## v1.0.2 (2025-04-11)
+
+###  
+
+* Add Details to Logging (#109)
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`086ce2d`](https://github.com/Observation-Management-Service/ewms-pilot/commit/086ce2de40d4ce425230276f54e68934265c9b87))
+
+
 ## v1.0.1 (2025-04-03)
 
 ###  
