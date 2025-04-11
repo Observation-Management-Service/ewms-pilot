@@ -97,6 +97,10 @@ def dump_tallies(task_maps: list[TaskMapping], dump_n_pending: bool = True) -> N
         LOGGER.error(all_task_errors_string(_errors))
 
 
+class NoLogsInFileException(Exception):
+    """Raised when there are no logs in a log file."""
+
+
 class LogParser:
     """A parser for stderr logfiles."""
 
@@ -108,11 +112,17 @@ class LogParser:
     def __init__(self, log_fpath: Path):
         self.log_fpath = log_fpath
 
-    def _get_last_non_apptainer_logline_index(self) -> int | None:
+    def _get_nonblank_lines(self) -> list[str]:
         with open(self.log_fpath, "r", encoding="utf-8") as file:
             # no new-lines, no blank lines
             lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
+        if not lines:
+            LOGGER.info("No lines in log file.")
+            raise NoLogsInFileException()
+        return lines
 
+    def _get_last_non_apptainer_logline_index(self) -> int | None:
+        lines = self._get_nonblank_lines()
         for i, line in enumerate(reversed(lines)):
             if not self.APPTAINER_LOG_PATTERN.match(line):
                 return len(lines) - (i + 1)  # previous line's index
@@ -132,12 +142,9 @@ class LogParser:
         LOGGER.info(f"Extracting Apptainer logs from log file ({self.log_fpath})...")
 
         # prep
-        with open(self.log_fpath, "r", encoding="utf-8") as file:
-            # no new-lines, no blank lines
-            lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
-
-        # anything here?
-        if not lines:
+        try:
+            lines = self._get_nonblank_lines()
+        except NoLogsInFileException:
             LOGGER.info("No lines in log file.")
             return "<no stderr logs>"
 
@@ -184,16 +191,13 @@ class LogParser:
         LOGGER.info(f"Extracting logs from log file ({self.log_fpath})...")
 
         # prep
-        with open(self.log_fpath, "r", encoding="utf-8") as file:
-            # no new-lines, no blank lines
-            lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
-        if last_line_index is None:
-            last_line_index = len(lines) - 1  # the actual last line
-
-        # anything here?
-        if not lines:
+        try:
+            lines = self._get_nonblank_lines()
+        except NoLogsInFileException:
             LOGGER.info("No lines in log file.")
             return "<no stderr logs>"
+        if last_line_index is None:
+            last_line_index = len(lines) - 1  # the actual last line
 
         # Step 1: Check for a Python traceback, then use that
         #
