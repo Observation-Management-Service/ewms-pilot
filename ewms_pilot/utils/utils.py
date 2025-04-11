@@ -129,11 +129,16 @@ class LogParser:
         Returns:
             str: The most relevant error message found.
         """
+        LOGGER.info(f"Extracting Apptainer logs from log file ({self.log_fpath})...")
+
+        # prep
         with open(self.log_fpath, "r", encoding="utf-8") as file:
             # no new-lines, no blank lines
             lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
 
+        # anything here?
         if not lines:
+            LOGGER.info("No lines in log file.")
             return "<no stderr logs>"
 
         # Step 1: Locate the last error line before apptainer log line
@@ -151,6 +156,7 @@ class LogParser:
         # DEBUG   [U=613,P=47]       Master()                      Child exited with exit status 255
         # <EOF>
         if last_non_apptainer_index is None:  # still None b/c only saw apptainer logs
+            LOGGER.info("Log file only contains apptainer logs--using the final one.")
             # return the very last line, parsed
             try:
                 return "[Apptainer-Error] " + " ".join(
@@ -171,13 +177,23 @@ class LogParser:
         return self._extract_error(None)
 
     def _extract_error(self, last_line_index: int | None) -> str:
-        """Extracts the most relevant error message from a log file starting at 'last_line_index'."""
+        """Extracts the most relevant error message from a log file.
 
+        'last_line_index' controls how far to look into file (iow don't look at very end).
+        """
+        LOGGER.info(f"Extracting logs from log file ({self.log_fpath})...")
+
+        # prep
         with open(self.log_fpath, "r", encoding="utf-8") as file:
             # no new-lines, no blank lines
             lines = [ln.rstrip("\n") for ln in file.readlines() if ln.strip()]
         if last_line_index is None:
             last_line_index = len(lines) - 1  # the actual last line
+
+        # anything here?
+        if not lines:
+            LOGGER.info("No lines in log file.")
+            return "<no stderr logs>"
 
         # Step 1: Check for a Python traceback, then use that
         #
@@ -212,6 +228,7 @@ class LogParser:
         for line in reversed(lines[: last_line_index + 1]):
             potential_python_traceback.insert(0, line)
             if line.startswith("Traceback"):  # Start of traceback found
+                LOGGER.info("Logs contain a python traceback--using final traceback.")
                 return "\n".join(potential_python_traceback)
 
         # ELSE: If no traceback, return last non-Apptainer error
@@ -221,4 +238,7 @@ class LogParser:
         # curl: (22) The requested URL returned error: 404
         # <other lines skipped b/c 'last_line_index'>
         # <EOF>
+        LOGGER.info(
+            f"Using {'last line' if last_line_index == len(lines) - 1 else f'line #{last_line_index}'}."
+        )
         return lines[last_line_index]
