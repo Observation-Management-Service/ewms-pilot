@@ -2,6 +2,13 @@
 
 
 
+## v1.0.3 (2025-04-15)
+
+###  
+
+* Use `pypa/gh-action-pypi-publish@v1.12.4` ([`d5c4d11`](https://github.com/Observation-Management-Service/ewms-pilot/commit/d5c4d1139f393be97cadac2a4ac83d4ec88575fb))
+
+
 ## v1.0.2 (2025-04-11)
 
 ###  
