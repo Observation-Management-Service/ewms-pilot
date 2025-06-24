@@ -27,6 +27,8 @@ async def _nack(
     except Exception as e:
         # LOGGER.exception(e)
         LOGGER.error(f"Could not nack: {repr(e)}")
+    else:
+        LOGGER.info("-> task nack done.")
 
 
 async def wait_on_tasks_with_ack(
@@ -52,11 +54,15 @@ async def wait_on_tasks_with_ack(
     for asyncio_task in newly_done:
         tmap = TaskMapping.get(task_maps, asyncio_task=asyncio_task)
         tmap.mark_done()
+        LOGGER.info(f"TASK FINISHED (uuid={tmap.message.uuid})")
+
+        # Investigate task...
         try:
             output_event = await asyncio_task
         # SUCCESSFUL TASK W/O OUTPUT -> is ok, but nothing to send...
         except NoTaskResponseException:
-            LOGGER.info("TASK FINISHED -- no output-event to send (this is ok).")
+            LOGGER.info("-> no output-event to send (this is ok).")
+            # input-event will be acked below...
         # FAILED TASK! -> nack input message
         except Exception as e:
             tmap.error = e  # already marked as done, see above
@@ -65,7 +71,7 @@ async def wait_on_tasks_with_ack(
         # SUCCESSFUL TASK W/ OUTPUT -> send...
         else:
             try:
-                LOGGER.info("TASK FINISHED -- attempting to send output-event...")
+                LOGGER.info("-> attempting to send output-event...")
                 await pub.send(output_event)
             except Exception as e:
                 tmap.error = e  # already marked as done, see above
@@ -76,10 +82,12 @@ async def wait_on_tasks_with_ack(
                 )
                 await _nack(e, sub, tmap.message)
                 continue
+            else:
+                LOGGER.info("-> output-event sent.")
 
-        # now, ack input message
+        # now, ack input-event message
         try:
-            LOGGER.info("Now, attempting to ack input-event message...")
+            LOGGER.info("-> now, attempting to ack input-event message...")
             await sub.ack(tmap.message)
         except mq.broker_client_interface.AckException as e:
             # -> task finished -> ack failed = that's okay!
@@ -92,6 +100,13 @@ async def wait_on_tasks_with_ack(
                 " re-delivered by broker to another pilot"
                 " & the new output-event is sent."
             )
+        else:
+            LOGGER.info("-> input-event ack done.")
+
+        # final log
+        LOGGER.info(
+            f"-> 100% done handling successful task (uuid={tmap.message.uuid})."
+        )
 
     # log
     if newly_done:

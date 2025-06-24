@@ -70,12 +70,36 @@ def dump_task_runtime_stats(task_maps: list[TaskMapping]) -> None:
     for key, value in stats_summary.items():
         LOGGER.info(f"({key.lower()}: {value:.2f})")
 
+    def _to_range_string(_left: float, _right: float) -> str:
+        return f"[{_left:.2f}, {_right:.2f})"
+
     # make bins and a terminal-friendly chart
     LOGGER.info("Runtimes distribution:")
     hist, bin_edges = np.histogram(data_np, bins="auto")
+    no_datapoints_buffer: list[float] | None = None
     for i in range(len(hist)):
-        bin_range = f"[{bin_edges[i]:.2f}, {bin_edges[i + 1]:.2f})"
+        # calc range bounds
+        left = float(bin_edges[i])
+        right = float(bin_edges[i + 1])
+
+        # any data in range? if not, keep track of it so we don't log a ton of empty lines
+        if not hist[i]:
+            if no_datapoints_buffer:  # extend right bound
+                no_datapoints_buffer[1] = right
+            else:
+                no_datapoints_buffer = [left, right]
+            continue
+        # now, we have datapoints. so, log whatever was built up
+        if no_datapoints_buffer:
+            bin_range = _to_range_string(
+                no_datapoints_buffer[0], no_datapoints_buffer[1]
+            )
+            LOGGER.info(f"{bin_range:20} | [none]")
+            no_datapoints_buffer = None
+
+        # log it
         bar = "#" * hist[i]
+        bin_range = _to_range_string(left, right)
         LOGGER.info(f"{bin_range:20} | {bar}")
 
 
