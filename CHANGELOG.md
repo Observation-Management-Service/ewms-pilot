@@ -2,6 +2,17 @@
 
 
 
+## v1.0.4 (2025-07-29)
+
+###  
+
+* &lt;bot&gt; update dependencies*.log files(s) ([`0e9b9d2`](https://github.com/Observation-Management-Service/ewms-pilot/commit/0e9b9d22c0e549943c17724799129ac878c65d75))
+
+* Update Logging (#111)
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`cc777b4`](https://github.com/Observation-Management-Service/ewms-pilot/commit/cc777b4075254d7ce3afd4750a769b56be78482b))
+
+
 ## v1.0.3 (2025-04-15)
 
 ###  
