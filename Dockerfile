@@ -55,6 +55,7 @@ RUN chmod +x /entrypoint.sh
 COPY . .
 
 # python: venv and install
+RUN python -m pip install --upgrade pip
 RUN pip install virtualenv
 RUN python -m virtualenv /app/entrypoint_venv
 ARG FLAVOR="rabbitmq"
