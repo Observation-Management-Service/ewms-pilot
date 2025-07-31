@@ -2,6 +2,15 @@
 
 
 
+## v1.0.5 (2025-07-31)
+
+###  
+
+* Upgrade `pip` in Dockerfile (#112)
+
+Co-authored-by: github-actions &lt;github-actions@github.com&gt; ([`0129267`](https://github.com/Observation-Management-Service/ewms-pilot/commit/012926729a1fff0e5aecc58d215963db5be1a047))
+
+
 ## v1.0.4 (2025-07-29)
 
 ###  
