@@ -1,6 +1,8 @@
-ARG PYTHON=3.12
 
-FROM python:${PYTHON}
+# allow choosing Debian suite; default to bookworm for reliable apptainer
+ARG PYTHON=3.12
+ARG DEBIAN_SUITE=bookworm
+FROM python:${PYTHON}-${DEBIAN_SUITE}
 
 # NOTE: On Docker-in-Docker...
 #       After much tinkering to get docker-in-docker working, it was decided to run as root user.
