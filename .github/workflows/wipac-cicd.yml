@@ -433,7 +433,7 @@ jobs:
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
-                      --mount type=bind,source="$(realpath ${{ github.workspace }}/$(dirname $test))",target="$(dirname $test)",readonly \
+                      --mount type=bind,source="$(realpath ${{ github.workspace }}/$(dirname $test))",target="/app/$(dirname $test)",readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
@@ -464,7 +464,7 @@ jobs:
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
-                      --mount type=bind,source="$(realpath ${{ github.workspace }}/$(dirname $test))",target="$(dirname $test)",readonly \
+                      --mount type=bind,source="$(realpath ${{ github.workspace }}/$(dirname $test))",target="/app/$(dirname $test)",readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine_sandbox/" \
@@ -517,7 +517,7 @@ jobs:
               echo "::error::^^^^ this is the pytest out file -- this step exited with 1 because this *pytest* failed -- the ci step is okay"
               exit 1
           else
-              echo "::warning::pytest failure not found, test container likely failed before pytesting -- look at containr logs"
+              echo "::warning::pytest failure not found, test container likely failed before pytesting"
               exit 2
           fi
 
