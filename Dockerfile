@@ -1,8 +1,11 @@
+ARG PYTHON=3.12
 
 # allow choosing Debian suite; default to bookworm for reliable apptainer
-ARG PYTHON=3.12
 ARG DEBIAN_SUITE=bookworm
 FROM python:${PYTHON}-${DEBIAN_SUITE}
+
+ARG CONTAINER_PLATFORM='docker'
+ENV _EWMS_PILOT_CONTAINER_PLATFORM="$CONTAINER_PLATFORM"
 
 # NOTE: On Docker-in-Docker...
 #       After much tinkering to get docker-in-docker working, it was decided to run as root user.
@@ -14,10 +17,6 @@ FROM python:${PYTHON}-${DEBIAN_SUITE}
 #       - An alternative would be rootless docker: https://docs.docker.com/engine/security/rootless/--
 #           this was not explored as it seemed like "too much extra runtime config", and I'm not sure
 #           how this would translate to apptainer.
-
-
-ARG CONTAINER_PLATFORM='docker'
-ENV _EWMS_PILOT_CONTAINER_PLATFORM="$CONTAINER_PLATFORM"
 
 # docker-in-docker -- see NOTE above
 RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
