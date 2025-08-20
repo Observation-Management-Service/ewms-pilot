@@ -317,7 +317,7 @@ jobs:
                       break
                   elif [[ $exit_code -eq 255 ]]; then
                       # docker hub rate limiting
-                      echo "Command failed with exit code 255. Retry $i/$max_retries..."
+                      echo "::warning::Command failed with exit code 255. Retry $i/$max_retries..."
                   else
                       exit $exit_code
                   fi
@@ -387,7 +387,8 @@ jobs:
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="localhost"  # localhost b/c using --network=host
           else
-              exit 2  # unknown container_platform
+              echo "::error::unknown container_platform: ${{ matrix.container_platform }}"
+              exit 2
           fi
           docker ps
           
@@ -463,6 +464,7 @@ jobs:
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
+                      --mount type=bind,source="$(realpath ${{ github.workspace }}/$(dirname $test))",target="$(dirname $test)",readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine_sandbox/" \
@@ -471,16 +473,19 @@ jobs:
                       --env CI=$CI \
                       --workdir "$temp_dir" -B "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
-                      /bin/bash -c "ls -l && ls -l / && pytest -vvv -s /app/$test" \
+                      /bin/bash -c "\
+                          ls -l && \
+                          ls -l / && \
+                          pytest -vvv -s /app/$test \
+                      " \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                       # 2>&1   # -- uncomment to debug
                       # exit 5 # -- uncomment to debug
                   set +x
           
               else
-          
-                  exit 2  # unknown container_platform
-          
+                  echo "::error::unknown container_platform: ${{ matrix.container_platform }}"
+                  exit 2
               fi
           
               sleep .1  # little sleep to help logs
@@ -494,7 +499,7 @@ jobs:
               date --rfc-3339=seconds
               echo "waiting for $pid..."
               if ! wait -n $pid; then
-                  echo "ERROR: test(s) failed (ctrl+f $pid to match)"
+                  echo "::error::test(s) failed (ctrl+f $pid to match)"
                   sleep 5  # may need to wait for output files to be written
                   kill $pidlist 2>/dev/null
                   exit 1
@@ -509,10 +514,11 @@ jobs:
           file=$(grep -l -m 1 "= FAILURES =" *.test.out 2>/dev/null | head -1 || true)
           if [[ -n "$file" ]]; then
               cat "$file"
-              echo "^^^^ this is the pytest out file -- this step exited with 1 because this *pytest* failed -- the ci step is okay"
+              echo "::error::^^^^ this is the pytest out file -- this step exited with 1 because this *pytest* failed -- the ci step is okay"
               exit 1
           else
-              echo "not found"
+              echo "::warning::pytest failure not found, test container likely failed before pytesting -- look at containr logs"
+              exit 2
           fi
 
       - name: pytest container outputs
@@ -528,7 +534,7 @@ jobs:
               if [ -f $(basename $test).test.out ]; then
                   cat $(basename $test).test.out
               else
-                  echo "CI: output file does not exist"
+                  echo "::warning::output file does not exist, test may not have be started -- look at above test logs"
               fi
           done < $SORTED_LIST_OF_TESTS_FILE
 
