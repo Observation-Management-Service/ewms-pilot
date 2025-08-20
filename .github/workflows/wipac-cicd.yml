@@ -35,7 +35,7 @@ jobs:
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
@@ -75,6 +75,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
@@ -109,6 +110,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - name: build all images
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -167,9 +169,10 @@ jobs:
   test-build-docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
@@ -190,9 +193,10 @@ jobs:
       EWMS_PILOT_QUEUE_OUTGOING: bar
       EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: 1  # added to figure out https://github.com/WIPACrepo/wipac-dev-tools/pull/106, not needed but not doing any harm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - name: build docker image
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -230,9 +234,10 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
@@ -252,9 +257,10 @@ jobs:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
         broker_client: [ pulsar, rabbitmq, nats ]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+          fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
