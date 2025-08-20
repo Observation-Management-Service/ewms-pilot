@@ -18,36 +18,42 @@ ENV _EWMS_PILOT_CONTAINER_PLATFORM="$CONTAINER_PLATFORM"
 #           this was not explored as it seemed like "too much extra runtime config", and I'm not sure
 #           how this would translate to apptainer.
 
-# docker-in-docker -- see NOTE above
+# docker-in-docker (see NOTE above) — fail hard if docker not installed
 RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
-        apt-get update && \
-        apt-get -qy full-upgrade && \
-        apt-get install -qy curl && \
-        curl -sSL https://get.docker.com/ | sh && \
-        touch /var/log/dockerd.log ; \
+      set -eux; \
+      apt-get update; \
+      apt-get -qy full-upgrade; \
+      apt-get install -qy curl; \
+      curl -sSL https://get.docker.com/ | sh; \
+      # verify docker installed; fail build if not
+      command -v docker >/dev/null 2>&1 || { echo "ERROR: docker not found after install"; exit 1; }; \
+      touch /var/log/dockerd.log; \
     else \
-        echo "not installing docker" ; \
+      echo "not installing docker"; \
     fi
 # ^^^ 'touch' is for starting up docker daemon
 
-# apptainer-in-apptainer via Debian backports (needs contrib)
+# apptainer-in-apptainer (via Debian backports when needed) — fail hard if not installed
 RUN if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
       set -eux; \
       . /etc/os-release; \
       echo "deb http://deb.debian.org/debian ${VERSION_CODENAME}-backports main contrib non-free non-free-firmware" \
         > /etc/apt/sources.list.d/backports.list; \
       apt-get update; \
-      # Prefer backports if available; otherwise try normal repo (noop if not present)
       if apt-cache policy apptainer | grep -q "${VERSION_CODENAME}-backports"; then \
         apt-get install -y --no-install-recommends -t ${VERSION_CODENAME}-backports apptainer; \
       else \
-        apt-get install -y --no-install-recommends apptainer || true; \
+        echo "WARN: apptainer not in ${VERSION_CODENAME}-backports; trying main repo..."; \
+        apt-get install -y --no-install-recommends apptainer; \
       fi; \
+      # verify it actually installed; if not, fail the build
+      command -v apptainer >/dev/null 2>&1 || { echo "ERROR: apptainer not found after install"; exit 1; }; \
       apt-get install -y --no-install-recommends fuse3 squashfs-tools uidmap; \
       rm -rf /var/lib/apt/lists/*; \
     else \
       echo "not installing apptainer"; \
     fi
+
 
 # dirs
 RUN mkdir /app
