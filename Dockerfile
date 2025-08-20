@@ -29,19 +29,23 @@ RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
     fi
 # ^^^ 'touch' is for starting up docker daemon
 
-# apptainer-in-apptainer
-# apptainer-in-apptainer (Debian trixie packages)
+# apptainer-in-apptainer via Debian backports when needed
 RUN if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
-        set -eux; \
-        apt-get update; \
-        apt-get install -y --no-install-recommends \
-            apptainer \
-            fuse3 \
-            squashfs-tools \
-            uidmap; \
-        rm -rf /var/lib/apt/lists/*; \
+      set -eux; \
+      . /etc/os-release; \
+      echo "deb http://deb.debian.org/debian ${VERSION_CODENAME}-backports main" \
+        > /etc/apt/sources.list.d/backports.list; \
+      apt-get update; \
+      # Prefer backports if available; otherwise try normal repo
+      if apt-cache policy apptainer | grep -q "${VERSION_CODENAME}-backports"; then \
+        apt-get install -y -t ${VERSION_CODENAME}-backports apptainer; \
+      else \
+        apt-get install -y apptainer || true; \
+      fi; \
+      apt-get install -y --no-install-recommends fuse3 squashfs-tools uidmap; \
+      rm -rf /var/lib/apt/lists/*; \
     else \
-        echo "not installing apptainer"; \
+      echo "not installing apptainer"; \
     fi
 
 
