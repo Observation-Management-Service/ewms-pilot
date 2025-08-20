@@ -40,7 +40,7 @@ ARG GO_VERSION=1.22.5
 RUN \
   # only run this whole block if apptainer mode is requested
   if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
-    set -euxo pipefail; \
+    set -eux; \
     export DEBIAN_FRONTEND=noninteractive; \
     . /etc/os-release; \
     apt-get update; \
