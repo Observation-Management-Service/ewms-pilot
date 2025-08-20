@@ -37,55 +37,51 @@ RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
 # -- choose apptainer + go versions used when falling back to source
 ARG APPTAINER_VERSION=1.3.3
 ARG GO_VERSION=1.22.5
-RUN \
-  # only run this whole block if apptainer mode is requested
-  if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
-    set -eux; \
-    export DEBIAN_FRONTEND=noninteractive; \
-    . /etc/os-release; \
-    apt-get update; \
-    \
-    # Try native repo first
-    if ! apt-get install -y --no-install-recommends apptainer; then \
-      echo "WARN: apptainer not in native repo; trying ${VERSION_CODENAME}-backports..."; \
-      echo "deb http://deb.debian.org/debian ${VERSION_CODENAME}-backports main contrib non-free non-free-firmware" \
-        > /etc/apt/sources.list.d/backports.list; \
+RUN if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
+      set -eux; \
+      export DEBIAN_FRONTEND=noninteractive; \
+      . /etc/os-release; \
       apt-get update; \
       \
-      # if also not found in backports...
-      if ! apt-get install -y --no-install-recommends -t ${VERSION_CODENAME}-backports apptainer; then \
-        echo "WARN: apptainer not found in backports; building from source v${APPTAINER_VERSION}..."; \
-        apt-get install -y --no-install-recommends \
-          ca-certificates curl git build-essential pkg-config \
-          libseccomp-dev libgpgme-dev uidmap squashfs-tools cryptsetup; \
-        curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tgz; \
-        rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tgz; \
-        export PATH=/usr/local/go/bin:$PATH; \
-        go version >/dev/null; \
-        git clone --depth 1 --branch "v${APPTAINER_VERSION}" https://github.com/apptainer/apptainer.git /tmp/apptainer; \
-        cd /tmp/apptainer; \
-        # mconfig needs an explicit choice when user namespaces are disabled; use --without-suid for container builds
-        ./mconfig --without-suid; \
-        make -C builddir; \
-        make -C builddir install; \
-        # Verify install
-        command -v apptainer >/dev/null || { echo "ERROR: apptainer not found after source build"; exit 1; }; \
-        # Trim build deps (optional)
-        rm -rf /tmp/apptainer /tmp/go.tgz; \
-        apt-get purge -y build-essential git && apt-get autoremove -y && apt-get clean; \
+      # if: try native repo first
+      if ! apt-get install -y --no-install-recommends apptainer; then \
+        echo "WARN: apptainer not in native repo; trying ${VERSION_CODENAME}-backports..."; \
+        echo "deb http://deb.debian.org/debian ${VERSION_CODENAME}-backports main contrib non-free non-free-firmware" \
+          > /etc/apt/sources.list.d/backports.list; \
+        apt-get update; \
+        \
+        # if: also not found in backports, build from source with only build deps
+        if ! apt-get install -y --no-install-recommends -t ${VERSION_CODENAME}-backports apptainer; then \
+          echo "WARN: apptainer not found in backports; building from source v${APPTAINER_VERSION}..."; \
+          BUILD_DEPS='ca-certificates curl build-essential pkg-config libseccomp-dev libgpgme-dev cryptsetup'; \
+          apt-get install -y --no-install-recommends $BUILD_DEPS; \
+          curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tgz; \
+          rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tgz; \
+          export PATH=/usr/local/go/bin:$PATH; \
+          # download release tarball instead of git clone (no git needed)
+          curl -fsSL "https://github.com/apptainer/apptainer/archive/refs/tags/v${APPTAINER_VERSION}.tar.gz" \
+            -o /tmp/apptainer.tgz; \
+          mkdir -p /tmp/apptainer && tar -C /tmp/apptainer --strip-components=1 -xzf /tmp/apptainer.tgz; \
+          cd /tmp/apptainer; \
+          # if: user namespaces typically disabled; choose non-suid build
+          ./mconfig --without-suid; \
+          make -C builddir; \
+          make -C builddir install; \
+          command -v apptainer >/dev/null || { echo "ERROR: apptainer not found after source build"; exit 1; }; \
+          # cleanup only what we added for the build
+          rm -rf /tmp/apptainer /tmp/apptainer.tgz /tmp/go.tgz /usr/local/go; \
+          apt-get purge -y $BUILD_DEPS && apt-get autoremove -y && apt-get clean; \
+        fi; \
       fi; \
-    fi; \
-    \
-    # always install runtime helpers for apptainer mode
-    apt-get install -y --no-install-recommends fuse3 squashfs-tools uidmap; \
-    # Final sanity check
-    apptainer --version || { echo "ERROR: apptainer not working after install"; exit 1; }; \
-    rm -rf /var/lib/apt/lists/*; \
-  \
-  # if not apptainer mode, just skip installing apptainer
-  else \
-    echo "not installing apptainer"; \
-  fi
+      \
+      # always install runtime helpers for apptainer mode
+      RUNTIME_DEPS='fuse3 squashfs-tools uidmap'; \
+      apt-get install -y --no-install-recommends $RUNTIME_DEPS; \
+      apptainer --version || { echo "ERROR: apptainer not working after install"; exit 1; }; \
+      rm -rf /var/lib/apt/lists/*; \
+    else \
+      echo "not installing apptainer"; \
+    fi
 
 
 # dirs

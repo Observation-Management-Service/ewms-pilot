@@ -336,7 +336,8 @@ jobs:
               # pilot converts .sif to apptainer dir -- only 1 test uses this
               retry_command_if_255 "apptainer build python_alpine.sif docker://python:alpine"
           else
-              exit 2  # unknown container_platform
+              echo "::error::unknown container_platform: ${{ matrix.container_platform }}"
+              exit 2
           fi
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
