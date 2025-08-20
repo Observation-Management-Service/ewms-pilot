@@ -36,8 +36,10 @@ jobs:
       matrix: ${{ steps.versions.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.5
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.7
 
 
   #############################################################################
@@ -52,11 +54,15 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
-      - uses: WIPACrepo/wipac-dev-flake8-action@v1.2
+      - uses: WIPACrepo/wipac-dev-flake8-action@v1.3
+        with:
+          max-complexity: 10  # ideal is ~10-15
 
   mypy:
     needs: [ py-versions ]
@@ -66,7 +72,9 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
@@ -80,19 +88,16 @@ jobs:
   py-setup:
     runs-on: ubuntu-latest
     steps:
-      - if: github.actor != 'dependabot[bot]'
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
-      - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-setup-action@v4.4
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.2
         with:
-          python_min: "3.12"
-          python_max: "3.12"
-          keywords_comma: "pilot, Observation Management Service, Event Workflow Management Service, EWMS, message passing, MQ task"
-          pypi_name: ewms-pilot
-          author: WIPAC Developers
-          author_email: developers@icecube.wisc.edu
+          mode: PACKAGING
+          python_min: 3.12
+          keywords_comma: "pilot, task pilot, Observation Management Service, Event Workflow Management System, EWMS, message passing, MQ"
+          auto_mypy_option: True
 
   py-dependencies:
     needs: [ py-versions ]
@@ -101,15 +106,12 @@ jobs:
       group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
       cancel-in-progress: true
     steps:
-      - if: github.actor != 'dependabot[bot]'
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # fyi, dependabot can't access normal secrets
-      - if: github.actor != 'dependabot[bot]'
-        name: build all images
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
+      - name: build all images
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
           mkdir docker-build-logs/ && trap 'rm -rf docker-build-logs/' EXIT
@@ -119,7 +121,7 @@ jobs:
           docker build --tag "default:py-dep-this" . \
               >> docker-build-logs/default.docker-build.out 2>&1 & pidlist="$pidlist $!"
           
-          # build all dockerfiles
+          # build all dockerfiles -- all in background/parallel
           for py in $(echo ${{ needs.py-versions.outputs.matrix }} | sed 's/[][]//g; s/,/ /g'); do
               docker pull python:$py  # pre-pull to speed up dependent images
               for flavor in rabbitmq pulsar nats; do
@@ -155,10 +157,7 @@ jobs:
           
           docker system prune --force  # save disk space
 
-      - if: github.actor != 'dependabot[bot]'
-        uses: WIPACrepo/wipac-dev-py-dependencies-action@v2.2
-        with:
-          use_directory: true
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.1
 
 
   ############################################################################
@@ -169,6 +168,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: docker/setup-buildx-action@v3
       - uses: docker/build-push-action@v5
         with:
@@ -190,16 +191,16 @@ jobs:
       EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: 1  # added to figure out https://github.com/WIPACrepo/wipac-dev-tools/pull/106, not needed but not doing any harm
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - name: build docker image
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} .
           docker images
       - name: test
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -ex
           
           docker run --rm \
@@ -230,13 +231,14 @@ jobs:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
       - name: pytest
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           pip install .[test]
           pytest -vvv tests/unit
 
@@ -251,6 +253,8 @@ jobs:
         broker_client: [ pulsar, rabbitmq, nats ]
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.py3 }}
@@ -264,8 +268,7 @@ jobs:
       - if: ${{ matrix.container_platform == 'docker' }}
         name: install sysbox (needed for docker-in-docker)
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker --version
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           temp_dir=$(mktemp -d) && cd $temp_dir
@@ -283,8 +286,7 @@ jobs:
 
       - name: build docker image
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
               --build-arg="PYTHON=${{ matrix.py3 }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
@@ -294,8 +296,7 @@ jobs:
 
       - name: pre-pull & save images for testing
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           mkdir saved-images/
           
@@ -335,16 +336,14 @@ jobs:
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: build apptainer image
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker images
           apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:latest
           ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
 
       - name: get list of pytest tests
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           pip install .[test]  # for the for-loop below
           pytest --collect-only -q --disable-warnings tests/integration/ | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
           cat $SORTED_LIST_OF_TESTS_FILE
@@ -352,8 +351,7 @@ jobs:
       - if: ${{ matrix.container_platform == 'docker' }}
         name: set up docker network
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           # we're connecting all the containers (broker + apps) in the same docker network
           # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
           docker network create mynet
@@ -494,8 +492,7 @@ jobs:
       - name: pytest first failure
         if: always()
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           file=$(grep -l -m 1 "= FAILURES =" *.test.out 2>/dev/null | head -1 || true)
           if [[ -n "$file" ]]; then
               cat "$file"
@@ -508,8 +505,7 @@ jobs:
       - name: pytest container outputs
         if: always()
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           sleep 15  # sleep a bit more in case there are additional failures we want to dig for
           cat $SORTED_LIST_OF_TESTS_FILE
           while read test; do
@@ -526,8 +522,7 @@ jobs:
       - name: broker output
         if: always()
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           cat ./broker.out
           if [ -n "$(ls -A ./broker_logs/ 2>/dev/null)" ]; then
@@ -538,8 +533,7 @@ jobs:
       - name: broker docker logs
         if: always()
         run: |
-          set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker logs $BROKER_CONTAINER_NAME || true
 
 
@@ -547,9 +541,9 @@ jobs:
   # GITHUB & PYPI RELEASE
   #############################################################################
 
-  release:
-    # only run on main/master/default
-    if: ${{ github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main' }}
+  tag-and-release:
+    # only run on main/default
+    if: format('refs/heads/{0}', github.event.repository.default_branch) == github.ref
     needs: [
       py-versions,
       flake8,
@@ -561,25 +555,11 @@ jobs:
       unit-tests,
       vanilla-run
     ]
-    runs-on: ubuntu-latest
-    concurrency: release  # prevent any possible race conditions
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # using 'GITHUB_TOKEN' does not trigger ci on push
-      # Python-Package Version Bump
-      - uses: python-semantic-release/python-semantic-release@v9.8.1
-        id: psr-psr
-        with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # using 'GITHUB_TOKEN' does not trigger ci on push
-      # PyPI Release
-      - uses: pypa/gh-action-pypi-publish@v1.12.4
-        if: steps.psr-psr.outputs.released == 'true'
-        with:
-          password: ${{ secrets.PYPI_TOKEN }}
-      # GitHub Release
-      - uses: python-semantic-release/upload-to-gh-release@v9.8.1
-        if: steps.psr-psr.outputs.released == 'true'
-        with:
-          github_token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}  # using 'GITHUB_TOKEN' does not trigger ci on push
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.7
+    permissions: # for GITHUB_TOKEN
+      contents: write
+    with:
+      project-type: python
+      python-version: "${{ fromJSON(needs.py-versions.outputs.matrix)[0] }}"
+      release-artifacts: |
+        py-dependencies-logs
