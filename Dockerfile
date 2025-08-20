@@ -30,18 +30,18 @@ RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
     fi
 # ^^^ 'touch' is for starting up docker daemon
 
-# apptainer-in-apptainer via Debian backports when needed
+# apptainer-in-apptainer via Debian backports (needs contrib)
 RUN if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
       set -eux; \
       . /etc/os-release; \
-      echo "deb http://deb.debian.org/debian ${VERSION_CODENAME}-backports main" \
+      echo "deb http://deb.debian.org/debian ${VERSION_CODENAME}-backports main contrib non-free non-free-firmware" \
         > /etc/apt/sources.list.d/backports.list; \
       apt-get update; \
-      # Prefer backports if available; otherwise try normal repo
+      # Prefer backports if available; otherwise try normal repo (noop if not present)
       if apt-cache policy apptainer | grep -q "${VERSION_CODENAME}-backports"; then \
-        apt-get install -y -t ${VERSION_CODENAME}-backports apptainer; \
+        apt-get install -y --no-install-recommends -t ${VERSION_CODENAME}-backports apptainer; \
       else \
-        apt-get install -y apptainer || true; \
+        apt-get install -y --no-install-recommends apptainer || true; \
       fi; \
       apt-get install -y --no-install-recommends fuse3 squashfs-tools uidmap; \
       rm -rf /var/lib/apt/lists/*; \
@@ -49,17 +49,13 @@ RUN if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
       echo "not installing apptainer"; \
     fi
 
-
 # dirs
-#
-# the WORKDIR
 RUN mkdir /app
 WORKDIR /app
 
 # entrypoint magic
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
-
 
 # Mount the entire build context (including '.git/') just for this step
 # NOTE:
@@ -78,7 +74,6 @@ RUN --mount=type=bind,source=.,target=/src,rw \
       pip install --upgrade pip && \
       pip install --no-cache-dir /src[${FLAVOR}] \
     '
-
 
 # go
 # use shell form to pass in var -- https://stackoverflow.com/a/37904830/13156561
