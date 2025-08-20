@@ -245,7 +245,7 @@ jobs:
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           pip install .[test]
-          pytest -vvv tests/unit
+          pytest -vvv --asyncio-mode=auto tests/unit
 
   integration-tests:
     needs: [ py-versions ]
@@ -443,7 +443,7 @@ jobs:
                           ls -l && \
                           ls -l / && \
                           docker images && \
-                          pytest -vvv -s $test \
+                          pytest -vvv --asyncio-mode=auto -s $test \
                       " \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                       # 2>&1   # -- uncomment to debug
@@ -476,7 +476,7 @@ jobs:
                       /bin/bash -c "\
                           ls -l && \
                           ls -l / && \
-                          pytest -vvv -s /app/$test \
+                          pytest -vvv --asyncio-mode=auto -s /app/$test \
                       " \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                       # 2>&1   # -- uncomment to debug
