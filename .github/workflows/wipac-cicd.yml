@@ -517,8 +517,7 @@ jobs:
               echo "::error::^^^^ this is the pytest out file -- this step exited with 1 because this *pytest* failed -- the ci step is okay"
               exit 1
           else
-              echo "::warning::pytest failure not found, test container likely failed before pytesting"
-              exit 2
+              echo "::warning::pytest failure not found -- either all tests passed, or a test container failed before pytesting"
           fi
 
       - name: pytest container outputs
