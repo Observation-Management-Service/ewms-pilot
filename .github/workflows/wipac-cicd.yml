@@ -432,11 +432,18 @@ jobs:
                       --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
+                      --mount type=bind,source="$(dirname $test)",target="$(dirname $test)",readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
                       --env CI=$CI \
-                      ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "docker load -i /saved-images/python-alpine.tar && ls -l && ls -l / && docker images && pytest -vvv -s $test" \
+                      ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "\
+                          docker load -i /saved-images/python-alpine.tar && \
+                          ls -l && \
+                          ls -l / && \
+                          docker images && \
+                          pytest -vvv -s $test \
+                      " \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                       # 2>&1   # -- uncomment to debug
                       # exit 5 # -- uncomment to debug
