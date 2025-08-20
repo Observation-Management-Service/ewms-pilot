@@ -30,14 +30,18 @@ RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
 # ^^^ 'touch' is for starting up docker daemon
 
 # apptainer-in-apptainer
+# apptainer-in-apptainer (Debian trixie packages)
 RUN if [ "$CONTAINER_PLATFORM" = "apptainer" ]; then \
-        apt update && \
-        apt install -y wget && \
-        cd /tmp && \
-        wget https://github.com/apptainer/apptainer/releases/download/v1.3.3/apptainer_1.3.3_amd64.deb && \
-        apt install -y ./apptainer_1.3.3_amd64.deb ; \
+        set -eux; \
+        apt-get update; \
+        apt-get install -y --no-install-recommends \
+            apptainer \
+            fuse3 \
+            squashfs-tools \
+            uidmap; \
+        rm -rf /var/lib/apt/lists/*; \
     else \
-        echo "not installing apptainer" ; \
+        echo "not installing apptainer"; \
     fi
 
 
