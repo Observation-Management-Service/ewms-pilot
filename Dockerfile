@@ -110,6 +110,7 @@ RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
     bash -euxo pipefail -c '\
       . /app/entrypoint_venv/bin/activate && \
+      apt-get update && apt-get install -y --no-install-recommends git && \
       pip install --upgrade pip && \
       pip install --no-cache-dir /src[${FLAVOR}] \
     '
