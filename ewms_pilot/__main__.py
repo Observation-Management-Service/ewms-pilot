@@ -12,9 +12,8 @@ from .pilot import consume_and_reply
 LOGGER = logging.getLogger(__package__)  # for __main__ use instead of __name__
 
 
-def main() -> None:
-    """Start up EWMS Pilot to do tasks, communicate via message passing."""
-
+def setup_logging() -> None:
+    """Set up loggers."""
     logging_tools.set_level(
         ENV.EWMS_PILOT_CL_LOG,  # type: ignore[arg-type]
         first_party_loggers=__package__.split(".", maxsplit=1)[0],
@@ -22,6 +21,11 @@ def main() -> None:
         use_coloredlogs=True,
     )
     logging.Formatter.converter = time.gmtime  # set logs to utc time
+
+
+def main() -> None:
+    """Start up EWMS Pilot to do tasks, communicate via message passing."""
+    setup_logging()
 
     # GO!
     LOGGER.info("Running from CL: starting up an EWMS Pilot...")
