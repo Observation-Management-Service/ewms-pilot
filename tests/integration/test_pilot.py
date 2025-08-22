@@ -18,9 +18,10 @@ import mqclient as mq
 import pytest
 
 from ewms_pilot import ContainerRunError, config, consume_and_reply
+from ewms_pilot.__main__ import setup_logging
 from ewms_pilot.config import ENV, PILOT_DATA_DIR, PILOT_DATA_HUB_DIR_NAME
 
-logging.getLogger().setLevel(logging.DEBUG)
+setup_logging()
 logging.getLogger("mqclient").setLevel(logging.INFO)
 logging.getLogger("pika").setLevel(logging.WARNING)
 
