@@ -96,6 +96,7 @@ WORKDIR /app
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh
 
+
 # Mount the entire build context (including '.git/') just for this step
 # NOTE:
 #  - mounting '.git/' allows the Python project to build with 'setuptools-scm'
@@ -114,6 +115,7 @@ RUN --mount=type=bind,source=.,target=/src,rw \
       pip install --upgrade pip && \
       pip install --no-cache-dir /src[${FLAVOR}] \
     '
+
 
 # go
 # use shell form to pass in var -- https://stackoverflow.com/a/37904830/13156561
