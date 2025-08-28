@@ -6,7 +6,7 @@ import logging
 import os
 from pathlib import Path
 
-from wipac_dev_tools import from_environment_as_dataclass
+from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 
 LOGGER = logging.getLogger(__name__)
 
@@ -72,8 +72,8 @@ class EnvConfig:
     EWMS_PILOT_EXTERNAL_DIRECTORIES: str = ""  # comma-delimited
 
     # logging -- only used when running via command line
-    EWMS_PILOT_CL_LOG: str = "INFO"  # level for 1st-party loggers
-    EWMS_PILOT_CL_LOG_THIRD_PARTY: str = "WARNING"  # level for 3rd-party loggers
+    EWMS_PILOT_CL_LOG: logging_tools.LoggerLevel = "INFO"  # level for 1st-party loggers
+    EWMS_PILOT_CL_LOG_THIRD_PARTY: logging_tools.LoggerLevel = "WARNING"  # for 3rd ''
 
     # chirp
     EWMS_PILOT_HTCHIRP: bool = False

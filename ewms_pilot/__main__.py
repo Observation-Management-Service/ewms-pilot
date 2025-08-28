@@ -14,9 +14,9 @@ LOGGER = logging.getLogger(__package__)  # for __main__ use instead of __name__
 def setup_logging() -> None:
     """Set up loggers."""
     logging_tools.set_level(
-        ENV.EWMS_PILOT_CL_LOG,  # type: ignore[arg-type]
+        ENV.EWMS_PILOT_CL_LOG,
         first_party_loggers=__package__.split(".", maxsplit=1)[0],
-        third_party_level=ENV.EWMS_PILOT_CL_LOG_THIRD_PARTY,  # type: ignore[arg-type]
+        third_party_level=ENV.EWMS_PILOT_CL_LOG_THIRD_PARTY,
         utc=True,
     )
 
