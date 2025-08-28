@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import time
 
 from wipac_dev_tools import logging_tools
 
@@ -18,9 +17,8 @@ def setup_logging() -> None:
         ENV.EWMS_PILOT_CL_LOG,  # type: ignore[arg-type]
         first_party_loggers=__package__.split(".", maxsplit=1)[0],
         third_party_level=ENV.EWMS_PILOT_CL_LOG_THIRD_PARTY,  # type: ignore[arg-type]
-        use_coloredlogs=True,
+        utc=True,
     )
-    logging.Formatter.converter = time.gmtime  # set logs to utc time
 
 
 def main() -> None:
