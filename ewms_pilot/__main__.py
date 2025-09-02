@@ -11,15 +11,19 @@ from .pilot import consume_and_reply
 LOGGER = logging.getLogger(__package__)  # for __main__ use instead of __name__
 
 
+def setup_logging() -> None:
+    """Set up loggers."""
+    logging_tools.set_level(
+        ENV.EWMS_PILOT_CL_LOG,
+        first_party_loggers=__package__.split(".", maxsplit=1)[0],
+        third_party_level=ENV.EWMS_PILOT_CL_LOG_THIRD_PARTY,
+        utc=True,
+    )
+
+
 def main() -> None:
     """Start up EWMS Pilot to do tasks, communicate via message passing."""
-
-    logging_tools.set_level(
-        ENV.EWMS_PILOT_CL_LOG,  # type: ignore[arg-type]
-        first_party_loggers=__package__.split(".", maxsplit=1)[0],
-        third_party_level=ENV.EWMS_PILOT_CL_LOG_THIRD_PARTY,  # type: ignore[arg-type]
-        use_coloredlogs=True,
-    )
+    setup_logging()
 
     # GO!
     LOGGER.info("Running from CL: starting up an EWMS Pilot...")

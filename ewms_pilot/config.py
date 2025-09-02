@@ -5,8 +5,9 @@ import enum
 import logging
 import os
 from pathlib import Path
+from typing import Literal
 
-from wipac_dev_tools import from_environment_as_dataclass
+from wipac_dev_tools import from_environment_as_dataclass, logging_tools
 
 LOGGER = logging.getLogger(__name__)
 
@@ -72,12 +73,12 @@ class EnvConfig:
     EWMS_PILOT_EXTERNAL_DIRECTORIES: str = ""  # comma-delimited
 
     # logging -- only used when running via command line
-    EWMS_PILOT_CL_LOG: str = "INFO"  # level for 1st-party loggers
-    EWMS_PILOT_CL_LOG_THIRD_PARTY: str = "WARNING"  # level for 3rd-party loggers
+    EWMS_PILOT_CL_LOG: logging_tools.LoggerLevel = "INFO"  # level for 1st-party loggers
+    EWMS_PILOT_CL_LOG_THIRD_PARTY: logging_tools.LoggerLevel = "WARNING"  # for 3rd ''
 
     # chirp
     EWMS_PILOT_HTCHIRP: bool = False
-    EWMS_PILOT_HTCHIRP_DEST: str = "JOB_ATTR"  # ["JOB_EVENT_LOG", "JOB_ATTR"]
+    EWMS_PILOT_HTCHIRP_DEST: Literal["JOB_EVENT_LOG", "JOB_ATTR"] = "JOB_ATTR"
     EWMS_PILOT_HTCHIRP_RATELIMIT_INTERVAL: float = 60.0
 
     # timing config -- tasks
@@ -149,12 +150,6 @@ class EnvConfig:
                 f"Cannot define 'EWMS_PILOT_QUARANTINE_TIME' while "
                 f"'EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR' is "
                 f"'{self.EWMS_PILOT_STOP_LISTENING_ON_TASK_ERROR}'"
-            )
-
-        # value must be one of these...
-        if self.EWMS_PILOT_HTCHIRP_DEST not in ["JOB_EVENT_LOG", "JOB_ATTR"]:
-            raise RuntimeError(
-                f"Invalid EWMS_PILOT_HTCHIRP_DEST: {self.EWMS_PILOT_HTCHIRP_DEST}"
             )
 
 
