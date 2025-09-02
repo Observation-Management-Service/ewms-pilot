@@ -58,10 +58,23 @@ RUN \
         apt-get install -y --no-install-recommends \
           ca-certificates curl git build-essential pkg-config \
           libseccomp-dev libgpgme-dev uidmap squashfs-tools cryptsetup; \
-        curl -fsSL "https://go.dev/dl/go${GO_VERSION}.linux-amd64.tar.gz" -o /tmp/go.tgz; \
+        \
+        # -----------------------
+        # Choose correct Go arch
+        # -----------------------
+        GO_DEB_ARCH="$(dpkg --print-architecture)"; \
+        case "${GO_DEB_ARCH}" in \
+          amd64)   GO_TARBALL_ARCH="linux-amd64"  ;; \
+          arm64|aarch64) GO_TARBALL_ARCH="linux-arm64" ;; \
+          armhf|armv7l)  GO_TARBALL_ARCH="linux-armv6l" ;; \
+          *) echo "ERROR: unsupported architecture for Go: ${GO_DEB_ARCH}"; exit 1 ;; \
+        esac; \
+        \
+        curl -fsSL "https://go.dev/dl/go${GO_VERSION}.${GO_TARBALL_ARCH}.tar.gz" -o /tmp/go.tgz; \
         rm -rf /usr/local/go && tar -C /usr/local -xzf /tmp/go.tgz; \
         export PATH=/usr/local/go/bin:$PATH; \
         go version >/dev/null; \
+        \
         git clone --depth 1 --branch "v${APPTAINER_VERSION}" https://github.com/apptainer/apptainer.git /tmp/apptainer; \
         cd /tmp/apptainer; \
         # mconfig needs an explicit choice when user namespaces are disabled; use --without-suid for container builds
