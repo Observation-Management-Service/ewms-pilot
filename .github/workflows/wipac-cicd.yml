@@ -10,7 +10,7 @@ on:
 # not using concurrency -- it makes A/B debugging difficult. Now, manually cancel prev tests if needed
 
 env:
-  RABBITMQ_IMAGE_TAG: bitnami/rabbitmq:3.13.5
+  RABBITMQ_IMAGE_TAG: bitnamilegacy/rabbitmq:3.13.5
   PULSAR_IMAGE_TAG: apachepulsar/pulsar:2.6.0
   NATS_IMAGE_TAG: nats:2.10.18
   #
