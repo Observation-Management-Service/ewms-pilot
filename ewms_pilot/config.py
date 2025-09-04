@@ -187,7 +187,9 @@ BIND_MOUNT_IN_CONTAINER_READONLY_DIRS = [
     Path("/sbin"),  # System binaries
     # Sensitive user/system directories
     Path("/root"),  # Root user's home directory
-    Path("/var"),  # Logs, caches, spool data
+    Path("/var/log"),  # Logs
+    Path("/var/cache"),  # Caches
+    Path("/var/spool"),  # Spool data
     # Virtual and kernel interfaces
     Path("/proc"),  # Kernel and process interface
     Path("/dev"),  # Device files
@@ -216,7 +218,9 @@ BIND_MOUNT_ON_PILOT_READONLY_DIRS = [
     Path("/sbin"),  # System binaries
     # Sensitive user/system directories
     Path("/root"),  # Root user's home directory
-    Path("/var"),  # Logs, caches, spool data
+    Path("/var/log"),  # Logs
+    Path("/var/cache"),  # Caches
+    Path("/var/spool"),  # Spool data
 ]
 
 
