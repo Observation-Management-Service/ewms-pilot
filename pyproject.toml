@@ -11,7 +11,7 @@ build-backend = "setuptools.build_meta"
 [project]
 dependencies = [
     'htchirp',
-    'htcondor',
+    'htcondor<24.0.0',
     'numpy',
     'oms-mqclient',
 ]
