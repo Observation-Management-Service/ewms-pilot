@@ -108,7 +108,7 @@ jobs:
   py-dependencies:
     needs: [ py-versions ]
     runs-on: ubuntu-latest
-    concurrency:
+    concurrency: # use a special concurrency here so we don't keep building and re-building images
       group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
       cancel-in-progress: true
     steps:
