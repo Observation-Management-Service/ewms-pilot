@@ -7,7 +7,11 @@ on:
     tags-ignore:
       - '**'
 
-# not using concurrency -- it makes A/B debugging difficult. Now, manually cancel prev tests if needed
+# these tests can many minutes -- comment/uncomment block on a per-PR basis
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # don't cancel on main/master/default
+  cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 
 env:
   RABBITMQ_IMAGE_TAG: bitnamilegacy/rabbitmq:3.13.5
@@ -94,7 +98,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.2
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.7
         with:
           mode: PACKAGING
           python_min: 3.12
@@ -104,9 +108,10 @@ jobs:
   py-dependencies:
     needs: [ py-versions ]
     runs-on: ubuntu-latest
-    concurrency:
+    concurrency: # use a special concurrency here so we don't keep building and re-building images
       group: ${{ github.workflow }}-${{ github.ref }}-${{ github.job }}
-      cancel-in-progress: true
+      # don't cancel on main/default
+      cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -267,13 +272,14 @@ jobs:
           python-version: ${{ matrix.py3 }}
 
       - if: ${{ matrix.broker_client == 'rabbitmq' }}
+        name: "rabbitmq only: jlumbroso/free-disk-space@main"
         uses: jlumbroso/free-disk-space@main
         with:
           android: false  # this is a LOT of space, so it takes longer to remove
           docker-images: false  # we may actually need this one
 
       - if: ${{ matrix.container_platform == 'docker' }}
-        name: install sysbox (needed for docker-in-docker)
+        name: "docker only: install sysbox — needed for docker-in-docker"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker --version
@@ -287,9 +293,11 @@ jobs:
           # sudo systemctl status sysbox -n20  # used below
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        uses: eWaterCycle/setup-apptainer@v2
-        with:
-          apptainer-version: 1.3.2
+        name: "apptainer only: install apptainer"
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          curl -fSL https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/main/resources/install_apptainer.sh -o install_apptainer.sh
+          bash -x install_apptainer.sh
 
       - name: build docker image
         run: |
@@ -341,7 +349,7 @@ jobs:
           fi
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: build apptainer image
+        name: "apptainer only: build apptainer image"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker images
@@ -356,7 +364,7 @@ jobs:
           cat $SORTED_LIST_OF_TESTS_FILE
 
       - if: ${{ matrix.container_platform == 'docker' }}
-        name: set up docker network
+        name: "docker only: set up docker network"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           # we're connecting all the containers (broker + apps) in the same docker network

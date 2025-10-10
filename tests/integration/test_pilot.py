@@ -399,8 +399,11 @@ async def test_200__pkl_b64(
 ) -> None:
     """Test a user-defined pickle/b64-based pilot."""
 
-    dumps = lambda x: base64.b64encode(pickle.dumps(x)).decode()  # noqa: E731
+    # fmt: off
+    dumps = lambda x: base64.b64encode(pickle.dumps(x, protocol=4,)).decode()  # noqa: E731
+    # note -- 'protocol' value must match what's used in the task code below
     loads = lambda x: pickle.loads(base64.b64decode(x))  # noqa: E731
+    # fmt: on
 
     # some messages that would make sense pickling
     msgs_to_subproc = [
@@ -432,7 +435,7 @@ from datetime import date, timedelta;
 indata  = open('{{INFILE}}').read().strip()
 input   = pickle.loads(base64.b64decode(indata));
 output  = input+timedelta(days=1);
-outdata = base64.b64encode(pickle.dumps(output)).decode();
+outdata = base64.b64encode(pickle.dumps(output, protocol=4)).decode();
 print(outdata, file=open('{{OUTFILE}}','w'), end='')" """,
             queue_incoming=queue_incoming,
             queue_outgoing=queue_outgoing,
