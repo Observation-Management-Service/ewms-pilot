@@ -271,13 +271,14 @@ jobs:
           python-version: ${{ matrix.py3 }}
 
       - if: ${{ matrix.broker_client == 'rabbitmq' }}
+        name: "rabbitmq only: jlumbroso/free-disk-space@main"
         uses: jlumbroso/free-disk-space@main
         with:
           android: false  # this is a LOT of space, so it takes longer to remove
           docker-images: false  # we may actually need this one
 
       - if: ${{ matrix.container_platform == 'docker' }}
-        name: install sysbox (needed for docker-in-docker)
+        name: "docker only: install sysbox — needed for docker-in-docker"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker --version
@@ -291,7 +292,7 @@ jobs:
           # sudo systemctl status sysbox -n20  # used below
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: install apptainer
+        name: "apptainer only: install apptainer"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           curl -fSL https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/main/resources/install_apptainer.sh -o install_apptainer.sh
@@ -347,7 +348,7 @@ jobs:
           fi
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
-        name: build apptainer image
+        name: "apptainer only: build apptainer image"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker images
@@ -362,7 +363,7 @@ jobs:
           cat $SORTED_LIST_OF_TESTS_FILE
 
       - if: ${{ matrix.container_platform == 'docker' }}
-        name: set up docker network
+        name: "docker only: set up docker network"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           # we're connecting all the containers (broker + apps) in the same docker network
