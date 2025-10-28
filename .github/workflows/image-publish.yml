@@ -48,4 +48,4 @@ jobs:
       image_name: ${{ env.IMAGE_NAME }}
       mode: 'BUILD'
       build_args: CONTAINER_PLATFORM=docker
-      tag_suffix: docker
+      tag_suffix: docker-tasks
