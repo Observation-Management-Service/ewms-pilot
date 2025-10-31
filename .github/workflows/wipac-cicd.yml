@@ -165,7 +165,7 @@ jobs:
           
           docker system prune --force  # save disk space
 
-      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.1
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@not-too-soon
 
 
   ############################################################################
