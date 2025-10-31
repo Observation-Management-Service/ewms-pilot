@@ -114,7 +114,7 @@ jobs:
       cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
     steps:
       # optimization: ask the action if it would proceed before building our expensive images
-      - uses: WIPACrepo/wipac-dev-py-dependencies-action@not-too-soon
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
         id: pydep-precheck
         with:
           only_precheck: true
@@ -174,7 +174,7 @@ jobs:
           
           docker system prune --force  # save disk space
       - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
-        uses: WIPACrepo/wipac-dev-py-dependencies-action@not-too-soon
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
 
 
   ############################################################################
