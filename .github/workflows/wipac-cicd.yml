@@ -113,11 +113,19 @@ jobs:
       # don't cancel on main/default
       cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@not-too-soon
+        id: pydep-check
+        with:
+          only_precheck: true
+
+      - if: ${{ steps.pydep-check.outputs.do_generation == 'true' }}
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - name: build all images
+
+      - if: ${{ steps.pydep-check.outputs.do_generation == 'true' }}
+        name: build all images
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
@@ -165,7 +173,8 @@ jobs:
           
           docker system prune --force  # save disk space
 
-      - uses: WIPACrepo/wipac-dev-py-dependencies-action@not-too-soon
+      - if: ${{ steps.pydep-check.outputs.do_generation == 'true' }}
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@not-too-soon
 
 
   ############################################################################
