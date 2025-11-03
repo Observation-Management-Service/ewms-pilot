@@ -21,6 +21,7 @@ ENV _EWMS_PILOT_CONTAINER_PLATFORM="$CONTAINER_PLATFORM"
 # docker-in-docker (see NOTE above) — fail hard if docker not installed
 RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
       set -eux; \
+      export DEBIAN_FRONTEND=noninteractive; \
       apt-get update; \
       apt-get -qy full-upgrade; \
       apt-get install -qy curl; \
@@ -28,6 +29,8 @@ RUN if [ "$CONTAINER_PLATFORM" = "docker" ]; then \
       # verify docker installed; fail build if not
       command -v docker >/dev/null 2>&1 || { echo "ERROR: docker not found after install"; exit 1; }; \
       touch /var/log/dockerd.log; \
+      # -- also clear caches at end
+      rm -rf /var/lib/apt/lists/* /tmp/* /root/.cache; \
     else \
       echo "not installing docker"; \
     fi
@@ -93,7 +96,8 @@ RUN \
     apt-get install -y --no-install-recommends fuse3 squashfs-tools uidmap; \
     # Final sanity check
     apptainer --version || { echo "ERROR: apptainer not working after install"; exit 1; }; \
-    rm -rf /var/lib/apt/lists/*; \
+    # -- also clear caches at end
+    rm -rf /var/lib/apt/lists/* /tmp/* /root/.cache; \
   \
   # if not apptainer mode, just skip installing apptainer
   else \
@@ -111,22 +115,26 @@ RUN chmod +x /entrypoint.sh
 
 
 # Mount the entire build context (including '.git/') just for this step
+# -- also clear caches at end
 # NOTE:
 #  - mounting '.git/' allows the Python project to build with 'setuptools-scm'
 #  - no 'COPY .' because we don't want to copy extra files (especially '.git/')
 #  - using '/tmp/pip-cache' allows pip to cache
+ENV PIP_NO_CACHE_DIR=1
 RUN --mount=type=cache,target=/tmp/pip-cache \
-    pip install --upgrade "pip>=25" "setuptools>=80" "wheel>=0.45"
-RUN pip install virtualenv
+    python -m pip install --upgrade "pip>=25" "setuptools>=80" "wheel>=0.45"
+RUN python -m pip install --no-cache-dir virtualenv && rm -rf /tmp/* /root/.cache
 RUN python -m virtualenv /app/entrypoint_venv
 ARG FLAVOR="rabbitmq"
 RUN --mount=type=bind,source=.,target=/src,rw \
     --mount=type=cache,target=/tmp/pip-cache \
     bash -euxo pipefail -c '\
       . /app/entrypoint_venv/bin/activate && \
+      export DEBIAN_FRONTEND=noninteractive && \
       apt-get update && apt-get install -y --no-install-recommends git && \
-      pip install --upgrade pip && \
-      pip install --no-cache-dir /src[${FLAVOR}] \
+      python -m pip install --upgrade pip && \
+      python -m pip install --no-cache-dir /src[${FLAVOR}] && \
+      rm -rf /var/lib/apt/lists/* /tmp/* /root/.cache \
     '
 
 
