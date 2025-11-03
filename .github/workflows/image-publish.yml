@@ -12,10 +12,11 @@ on:
     branches:
       - '**'
 
+# 'env' is not available to github reusable workflow inputs -- reuse via YAML anchors
 env:
-  IMAGE_REGISTRY: ghcr.io
-  IMAGE_NAMESPACE: observation-management-service
-  IMAGE_NAME: ewms-pilot
+  IMAGE_REGISTRY: &IMAGE_REGISTRY ghcr.io
+  IMAGE_NAMESPACE: &IMAGE_NAMESPACE observation-management-service
+  IMAGE_NAME: &IMAGE_NAME ewms-pilot
 
 jobs:
 
@@ -24,9 +25,9 @@ jobs:
     permissions: # for GITHUB_TOKEN
       packages: write
     with:
-      image_registry: ${{ env.IMAGE_REGISTRY }}
-      image_namespace: ${{ env.IMAGE_NAMESPACE }}
-      image_name: ${{ env.IMAGE_NAME }}
+      image_registry: *IMAGE_REGISTRY
+      image_namespace: *IMAGE_NAMESPACE
+      image_name: *IMAGE_NAME
       mode: ${{ github.event_name == 'delete' && 'CVMFS_REMOVE' || 'CVMFS_BUILD' }}
       cvmfs_dest_dir: ewms/observation-management-service  # in heinsight, this is verbose but we've got to live with it
       # only used if mode is CVMFS_REMOVE:
@@ -43,9 +44,9 @@ jobs:
     permissions: # for GITHUB_TOKEN
       packages: write
     with:
-      image_registry: ${{ env.IMAGE_REGISTRY }}
-      image_namespace: ${{ env.IMAGE_NAMESPACE }}
-      image_name: ${{ env.IMAGE_NAME }}
+      image_registry: *IMAGE_REGISTRY
+      image_namespace: *IMAGE_NAMESPACE
+      image_name: *IMAGE_NAME
       mode: 'BUILD'
       build_args: CONTAINER_PLATFORM=docker
       tag_suffix: docker-tasks
