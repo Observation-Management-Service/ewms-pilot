@@ -17,6 +17,7 @@ def setup_logging() -> None:
         ENV.EWMS_PILOT_CL_LOG,
         first_party_loggers=__package__.split(".", maxsplit=1)[0],
         third_party_level=ENV.EWMS_PILOT_CL_LOG_THIRD_PARTY,
+        formatter=logging_tools.WIPACDevToolsFormatter(),
         utc=True,
     )
 
