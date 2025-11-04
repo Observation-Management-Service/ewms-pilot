@@ -115,7 +115,6 @@ class EnvConfig:
     _EWMS_PILOT_APPTAINER_BUILD_WORKDIR: str = "/var/tmp"
     _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT: bool = True
     _EWMS_PILOT_DOCKER_SHM_SIZE: str | None = None  # this should be set to max allowed
-    CI: bool = False  # github actions sets this to 'true'
 
     def __post_init__(self) -> None:
         """Do advanced validation."""
