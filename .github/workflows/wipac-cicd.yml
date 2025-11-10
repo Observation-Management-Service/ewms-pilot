@@ -451,6 +451,7 @@ jobs:
                           $(pwd)/cvmfs/dummy-2/dir-B:/cvmfs/dummy-2/dir-B \
                           $(realpath ${{ github.workspace }}/$(dirname $test)):/app/$(dirname $test) \
                           "
+                      export DOOD_BIND_RO_DIRS="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST:$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
                       export DOOD_FORWARD_ENV_PREFIXES="EWMS_ _EWMS_"
                       export CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine"
                       export DOOD_FORWARD_ENV_VARS="CI_TEST_ALPINE_PYTHON_IMAGE CI"
