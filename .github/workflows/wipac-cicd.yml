@@ -314,6 +314,9 @@ jobs:
               .
           docker images
 
+      - name: "mkdir $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
+        run: mkdir $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST
+
       - name: "pre-pull images for testing"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -437,7 +440,7 @@ jobs:
           
                       export DOOD_OUTER_IMAGE="${{ env.DOCKER_IMAGE_NAME }}"
                       if [[ -z "${DOOD_NETWORK:-}" ]]; then
-                          echo "::error::DOOD_NETWORK must be set — this should've been set in '.github/workflows/tests.yml'. Did it not get forwarded to this script?"
+                          echo "::error::DOOD_NETWORK must be set." 
                           exit 1
                       fi
                       export DOOD_BIND_RO_DIRS="\
