@@ -389,7 +389,7 @@ jobs:
           # step 2: START MQ BROKER — this is always in docker container, even in 'apptainer' tests
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
-              source ./tests/integration/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=mynet "
+              source ./tests/integration/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=$DOOD_NETWORK"
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
