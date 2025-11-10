@@ -304,7 +304,7 @@ jobs:
           curl -fsSL "$CI_SCRIPT_URL_INSTALL_APPTAINER" -o install-apptainer.sh && chmod +x install-apptainer.sh
           ./install-apptainer.sh --sif yes
 
-      - name: build docker image
+      - name: "build pilot docker image"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
