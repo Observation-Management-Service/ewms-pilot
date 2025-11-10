@@ -509,7 +509,7 @@ jobs:
               echo "-> PASSED"
           done
 
-      - name: pytest first failure
+      - name: "if pytest failed, dump first failure"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
