@@ -269,7 +269,7 @@ jobs:
           pytest -vvv --asyncio-mode=auto tests/unit
 
   integration-tests:
-    needs: [ py-versions ]
+    needs: [ py-versions, mypy ]
     runs-on: ubuntu-latest
     strategy:
       # fail-fast on branches, not main
