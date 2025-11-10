@@ -482,8 +482,8 @@ jobs:
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="/apptainer-prebuilds/python_alpine_sandbox/" \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF="/apptainer-prebuilds/python_alpine.sif" \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_FROM_DOCKER="python:alpine" \
-                      --env CI_CVMFS_DIR \
-                      --env CI \
+                      --env CI_CVMFS_DIR="$CI_CVMFS_DIR" \
+                      --env CI="$CI" \
                       --workdir "$temp_dir" -B "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
                       pytest -vvv --asyncio-mode=auto -s /app/$test \
