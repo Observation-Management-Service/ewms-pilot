@@ -428,7 +428,7 @@ jobs:
           
               # make (more) external directories
               # -- data dir (unique to each test)
-              export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$(pwd)/$(basename $test)-data-dir"
+              export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$(pwd)/data-dir-$(basename "$test" | sed 's/[^A-Za-z0-9._-]/_/g; s/^[-.]//; s/\(.\{255\}\).*/\1/')"
               mkdir "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
           
               # NOTE: re 'sleep N && ...': this allows all tests to be submitted in bulk, 
