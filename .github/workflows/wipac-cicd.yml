@@ -316,8 +316,9 @@ jobs:
       - name: "mkdir $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$(pwd)/blah"
-          mkdir $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST
+          dir="$(pwd)/blah"
+          echo "EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST=$dir" >> $GITHUB_ENV
+          mkdir $dir
 
       - name: "pre-pull images for testing"
         run: |
