@@ -410,13 +410,14 @@ jobs:
           docker ps
           
           # step 3: make external directories — used in like 1 test
+          export CI_CVMFS_DIR="$(pwd)/cvmfs"
           export EWMS_PILOT_EXTERNAL_DIRECTORIES="/cvmfs/dummy-1/dir-A,/cvmfs/dummy-2/dir-B"
-          mkdir -p $(pwd)/cvmfs/dummy-1/dir-A
+          mkdir -p "$CI_CVMFS_DIR/dummy-1/dir-A"
           echo "alpha" > $(pwd)/cvmfs/dummy-1/dir-A/file.txt
-          mkdir -p $(pwd)/cvmfs/dummy-2/dir-B
+          mkdir -p "$CI_CVMFS_DIR/dummy-2/dir-B"
           echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
 
-          # step 4: RUN!          
+          # step 4: RUN!
           # -- iterate each test, starting each in its own container
           set +x
           echo "--------------------------------------------------------------"
@@ -447,15 +448,14 @@ jobs:
                           exit 1
                       fi
                       export DOOD_BIND_RO_DIRS="\
-                          $(pwd)/repo/:/repo/ \
-                          $(pwd)/cvmfs/dummy-1/dir-A:/cvmfs/dummy-1/dir-A \
-                          $(pwd)/cvmfs/dummy-2/dir-B:/cvmfs/dummy-2/dir-B \
-                          $(realpath ${{ github.workspace }}/$(dirname $test)):/app/$(dirname $test) \
+                          $(pwd)/cvmfs/dummy-1/dir-A \
+                          $(pwd)/cvmfs/dummy-2/dir-B \
+                          $(realpath ${{ github.workspace }}/$(dirname $test)) \
                           "
-                      export DOOD_BIND_RW_DIRS="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST:$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
+                      export DOOD_BIND_RW_DIRS="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
                       export DOOD_FORWARD_ENV_PREFIXES="EWMS_ _EWMS_"
                       export CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine"
-                      export DOOD_FORWARD_ENV_VARS="CI_TEST_ALPINE_PYTHON_IMAGE CI"
+                      export DOOD_FORWARD_ENV_VARS="CI_TEST_ALPINE_PYTHON_IMAGE CI CI_CVMFS_DIR"
                       export DOOD_OUTER_CMD="pytest -vvv --asyncio-mode=auto -s $test"
           
                       ./run-dood.sh
@@ -473,7 +473,6 @@ jobs:
                   # '--workdir' allows using host disk instead of memory
                   sleep "$(($i*$test_offset_delay))" && apptainer run \
                       --containall --writable-tmpfs --no-eval \
-                      --mount type=bind,source=$(pwd),target=/repo/,readonly \
                       --mount type=bind,source=$(pwd)/apptainer-prebuilds,target=/apptainer-prebuilds/ \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
                       --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
@@ -483,7 +482,8 @@ jobs:
                       --env CI_TEST_ALPINE_PYTHON_IMAGE="/apptainer-prebuilds/python_alpine_sandbox/" \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF="/apptainer-prebuilds/python_alpine.sif" \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_FROM_DOCKER="python:alpine" \
-                      --env CI=$CI \
+                      --env CI_CVMFS_DIR \
+                      --env CI \
                       --workdir "$temp_dir" -B "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
                       pytest -vvv --asyncio-mode=auto -s /app/$test \

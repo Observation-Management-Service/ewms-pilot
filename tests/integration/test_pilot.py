@@ -1176,6 +1176,7 @@ with open('{{DATA_HUB}}' + '/initoutput', 'w') as f:
 
 
 async def test_3000_external_directories(
+    monkeypatch,
     queue_incoming: str,
     queue_outgoing: str,
 ) -> None:
@@ -1184,6 +1185,10 @@ async def test_3000_external_directories(
     msgs_outgoing_expected = [f"{x}alphabeta\n" for x in msgs_to_subproc]
 
     assert os.getenv("EWMS_PILOT_EXTERNAL_DIRECTORIES")
+
+    # pass in the cvmfs path
+    for e in ["EWMS_PILOT_INIT_ENV_JSON", "EWMS_PILOT_TASK_ENV_JSON"]:
+        monkeypatch.setenv(e, json.dumps({"CVMFS_DIR": os.getenv("CI_CVMFS_DIR")}))
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -1196,16 +1201,16 @@ async def test_3000_external_directories(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 import os
-file_one='/cvmfs/dummy-1/dir-A/file.txt'
-file_two='/cvmfs/dummy-2/dir-B/file.txt'
+file_one = os.environ['CVMFS_DIR'] + '/dummy-1/dir-A/file.txt'
+file_two = os.environ['CVMFS_DIR'] + '/dummy-2/dir-B/file.txt'
 output = open('{{INFILE}}').read().strip() + open(file_one).read().strip() + open(file_two).read().strip();
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
-file_one='/cvmfs/dummy-1/dir-A/file.txt'
+file_one = os.environ['CVMFS_DIR'] + '/dummy-1/dir-A/file.txt'
 assert open(file_one).read().strip() == 'alpha'
-file_two='/cvmfs/dummy-2/dir-B/file.txt'
+file_two = os.environ['CVMFS_DIR'] + '/dummy-2/dir-B/file.txt'
 assert open(file_two).read().strip() == 'beta'
 " """,
             queue_incoming=queue_incoming,
