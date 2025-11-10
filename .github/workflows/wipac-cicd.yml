@@ -411,11 +411,11 @@ jobs:
           
           # step 3: make external directories — used in like 1 test
           export CI_CVMFS_DIR="$(pwd)/cvmfs"
-          export EWMS_PILOT_EXTERNAL_DIRECTORIES="/cvmfs/dummy-1/dir-A,/cvmfs/dummy-2/dir-B"
+          export EWMS_PILOT_EXTERNAL_DIRECTORIES="$CI_CVMFS_DIR/dummy-1/dir-A,$CI_CVMFS_DIR/dummy-2/dir-B"
           mkdir -p "$CI_CVMFS_DIR/dummy-1/dir-A"
-          echo "alpha" > $(pwd)/cvmfs/dummy-1/dir-A/file.txt
+          echo "alpha" > "$CI_CVMFS_DIR/dummy-1/dir-A/file.txt"
           mkdir -p "$CI_CVMFS_DIR/dummy-2/dir-B"
-          echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
+          echo "beta" > "$CI_CVMFS_DIR/dummy-2/dir-B/file.txt"
 
           # step 4: RUN!
           # -- iterate each test, starting each in its own container
@@ -448,8 +448,8 @@ jobs:
                           exit 1
                       fi
                       export DOOD_BIND_RO_DIRS="\
-                          $(pwd)/cvmfs/dummy-1/dir-A \
-                          $(pwd)/cvmfs/dummy-2/dir-B \
+                          $CI_CVMFS_DIR/dummy-1/dir-A \
+                          $CI_CVMFS_DIR/dummy-2/dir-B \
                           $(realpath ${{ github.workspace }}/$(dirname $test)) \
                           "
                       export DOOD_BIND_RW_DIRS="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
@@ -474,8 +474,8 @@ jobs:
                   sleep "$(($i*$test_offset_delay))" && apptainer run \
                       --containall --writable-tmpfs --no-eval \
                       --mount type=bind,source=$(pwd)/apptainer-prebuilds,target=/apptainer-prebuilds/ \
-                      --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
-                      --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
+                      --mount type=bind,source=$CI_CVMFS_DIR/dummy-1/dir-A,target=$CI_CVMFS_DIR/dummy-1/dir-A,readonly \
+                      --mount type=bind,source=$CI_CVMFS_DIR/dummy-2/dir-B,target=$CI_CVMFS_DIR/dummy-2/dir-B,readonly \
                       --mount type=bind,source="$(realpath ${{ github.workspace }}/$(dirname $test))",target="/app/$(dirname $test)",readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
