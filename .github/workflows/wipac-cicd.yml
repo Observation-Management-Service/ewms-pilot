@@ -15,8 +15,8 @@ concurrency:
 
 env:
   # url pointing to remote helper scripts — versioned!
-  CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/apptainer/install-apptainer.sh
-  CI_SCRIPT_URL_DOOD_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/resource-scripts/resources/docker/run-docker-outside-of-docker.sh
+  CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/tags/v1.17.8/resources/apptainer/install-apptainer.sh
+  CI_SCRIPT_URL_DOOD_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/tags/v1.17.8/resources/docker/run-docker-outside-of-docker.sh
   #
   # a special network set up so docker scanner clients (inside of docker pilots) can talk to the mq broker
   DOOD_NETWORK: mynet
