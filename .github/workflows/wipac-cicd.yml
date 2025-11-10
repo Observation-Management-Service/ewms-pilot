@@ -427,7 +427,7 @@ jobs:
           i=0
           while read test; do
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-              echo "starting test $test"
+              echo "starting test $test (in background)"
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
           
               # NOTE: re 'sleep N && ...': this allows all tests to be submitted in bulk, 
