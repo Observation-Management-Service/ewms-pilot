@@ -93,7 +93,8 @@ async def assert_results(
 def assert_pilot_dirs(
     expected_n_tasks: int,
     expected_task_dir_contents: List[str],
-    expected_data_hub_dir_contents: Optional[List[str]] = None,
+    *,
+    expected_data_hub_dir_contents: Optional[List[Path]] = None,
     expected_has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
@@ -115,12 +116,13 @@ def assert_pilot_dirs(
     def _assert_has_all_paths(expected: list[Path], actual: list[Path]) -> None:
         expected = sorted(expected)
         actual = sorted(actual)
+        context = (
+            f"expected={[str(p) for p in expected]}, actual={[str(p) for p in actual]}"
+        )
         for ep in expected:
-            assert (
-                ep in actual
-            ), f"missing expected fpath: {ep} ({expected=}, {actual=})"
+            assert ep in actual, f"missing expected fpath: {ep} ({context})"
         extras = [f for f in actual if f not in expected]
-        assert not extras, f"found extra fpath(s): {extras} ({expected=}, {actual=})"
+        assert not extras, f"found extra fpath(s): {extras} ({context})"
 
     actual_subdirs = list(PILOT_DATA_DIR.iterdir())
     for actual_subdir in actual_subdirs:
@@ -993,7 +995,7 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
             "outputs/stdoutfile",
             "outputs/",
         ],
-        ["initoutput"],
+        expected_data_hub_dir_contents=[Path("initoutput")],
         expected_has_init_cmd_subdir=True,
     )
 
@@ -1135,7 +1137,7 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
             "outputs/stdoutfile",
             "outputs/",
         ],
-        ["initoutput"],
+        expected_data_hub_dir_contents=[Path("initoutput")],
         expected_has_init_cmd_subdir=True,
     )
 
@@ -1189,7 +1191,7 @@ with open('{{DATA_HUB}}' + '/initoutput', 'w') as f:
             "outputs/stdoutfile",
             "outputs/",
         ],
-        ["initoutput"],
+        expected_data_hub_dir_contents=[Path("initoutput")],
         expected_has_init_cmd_subdir=True,
     )
 
@@ -1253,7 +1255,7 @@ assert open(file_two).read().strip() == 'beta'
             "outputs/stdoutfile",
             "outputs/",
         ],
-        [],
+        expected_data_hub_dir_contents=[],
         expected_has_init_cmd_subdir=True,
     )
 
@@ -1411,6 +1413,6 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
             "outputs/stdoutfile",
             "outputs/",
         ],
-        ["initoutput"],
+        expected_data_hub_dir_contents=[Path("initoutput")],
         expected_has_init_cmd_subdir=True,
     )
