@@ -313,13 +313,6 @@ jobs:
               .
           docker images
 
-      - name: "mkdir $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          dir="$(pwd)/blah"
-          echo "EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST=$dir" >> $GITHUB_ENV
-          mkdir $dir
-
       - name: "pre-pull images for testing"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
@@ -409,7 +402,8 @@ jobs:
           fi
           docker ps
           
-          # step 3: make external directories — used in like 1 test
+          # step 3: make external directories
+          # -- cvmfs (used in like 1 test)
           export CI_CVMFS_DIR="$(pwd)/cvmfs"
           export EWMS_PILOT_EXTERNAL_DIRECTORIES="$CI_CVMFS_DIR/dummy-1/dir-A,$CI_CVMFS_DIR/dummy-2/dir-B"
           mkdir -p "$CI_CVMFS_DIR/dummy-1/dir-A"
@@ -430,6 +424,11 @@ jobs:
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
               echo "starting test $test (in background)"
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+          
+              # make (more) external directories
+              # -- data dir (unique to each test)
+              export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$(pwd)/$(basename $test)-data-dir"
+              mkdir "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
           
               # NOTE: re 'sleep N && ...': this allows all tests to be submitted in bulk, 
               #   then waited for in order, PLUS it has a built-in delay to not overwhelm
