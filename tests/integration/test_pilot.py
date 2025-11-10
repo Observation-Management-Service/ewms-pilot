@@ -1212,7 +1212,7 @@ async def test_3000_external_directories(
 
     # pass in the cvmfs path
     for e in ["EWMS_PILOT_INIT_ENV_JSON", "EWMS_PILOT_TASK_ENV_JSON"]:
-        monkeypatch.setenv(e, json.dumps({"CVMFS_DIR": os.getenv("CI_CVMFS_DIR")}))
+        object.__setattr__(ENV, e, json.dumps({"CVMFS_DIR": os.getenv("CI_CVMFS_DIR")}))
 
     # run producer & consumer concurrently
     await asyncio.gather(
