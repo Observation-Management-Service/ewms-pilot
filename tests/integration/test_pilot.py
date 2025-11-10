@@ -114,9 +114,11 @@ def assert_pilot_dirs(
 
     def _assert_has_all_paths(expected: list[Path], actual: list[Path]) -> None:
         for ep in sorted(expected):
-            assert ep in actual, f"missing expected fpath: {ep}"
+            assert (
+                ep in actual
+            ), f"missing expected fpath: {ep} ({expected=}, {actual=})"
         extras = [f for f in actual if f not in expected]
-        assert not extras, f"found extra fpath(s): {extras}"
+        assert not extras, f"found extra fpath(s): {extras} ({expected=}, {actual=})"
 
     subdirs = list(PILOT_DATA_DIR.iterdir())
     for subdir in subdirs:
