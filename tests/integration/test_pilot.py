@@ -113,7 +113,9 @@ def assert_pilot_dirs(
     #
 
     def _assert_has_all_paths(expected: list[Path], actual: list[Path]) -> None:
-        for ep in sorted(expected):
+        expected = sorted(expected)
+        actual = sorted(actual)
+        for ep in expected:
             assert (
                 ep in actual
             ), f"missing expected fpath: {ep} ({expected=}, {actual=})"
