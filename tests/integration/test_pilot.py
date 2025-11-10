@@ -9,6 +9,7 @@ import pickle
 import re
 import time
 from datetime import date, timedelta
+from pathlib import Path
 from pprint import pprint
 from typing import List, Optional
 from unittest.mock import patch
@@ -100,7 +101,9 @@ def assert_pilot_dirs(
 
     # validate args
     task_dir_contents = [c.rstrip("/") for c in task_dir_contents]
-    assert len(task_dir_contents) == len(set(task_dir_contents))  # no duplicates
+    assert len(task_dir_contents) == len(
+        set(task_dir_contents)
+    ), "task dir contains duplicates"
     #
     if not data_hub_dir_contents:
         data_hub_dir_contents = []
@@ -108,6 +111,12 @@ def assert_pilot_dirs(
     #
     # check each task's dir contents
     #
+
+    def _assert_has_all_paths(expected: list[Path], actual: list[Path]) -> None:
+        for ep in sorted(expected):
+            assert ep in actual, f"missing expected fpath: {ep}"
+        extras = [f for f in actual if f not in expected]
+        assert not extras, f"found extra fpath(s): {extras}"
 
     subdirs = list(PILOT_DATA_DIR.iterdir())
     for subdir in subdirs:
@@ -118,8 +127,9 @@ def assert_pilot_dirs(
         # is this the data-hub subdir?
         if subdir.name != "data-hub":
             continue
-        assert sorted(str(p.relative_to(subdir)) for p in subdir.rglob("*")) == sorted(
-            data_hub_dir_contents
+        _assert_has_all_paths(
+            [p.relative_to(subdir) for p in subdir.rglob("*")],
+            data_hub_dir_contents,
         )
         subdirs.remove(subdir)
         break
@@ -130,9 +140,14 @@ def assert_pilot_dirs(
             # is this an init subdir?
             if not subdir.name.startswith("init"):
                 continue
-            assert sorted(
-                str(p.relative_to(subdir)) for p in subdir.rglob("*")
-            ) == sorted(["outputs/stderrfile", "outputs/stdoutfile", "outputs"])
+            _assert_has_all_paths(
+                [p.relative_to(subdir) for p in subdir.rglob("*")],
+                [
+                    Path("outputs/stderrfile"),
+                    Path("outputs/stdoutfile"),
+                    Path("outputs"),
+                ],
+            )
             subdirs.remove(subdir)
             break
 
@@ -144,13 +159,14 @@ def assert_pilot_dirs(
 
         # look at files -- flattened tree
         this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
-        assert sorted(this_task_files) == sorted(
-            str(p.relative_to(subdir)) for p in subdir.rglob("*")
+        _assert_has_all_paths(
+            [Path(p) for p in this_task_files],
+            [p.relative_to(subdir) for p in subdir.rglob("*")],
         )
         n_task_dirs += 1
 
     # check num of task dirs -- we do not guarantee deliver-once, so must use >=
-    assert n_task_dirs >= n_tasks
+    assert n_task_dirs >= n_tasks, "not enough task directories"
 
 
 ########################################################################################
