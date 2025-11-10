@@ -91,22 +91,22 @@ async def assert_results(
 
 
 def assert_pilot_dirs(
-    n_tasks: int,
-    task_dir_contents: List[str],
-    data_hub_dir_contents: Optional[List[str]] = None,
-    has_init_cmd_subdir: bool = False,
+    expected_n_tasks: int,
+    expected_task_dir_contents: List[str],
+    expected_data_hub_dir_contents: Optional[List[str]] = None,
+    expected_has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
     pprint(list(PILOT_DATA_DIR.rglob("*")))  # for debugging
 
     # validate args
-    task_dir_contents = [c.rstrip("/") for c in task_dir_contents]
-    assert len(task_dir_contents) == len(
-        set(task_dir_contents)
+    expected_task_dir_contents = [c.rstrip("/") for c in expected_task_dir_contents]
+    assert len(expected_task_dir_contents) == len(
+        set(expected_task_dir_contents)
     ), "task dir contains duplicates"
     #
-    if not data_hub_dir_contents:
-        data_hub_dir_contents = []
+    if not expected_data_hub_dir_contents:
+        expected_data_hub_dir_contents = []
 
     #
     # check each task's dir contents
@@ -122,55 +122,57 @@ def assert_pilot_dirs(
         extras = [f for f in actual if f not in expected]
         assert not extras, f"found extra fpath(s): {extras} ({expected=}, {actual=})"
 
-    subdirs = list(PILOT_DATA_DIR.iterdir())
-    for subdir in subdirs:
-        assert subdir.is_dir()
+    actual_subdirs = list(PILOT_DATA_DIR.iterdir())
+    for actual_subdir in actual_subdirs:
+        assert actual_subdir.is_dir()
 
     # data-hub
-    for subdir in subdirs.copy():
+    for actual_subdir in actual_subdirs.copy():
         # is this the data-hub subdir?
-        if subdir.name != "data-hub":
+        if actual_subdir.name != "data-hub":
             continue
         _assert_has_all_paths(
-            [p.relative_to(subdir) for p in subdir.rglob("*")],
-            data_hub_dir_contents,
+            expected_data_hub_dir_contents,
+            [p.relative_to(actual_subdir) for p in actual_subdir.rglob("*")],
         )
-        subdirs.remove(subdir)
+        actual_subdirs.remove(actual_subdir)
         break
 
     # init dir
-    if has_init_cmd_subdir:
-        for subdir in subdirs.copy():
+    if expected_has_init_cmd_subdir:
+        for actual_subdir in actual_subdirs.copy():
             # is this an init subdir?
-            if not subdir.name.startswith("init"):
+            # -> no
+            if not actual_subdir.name.startswith("init"):
                 continue
-            _assert_has_all_paths(
-                [p.relative_to(subdir) for p in subdir.rglob("*")],
-                [
-                    Path("outputs/stderrfile"),
-                    Path("outputs/stdoutfile"),
-                    Path("outputs"),
-                ],
-            )
-            subdirs.remove(subdir)
-            break
+            # -> yes
+            else:
+                _assert_has_all_paths(
+                    [
+                        Path("outputs/stderrfile"),
+                        Path("outputs/stdoutfile"),
+                        Path("outputs"),
+                    ],
+                    [p.relative_to(actual_subdir) for p in actual_subdir.rglob("*")],
+                )
+                actual_subdirs.remove(actual_subdir)
+                break
 
     # task dirs
-    n_task_dirs = 0
-    for subdir in subdirs:
+    actual_n_task_dirs = 0
+    for actual_subdir in actual_subdirs:
         # now we know this is a task dir
-        task_id = subdir.name
+        task_id = actual_subdir.name
 
         # look at files -- flattened tree
-        this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
         _assert_has_all_paths(
-            [Path(p) for p in this_task_files],
-            [p.relative_to(subdir) for p in subdir.rglob("*")],
+            [Path(f.replace("{UUID}", task_id)) for f in expected_task_dir_contents],
+            [p.relative_to(actual_subdir) for p in actual_subdir.rglob("*")],
         )
-        n_task_dirs += 1
+        actual_n_task_dirs += 1
 
     # check num of task dirs -- we do not guarantee deliver-once, so must use >=
-    assert n_task_dirs >= n_tasks, "not enough task directories"
+    assert actual_n_task_dirs >= expected_n_tasks, "not enough task directories"
 
 
 ########################################################################################
@@ -992,7 +994,7 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
             "outputs/",
         ],
         ["initoutput"],
-        has_init_cmd_subdir=True,
+        expected_has_init_cmd_subdir=True,
     )
 
 
@@ -1134,7 +1136,7 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
             "outputs/",
         ],
         ["initoutput"],
-        has_init_cmd_subdir=True,
+        expected_has_init_cmd_subdir=True,
     )
 
 
@@ -1188,7 +1190,7 @@ with open('{{DATA_HUB}}' + '/initoutput', 'w') as f:
             "outputs/",
         ],
         ["initoutput"],
-        has_init_cmd_subdir=True,
+        expected_has_init_cmd_subdir=True,
     )
 
 
@@ -1252,7 +1254,7 @@ assert open(file_two).read().strip() == 'beta'
             "outputs/",
         ],
         [],
-        has_init_cmd_subdir=True,
+        expected_has_init_cmd_subdir=True,
     )
 
 
@@ -1410,5 +1412,5 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
             "outputs/",
         ],
         ["initoutput"],
-        has_init_cmd_subdir=True,
+        expected_has_init_cmd_subdir=True,
     )
