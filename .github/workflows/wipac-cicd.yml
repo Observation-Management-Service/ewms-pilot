@@ -32,7 +32,6 @@ env:
   EWMS_PILOT_TIMEOUT_INCOMING: 1
   EWMS_PILOT_TIMEOUT_OUTGOING: 1
   EWMS_PILOT_KEEP_ALL_TASK_FILES: True
-  EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST: /blah/
   #
   _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT: False  # allow real-time conversion
   #
@@ -315,7 +314,10 @@ jobs:
           docker images
 
       - name: "mkdir $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
-        run: mkdir $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST
+        run: |
+          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$(pwd)/blah"
+          mkdir $EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST
 
       - name: "pre-pull images for testing"
         run: |
