@@ -1232,6 +1232,7 @@ print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
+import os
 file_one = os.environ['CVMFS_DIR'] + '/dummy-1/dir-A/file.txt'
 assert open(file_one).read().strip() == 'alpha'
 file_two = os.environ['CVMFS_DIR'] + '/dummy-2/dir-B/file.txt'
