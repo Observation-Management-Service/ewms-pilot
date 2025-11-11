@@ -9,6 +9,7 @@ import pickle
 import re
 import time
 from datetime import date, timedelta
+from pathlib import Path
 from pprint import pprint
 from typing import List, Optional
 from unittest.mock import patch
@@ -90,67 +91,90 @@ async def assert_results(
 
 
 def assert_pilot_dirs(
-    n_tasks: int,
-    task_dir_contents: List[str],
-    data_hub_dir_contents: Optional[List[str]] = None,
-    has_init_cmd_subdir: bool = False,
+    expected_n_tasks: int,
+    expected_task_dir_contents: List[str],
+    *,
+    expected_data_hub_dir_contents: Optional[List[Path]] = None,
+    expected_has_init_cmd_subdir: bool = False,
 ) -> None:
     """Assert the contents of the debug directory."""
     pprint(list(PILOT_DATA_DIR.rglob("*")))  # for debugging
 
     # validate args
-    task_dir_contents = [c.rstrip("/") for c in task_dir_contents]
-    assert len(task_dir_contents) == len(set(task_dir_contents))  # no duplicates
+    expected_task_dir_contents = [c.rstrip("/") for c in expected_task_dir_contents]
+    assert len(expected_task_dir_contents) == len(
+        set(expected_task_dir_contents)
+    ), "task dir contains duplicates"
     #
-    if not data_hub_dir_contents:
-        data_hub_dir_contents = []
+    if not expected_data_hub_dir_contents:
+        expected_data_hub_dir_contents = []
 
     #
     # check each task's dir contents
     #
 
-    subdirs = list(PILOT_DATA_DIR.iterdir())
-    for subdir in subdirs:
-        assert subdir.is_dir()
+    def _assert_has_all_paths(expected: list[Path], actual: list[Path]) -> None:
+        expected = sorted(expected)
+        actual = sorted(actual)
+        context = (
+            f"expected={[str(p) for p in expected]}, actual={[str(p) for p in actual]}"
+        )
+        for ep in expected:
+            assert ep in actual, f"missing expected fpath: {ep} ({context})"
+        extras = [f for f in actual if f not in expected]
+        assert not extras, f"found extra fpath(s): {extras} ({context})"
+
+    actual_subdirs = list(PILOT_DATA_DIR.iterdir())
+    for actual_subdir in actual_subdirs:
+        assert actual_subdir.is_dir()
 
     # data-hub
-    for subdir in subdirs.copy():
+    for actual_subdir in actual_subdirs.copy():
         # is this the data-hub subdir?
-        if subdir.name != "data-hub":
+        if actual_subdir.name != "data-hub":
             continue
-        assert sorted(str(p.relative_to(subdir)) for p in subdir.rglob("*")) == sorted(
-            data_hub_dir_contents
+        _assert_has_all_paths(
+            expected_data_hub_dir_contents,
+            [p.relative_to(actual_subdir) for p in actual_subdir.rglob("*")],
         )
-        subdirs.remove(subdir)
+        actual_subdirs.remove(actual_subdir)
         break
 
     # init dir
-    if has_init_cmd_subdir:
-        for subdir in subdirs.copy():
+    if expected_has_init_cmd_subdir:
+        for actual_subdir in actual_subdirs.copy():
             # is this an init subdir?
-            if not subdir.name.startswith("init"):
+            # -> no
+            if not actual_subdir.name.startswith("init"):
                 continue
-            assert sorted(
-                str(p.relative_to(subdir)) for p in subdir.rglob("*")
-            ) == sorted(["outputs/stderrfile", "outputs/stdoutfile", "outputs"])
-            subdirs.remove(subdir)
-            break
+            # -> yes
+            else:
+                _assert_has_all_paths(
+                    [
+                        Path("outputs/stderrfile"),
+                        Path("outputs/stdoutfile"),
+                        Path("outputs"),
+                    ],
+                    [p.relative_to(actual_subdir) for p in actual_subdir.rglob("*")],
+                )
+                actual_subdirs.remove(actual_subdir)
+                break
 
     # task dirs
-    n_task_dirs = 0
-    for subdir in subdirs:
+    actual_n_task_dirs = 0
+    for actual_subdir in actual_subdirs:
         # now we know this is a task dir
-        task_id = subdir.name
+        task_id = actual_subdir.name
 
         # look at files -- flattened tree
-        this_task_files = [f.replace("{UUID}", task_id) for f in task_dir_contents]
-        assert sorted(this_task_files) == sorted(
-            str(p.relative_to(subdir)) for p in subdir.rglob("*")
+        _assert_has_all_paths(
+            [Path(f.replace("{UUID}", task_id)) for f in expected_task_dir_contents],
+            [p.relative_to(actual_subdir) for p in actual_subdir.rglob("*")],
         )
-        n_task_dirs += 1
+        actual_n_task_dirs += 1
 
     # check num of task dirs -- we do not guarantee deliver-once, so must use >=
-    assert n_task_dirs >= n_tasks
+    assert actual_n_task_dirs >= expected_n_tasks, "not enough task directories"
 
 
 ########################################################################################
@@ -971,8 +995,8 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
             "outputs/stdoutfile",
             "outputs/",
         ],
-        ["initoutput"],
-        has_init_cmd_subdir=True,
+        expected_data_hub_dir_contents=[Path("initoutput")],
+        expected_has_init_cmd_subdir=True,
     )
 
 
@@ -1113,8 +1137,8 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
             "outputs/stdoutfile",
             "outputs/",
         ],
-        ["initoutput"],
-        has_init_cmd_subdir=True,
+        expected_data_hub_dir_contents=[Path("initoutput")],
+        expected_has_init_cmd_subdir=True,
     )
 
 
@@ -1167,8 +1191,8 @@ with open('{{DATA_HUB}}' + '/initoutput', 'w') as f:
             "outputs/stdoutfile",
             "outputs/",
         ],
-        ["initoutput"],
-        has_init_cmd_subdir=True,
+        expected_data_hub_dir_contents=[Path("initoutput")],
+        expected_has_init_cmd_subdir=True,
     )
 
 
@@ -1176,6 +1200,7 @@ with open('{{DATA_HUB}}' + '/initoutput', 'w') as f:
 
 
 async def test_3000_external_directories(
+    monkeypatch,
     queue_incoming: str,
     queue_outgoing: str,
 ) -> None:
@@ -1184,6 +1209,10 @@ async def test_3000_external_directories(
     msgs_outgoing_expected = [f"{x}alphabeta\n" for x in msgs_to_subproc]
 
     assert os.getenv("EWMS_PILOT_EXTERNAL_DIRECTORIES")
+
+    # pass in the cvmfs path
+    for e in ["EWMS_PILOT_INIT_ENV_JSON", "EWMS_PILOT_TASK_ENV_JSON"]:
+        object.__setattr__(ENV, e, json.dumps({"CVMFS_DIR": os.getenv("CI_CVMFS_DIR")}))
 
     # run producer & consumer concurrently
     await asyncio.gather(
@@ -1196,16 +1225,17 @@ async def test_3000_external_directories(
             f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             """python3 -c "
 import os
-file_one='/cvmfs/dummy-1/dir-A/file.txt'
-file_two='/cvmfs/dummy-2/dir-B/file.txt'
+file_one = os.environ['CVMFS_DIR'] + '/dummy-1/dir-A/file.txt'
+file_two = os.environ['CVMFS_DIR'] + '/dummy-2/dir-B/file.txt'
 output = open('{{INFILE}}').read().strip() + open(file_one).read().strip() + open(file_two).read().strip();
 print(output, file=open('{{OUTFILE}}','w'))" """,  # double cat
             #
             init_image=f"{os.environ['CI_TEST_ALPINE_PYTHON_IMAGE']}",
             init_args="""python3 -c "
-file_one='/cvmfs/dummy-1/dir-A/file.txt'
+import os
+file_one = os.environ['CVMFS_DIR'] + '/dummy-1/dir-A/file.txt'
 assert open(file_one).read().strip() == 'alpha'
-file_two='/cvmfs/dummy-2/dir-B/file.txt'
+file_two = os.environ['CVMFS_DIR'] + '/dummy-2/dir-B/file.txt'
 assert open(file_two).read().strip() == 'beta'
 " """,
             queue_incoming=queue_incoming,
@@ -1226,8 +1256,8 @@ assert open(file_two).read().strip() == 'beta'
             "outputs/stdoutfile",
             "outputs/",
         ],
-        [],
-        has_init_cmd_subdir=True,
+        expected_data_hub_dir_contents=[],
+        expected_has_init_cmd_subdir=True,
     )
 
 
@@ -1384,6 +1414,6 @@ with open(os.environ['EWMS_TASK_DATA_HUB_DIR'] + '/initoutput', 'w') as f:
             "outputs/stdoutfile",
             "outputs/",
         ],
-        ["initoutput"],
-        has_init_cmd_subdir=True,
+        expected_data_hub_dir_contents=[Path("initoutput")],
+        expected_has_init_cmd_subdir=True,
     )

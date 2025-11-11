@@ -242,19 +242,20 @@ class ContainerRunner:
         match ENV._EWMS_PILOT_CONTAINER_PLATFORM.lower():
 
             case "docker":
-                if ENV.CI:  # optimization during testing, images are *loaded* manually
-                    LOGGER.warning(
-                        f"The pilot is running in a test environment, "
-                        f"skipping 'docker pull {image}' (env var CI=True)"
-                    )
+                # First, check if the image already exists locally.
+                try:
+                    _run(f"docker image inspect {shlex.quote(image)}")
+                    LOGGER.info(f"Image {image} found locally, skipping pull.")
                     return image
+                except subprocess.CalledProcessError:
+                    LOGGER.info(f"Image {image} not found locally, pulling...")
+                # Now, pull the remote image
                 _run(
                     #
                     # NOTE: validate & sanitize values HERE--this is the point of no return!
                     #       (making calls here makes it very clear what is checked)
                     #
-                    f"docker pull "
-                    f"{shlex.quote(image)}",
+                    f"docker pull {shlex.quote(image)}",
                 )
                 return image
 

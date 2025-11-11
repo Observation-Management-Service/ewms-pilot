@@ -14,6 +14,13 @@ concurrency:
   cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
 
 env:
+  # url pointing to remote helper scripts — versioned!
+  CI_SCRIPT_URL_INSTALL_APPTAINER: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/tags/v1.17.8/resources/apptainer/install-apptainer.sh
+  CI_SCRIPT_URL_DOOD_RUN: https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/tags/v1.17.8/resources/docker/run-docker-outside-of-docker.sh
+  #
+  # a special network set up so docker scanner clients (inside of docker pilots) can talk to the mq broker
+  DOOD_NETWORK: mynet
+  #
   RABBITMQ_IMAGE_TAG: bitnamilegacy/rabbitmq:3.13.5
   PULSAR_IMAGE_TAG: apachepulsar/pulsar:2.6.0
   NATS_IMAGE_TAG: nats:2.10.18
@@ -25,7 +32,6 @@ env:
   EWMS_PILOT_TIMEOUT_INCOMING: 1
   EWMS_PILOT_TIMEOUT_OUTGOING: 1
   EWMS_PILOT_KEEP_ALL_TASK_FILES: True
-  EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST: /blah/
   #
   _EWMS_PILOT_APPTAINER_IMAGE_DIRECTORY_MUST_BE_PRESENT: False  # allow real-time conversion
   #
@@ -43,7 +49,7 @@ jobs:
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
-        uses: WIPACrepo/wipac-dev-py-versions-action@v2.7
+        uses: WIPACrepo/wipac-dev-py-versions-action@v2.8
 
 
   #############################################################################
@@ -61,7 +67,7 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-flake8-action@v1.3
@@ -80,7 +86,7 @@ jobs:
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.py3 }}
       - uses: WIPACrepo/wipac-dev-mypy-action@v2.0
@@ -98,7 +104,7 @@ jobs:
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.7
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.8
         with:
           mode: PACKAGING
           python_min: 3.12
@@ -113,11 +119,20 @@ jobs:
       # don't cancel on main/default
       cancel-in-progress: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
     steps:
-      - uses: actions/checkout@v5
+      # optimization: ask the action if it would proceed before building our expensive images
+      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
+        id: pydep-precheck
+        with:
+          only_precheck: true
+
+      # pre-check passed, so proceed...
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - name: build all images
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        name: build all images
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
@@ -164,8 +179,8 @@ jobs:
           done
           
           docker system prune --force  # save disk space
-
-      - uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.1
+      - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
+        uses: WIPACrepo/wipac-dev-py-dependencies-action@v3.4
 
 
   ############################################################################
@@ -180,7 +195,7 @@ jobs:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
       - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v5
+      - uses: docker/build-push-action@v6
         with:
           context: .
           file: Dockerfile
@@ -244,7 +259,7 @@ jobs:
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.py3 }}
       - name: pytest
@@ -254,20 +269,24 @@ jobs:
           pytest -vvv --asyncio-mode=auto tests/unit
 
   integration-tests:
-    needs: [ py-versions ]
+    needs: [ py-versions, mypy ]
     runs-on: ubuntu-latest
     strategy:
-      fail-fast: false
+      # fail-fast on branches, not main
+      fail-fast: ${{ format('refs/heads/{0}', github.event.repository.default_branch) != github.ref }}
       matrix:
         container_platform: [ docker, apptainer ]
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
         broker_client: [ pulsar, rabbitmq, nats ]
+    env:
+      EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE: ${{ matrix.broker_client }}
+      EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE: ${{ matrix.broker_client }}
     steps:
       - uses: actions/checkout@v5
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: ${{ matrix.py3 }}
 
@@ -278,28 +297,14 @@ jobs:
           android: false  # this is a LOT of space, so it takes longer to remove
           docker-images: false  # we may actually need this one
 
-      - if: ${{ matrix.container_platform == 'docker' }}
-        name: "docker only: install sysbox — needed for docker-in-docker"
-        run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          docker --version
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          temp_dir=$(mktemp -d) && cd $temp_dir
-          # https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
-          wget https://downloads.nestybox.com/sysbox/releases/v0.6.4/sysbox-ce_0.6.4-0.linux_amd64.deb
-          docker rm $(docker ps -a -q) -f  ||  echo "ok: no docker containers to remove"
-          sudo apt-get install jq
-          sudo apt-get install ./sysbox-ce_0.6.4-0.linux_amd64.deb
-          # sudo systemctl status sysbox -n20  # used below
-
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: "apptainer only: install apptainer"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          curl -fSL https://raw.githubusercontent.com/WIPACrepo/wipac-dev-tools/refs/heads/main/resources/install_apptainer.sh -o install_apptainer.sh
-          bash -x install_apptainer.sh
+          curl -fsSL "$CI_SCRIPT_URL_INSTALL_APPTAINER" -o install-apptainer.sh && chmod +x install-apptainer.sh
+          ./install-apptainer.sh --sif yes
 
-      - name: build docker image
+      - name: "build pilot docker image"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
@@ -309,11 +314,11 @@ jobs:
               .
           docker images
 
-      - name: pre-pull & save images for testing
+      - name: "pre-pull images for testing"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
-          mkdir saved-images/
+          mkdir apptainer-prebuilds/
           
           retry_command_if_255() {
               # some logic to get around docker hub's rate limiting
@@ -337,9 +342,8 @@ jobs:
           
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               retry_command_if_255 "docker pull python:alpine"
-              docker save -o saved-images/python-alpine.tar python:alpine
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
-              cd saved-images/
+              cd apptainer-prebuilds/
               # building as a sandbox (unpacked dir) allows apptainer-in-apptainer
               retry_command_if_255 "apptainer build --sandbox python_alpine_sandbox/ docker://python:alpine"
               # pilot converts .sif to apptainer dir -- only 1 test uses this
@@ -364,12 +368,11 @@ jobs:
           cat $SORTED_LIST_OF_TESTS_FILE
 
       - if: ${{ matrix.container_platform == 'docker' }}
-        name: "docker only: set up docker network"
+        name: "docker only: get docker-outside-of-docker helper script"
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
-          # we're connecting all the containers (broker + apps) in the same docker network
-          # create common network -- https://github.com/nestybox/sysbox/blob/master/docs/quickstart/kind.md#k8s-cluster-on-user-defined-bridge-networks
-          docker network create mynet
+          curl -fsSL "$CI_SCRIPT_URL_DOOD_RUN" -o "run-dood.sh"
+          chmod +x "run-dood.sh"
 
       - name: Integrate
         timeout-minutes: ${{ matrix.broker_client == 'rabbitmq' && 20  ||  15  }}  # adjust if fails, remember this is only time for *this* step
@@ -378,16 +381,15 @@ jobs:
           echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
-          # ACTIVATE FOR DOCKER-IN-DOCKER
-          if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
-              # activate sysbox -- https://github.com/nestybox/sysbox/blob/master/docs/user-guide/install-package.md
-              sudo systemctl status sysbox -n20
+          # step 1: CREATE DOCKER NETWORK
+          if [[ "${{ matrix.container_platform }}" == "docker" ]]; then
+              docker network create "$DOOD_NETWORK"
           fi
           
-          # STARTUP BROKER -- this is always in docker container, even in 'apptainer' tests
+          # step 2: START MQ BROKER — this is always in docker container, even in 'apptainer' tests
           if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
               # USE THE DOCKER NETWORK CREATED IN PREVIOUS STEP
-              source ./tests/integration/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=mynet "
+              source ./tests/integration/run-broker.sh "${{ matrix.broker_client }}" $BROKER_CONTAINER_NAME "--net=$DOOD_NETWORK"
               export EWMS_PILOT_QUEUE_INCOMING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
               export EWMS_PILOT_QUEUE_OUTGOING_BROKER_ADDRESS="$BROKER_CONTAINER_NAME"
           elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
@@ -401,31 +403,33 @@ jobs:
           fi
           docker ps
           
-          set +x  # lots of output in these loops
+          # step 3: make external directories
+          # -- cvmfs (used in like 1 test)
+          export CI_CVMFS_DIR="$(pwd)/cvmfs"
+          export EWMS_PILOT_EXTERNAL_DIRECTORIES="$CI_CVMFS_DIR/dummy-1/dir-A,$CI_CVMFS_DIR/dummy-2/dir-B"
+          mkdir -p "$CI_CVMFS_DIR/dummy-1/dir-A"
+          echo "alpha" > "$CI_CVMFS_DIR/dummy-1/dir-A/file.txt"
+          mkdir -p "$CI_CVMFS_DIR/dummy-2/dir-B"
+          echo "beta" > "$CI_CVMFS_DIR/dummy-2/dir-B/file.txt"
+
+          # step 4: RUN!
+          # -- iterate each test, starting each in its own container
+          set +x
           echo "--------------------------------------------------------------"
           echo "running tests..."
-          
-          # set queue env vars
-          export EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE=${{ matrix.broker_client }}
-          export EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE=${{ matrix.broker_client }}
-          
-          # make external directories -- used in like 1 test
-          export EWMS_PILOT_EXTERNAL_DIRECTORIES="/cvmfs/dummy-1/dir-A,/cvmfs/dummy-2/dir-B"
-          mkdir -p $(pwd)/cvmfs/dummy-1/dir-A
-          echo "alpha" > $(pwd)/cvmfs/dummy-1/dir-A/file.txt
-          mkdir -p $(pwd)/cvmfs/dummy-2/dir-B
-          echo "beta" > $(pwd)/cvmfs/dummy-2/dir-B/file.txt
-          
+          cat $SORTED_LIST_OF_TESTS_FILE
           test_offset_delay=5
           pidlist=""
-
-          # iterate each test, starting each in its own container
-          cat $SORTED_LIST_OF_TESTS_FILE
           i=0
           while read test; do
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
-              echo "starting test $test"
+              echo "starting test $test (in background)"
               echo "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~"
+          
+              # make (more) external directories
+              # -- data dir (unique to each test)
+              export EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST="$(pwd)/data-dir-$(basename "$test" | sed 's/[^A-Za-z0-9._-]/_/g; s/^[-.]//; s/\(.\{255\}\).*/\1/')"
+              mkdir "$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
           
               # NOTE: re 'sleep N && ...': this allows all tests to be submitted in bulk, 
               #   then waited for in order, PLUS it has a built-in delay to not overwhelm
@@ -434,30 +438,30 @@ jobs:
           
               if [[ "${{ matrix.container_platform }}" == 'docker' ]]; then
           
-                  set -x  # lets see the command
-                  sleep "$(($i*$test_offset_delay))" && docker run --rm \
-                      --privileged \
-                      --net=mynet  --hostname=syscont \
-                      --mount type=bind,source=$(pwd),target=/repo/,readonly \
-                      --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
-                      --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
-                      --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
-                      --mount type=bind,source="$(realpath ${{ github.workspace }}/$(dirname $test))",target="/app/$(dirname $test)",readonly \
-                      $(env | grep '^EWMS_' | awk '$0="--env "$0') \
-                      $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
-                      --env CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine" \
-                      --env CI=$CI \
-                      ${{ env.DOCKER_IMAGE_NAME }} /bin/bash -c "\
-                          docker load -i /saved-images/python-alpine.tar && \
-                          ls -l && \
-                          ls -l / && \
-                          docker images && \
-                          pytest -vvv --asyncio-mode=auto -s $test \
-                      " \
-                      >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
-                      # 2>&1   # -- uncomment to debug
-                      # exit 5 # -- uncomment to debug
-                  set +x
+                  # subshell so we can change env vars!
+                  (
+                      sleep "$(($i*$test_offset_delay))"  # sleep first
+          
+                      export DOOD_OUTER_IMAGE="${{ env.DOCKER_IMAGE_NAME }}"
+                      if [[ -z "${DOOD_NETWORK:-}" ]]; then
+                          echo "::error::DOOD_NETWORK must be set." 
+                          exit 1
+                      fi
+                      export DOOD_BIND_RO_DIRS="\
+                          $CI_CVMFS_DIR/dummy-1/dir-A \
+                          $CI_CVMFS_DIR/dummy-2/dir-B \
+                          $(realpath ${{ github.workspace }}/$(dirname $test)) \
+                          "
+                      export DOOD_BIND_RW_DIRS="$EWMS_PILOT_DATA_DIR_PARENT_PATH_ON_HOST"
+                      export DOOD_FORWARD_ENV_PREFIXES="EWMS_ _EWMS_"
+                      export CI_TEST_ALPINE_PYTHON_IMAGE="python:alpine"
+                      export DOOD_FORWARD_ENV_VARS="CI_TEST_ALPINE_PYTHON_IMAGE CI CI_CVMFS_DIR"
+                      export DOOD_OUTER_CMD="pytest -vvv --asyncio-mode=auto -s $(realpath ${{ github.workspace }})/$test"
+          
+                      ./run-dood.sh
+                  ) >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
+                  # 2>&1   # -- uncomment to debug
+                  # exit 5 # -- uncomment to debug
           
               elif [[ "${{ matrix.container_platform }}" == "apptainer" ]]; then
           
@@ -467,26 +471,22 @@ jobs:
                   temp_dir=$(mktemp -d)
                   # '--containall --writable-tmpfs --no-eval' gets us close to docker functionality
                   # '--workdir' allows using host disk instead of memory
-                  sleep "$(($i*$test_offset_delay))" && sudo apptainer run \
+                  sleep "$(($i*$test_offset_delay))" && apptainer run \
                       --containall --writable-tmpfs --no-eval \
-                      --mount type=bind,source=$(pwd),target=/repo/,readonly \
-                      --mount type=bind,source=$(pwd)/saved-images,target=/saved-images/ \
-                      --mount type=bind,source=$(pwd)/cvmfs/dummy-1/dir-A,target=/cvmfs/dummy-1/dir-A,readonly \
-                      --mount type=bind,source=$(pwd)/cvmfs/dummy-2/dir-B,target=/cvmfs/dummy-2/dir-B,readonly \
+                      --mount type=bind,source=$(pwd)/apptainer-prebuilds,target=/apptainer-prebuilds/ \
+                      --mount type=bind,source=$CI_CVMFS_DIR/dummy-1/dir-A,target=$CI_CVMFS_DIR/dummy-1/dir-A,readonly \
+                      --mount type=bind,source=$CI_CVMFS_DIR/dummy-2/dir-B,target=$CI_CVMFS_DIR/dummy-2/dir-B,readonly \
                       --mount type=bind,source="$(realpath ${{ github.workspace }}/$(dirname $test))",target="/app/$(dirname $test)",readonly \
                       $(env | grep '^EWMS_' | awk '$0="--env "$0') \
                       $(env | grep '^_EWMS_' | awk '$0="--env "$0') \
-                      --env CI_TEST_ALPINE_PYTHON_IMAGE="/saved-images/python_alpine_sandbox/" \
-                      --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF="/saved-images/python_alpine.sif" \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE="/apptainer-prebuilds/python_alpine_sandbox/" \
+                      --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_SIF="/apptainer-prebuilds/python_alpine.sif" \
                       --env CI_TEST_ALPINE_PYTHON_IMAGE_APPTAINER_FROM_DOCKER="python:alpine" \
-                      --env CI=$CI \
+                      --env CI_CVMFS_DIR="$CI_CVMFS_DIR" \
+                      --env CI="$CI" \
                       --workdir "$temp_dir" -B "$temp_dir" \
                       $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif \
-                      /bin/bash -c "\
-                          ls -l && \
-                          ls -l / && \
-                          pytest -vvv --asyncio-mode=auto -s /app/$test \
-                      " \
+                      pytest -vvv --asyncio-mode=auto -s /app/$test \
                       >> $(basename $test).test.out 2>&1 & pidlist="$pidlist $!"
                       # 2>&1   # -- uncomment to debug
                       # exit 5 # -- uncomment to debug
@@ -501,8 +501,8 @@ jobs:
               i=$((i+1))
           done < $SORTED_LIST_OF_TESTS_FILE
           
-          # wait for tests to finish
-          # https://stackoverflow.com/a/32604828/13156561
+          # step 5: wait for tests to finish
+          # -- https://stackoverflow.com/a/32604828/13156561
           sleep 3  # short sleep to help logs
           for pid in $pidlist; do
               date --rfc-3339=seconds
@@ -516,14 +516,14 @@ jobs:
               echo "-> PASSED"
           done
 
-      - name: pytest first failure
+      - name: "if pytest failed, dump first failure"
         if: always()
         run: |
           set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           file=$(grep -l -m 1 "= FAILURES =" *.test.out 2>/dev/null | head -1 || true)
           if [[ -n "$file" ]]; then
               cat "$file"
-              echo "::error::^^^^ this is the pytest out file -- this step exited with 1 because this *pytest* failed -- the ci step is okay"
+              echo "::error::test failed — see output above ($file)"
               exit 1
           else
               echo "::warning::pytest failure not found -- either all tests passed, or a test container failed before pytesting"
@@ -582,7 +582,7 @@ jobs:
       unit-tests,
       vanilla-run
     ]
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.16
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/tag-and-release.yml@v1.20
     permissions: # for GITHUB_TOKEN
       contents: write
     secrets:
