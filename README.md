@@ -15,7 +15,7 @@ EWMS's Pilot: A Job Pilot for Processing EWMS Events/Tasks
     <dt><sub>Keywords</sub></dt>
     <dd><sub>pilot&nbsp;&nbsp;·&nbsp;&nbsp;task pilot&nbsp;&nbsp;·&nbsp;&nbsp;Observation Management Service&nbsp;&nbsp;·&nbsp;&nbsp;Event Workflow Management System&nbsp;&nbsp;·&nbsp;&nbsp;EWMS&nbsp;&nbsp;·&nbsp;&nbsp;message passing&nbsp;&nbsp;·&nbsp;&nbsp;MQ</sub></dd>
     <dt><sub>URLs</sub></dt>
-    <dd><sub><a href='https://github.com/Observation-Management-Service/ewms-pilot'>Homepage</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href='https://github.com/Observation-Management-Service/ewms-pilot/issues'>Tracker</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href='https://github.com/Observation-Management-Service/ewms-pilot'>Source</a></sub></dd>
+    <dd><sub><a href='https://github.com/Observation-Management-Service/ewms-pilot'>Homepage</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href='https://github.com/Observation-Management-Service/ewms-pilot/issues'>Tracker</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href='https://github.com/Observation-Management-Service/ewms-pilot'>Source</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href='https://observation-management-service.github.io/ewms-docs/internal/pilot.html'>Documentation</a></sub></dd>
 </dl>
 
 <br>
