@@ -2,9 +2,9 @@
 [![GitHub release (latest by date including pre-releases)](https://img.shields.io/github/v/release/Observation-Management-Service/ewms-pilot?include_prereleases)](https://github.com/Observation-Management-Service/ewms-pilot) [![GitHub issues](https://img.shields.io/github/issues/Observation-Management-Service/ewms-pilot)](https://github.com/Observation-Management-Service/ewms-pilot/issues?q=is%3Aissue+sort%3Aupdated-desc+is%3Aopen) [![GitHub pull requests](https://img.shields.io/github/issues-pr/Observation-Management-Service/ewms-pilot)](https://github.com/Observation-Management-Service/ewms-pilot/pulls?q=is%3Apr+sort%3Aupdated-desc+is%3Aopen)
 <!--- End of README Badges (automated) --->
 
-# ewms-pilot v1
+# EWMS Task Pilot
 
-An Event-Task Pilot for EWMS
+A Task Pilot for EWMS Events
 <!--- Top of README Metadata Section (automated) --->
 
 <!--- note: this information is pulled from the pyproject.toml --->
