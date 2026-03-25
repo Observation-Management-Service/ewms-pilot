@@ -45,7 +45,7 @@ jobs:
     outputs:
       matrix: ${{ steps.versions.outputs.matrix }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - id: versions
@@ -64,7 +64,7 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
       - uses: actions/setup-python@v6
@@ -82,7 +82,7 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
@@ -100,11 +100,11 @@ jobs:
     if: ${{ github.actor != 'dependabot[bot]' }} # dependabot cannot access PAT
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
           ref: ${{ github.ref }}  # dont lock to sha (action needs to push)
-      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.8
+      - uses: WIPACrepo/wipac-dev-py-setup-action@v5.11
         with:
           mode: PACKAGING
           python_min: 3.12
@@ -127,14 +127,14 @@ jobs:
 
       # pre-check passed, so proceed...
       - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
       - if: ${{ steps.pydep-precheck.outputs.do_generation == 'true' }}
         name: build all images
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           set -x
           
           mkdir docker-build-logs/ && trap 'rm -rf docker-build-logs/' EXIT
@@ -190,12 +190,12 @@ jobs:
   test-build-docker:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
-      - uses: docker/setup-buildx-action@v3
-      - uses: docker/build-push-action@v6
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/build-push-action@v7
         with:
           context: .
           file: Dockerfile
@@ -214,18 +214,18 @@ jobs:
       EWMS_PILOT_QUEUE_OUTGOING: bar
       EWMS_PILOT_TIMEOUT_QUEUE_WAIT_FOR_FIRST_MESSAGE: 1  # added to figure out https://github.com/WIPACrepo/wipac-dev-tools/pull/106, not needed but not doing any harm
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
       - name: build docker image
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} .
           docker images
       - name: test
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           set -ex
           
           docker run --rm \
@@ -255,7 +255,7 @@ jobs:
       matrix:
         py3: ${{ fromJSON(needs.py-versions.outputs.matrix) }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
@@ -264,7 +264,7 @@ jobs:
           python-version: ${{ matrix.py3 }}
       - name: pytest
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           pip install .[test]
           pytest -vvv --asyncio-mode=auto tests/unit
 
@@ -282,7 +282,7 @@ jobs:
       EWMS_PILOT_QUEUE_INCOMING_BROKER_TYPE: ${{ matrix.broker_client }}
       EWMS_PILOT_QUEUE_OUTGOING_BROKER_TYPE: ${{ matrix.broker_client }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}  # lock to triggered commit (github.ref is dynamic)
           fetch-depth: 0  # setuptools-scm needs to access git tags
@@ -291,22 +291,20 @@ jobs:
           python-version: ${{ matrix.py3 }}
 
       - if: ${{ matrix.broker_client == 'rabbitmq' }}
-        name: "rabbitmq only: jlumbroso/free-disk-space@main"
-        uses: jlumbroso/free-disk-space@main
+        uses: Jayllyz/free-disk-space@3bda29d61d3f1fa7bf46c5a9a11f22dd20af07c9
         with:
-          android: false  # this is a LOT of space, so it takes longer to remove
-          docker-images: false  # we may actually need this one
+          docker-images: false
 
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: "apptainer only: install apptainer"
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           curl -fsSL "$CI_SCRIPT_URL_INSTALL_APPTAINER" -o install-apptainer.sh && chmod +x install-apptainer.sh
           ./install-apptainer.sh --sif yes
 
       - name: "build pilot docker image"
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           docker build --tag ${{ env.DOCKER_IMAGE_NAME }} \
               --build-arg="PYTHON=${{ matrix.py3 }}" \
               --build-arg="FLAVOR=${{ matrix.broker_client }},test" \
@@ -316,7 +314,7 @@ jobs:
 
       - name: "pre-pull images for testing"
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           set -x
           mkdir apptainer-prebuilds/
           
@@ -355,14 +353,14 @@ jobs:
       - if: ${{ matrix.container_platform == 'apptainer' }}
         name: "apptainer only: build apptainer image"
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           docker images
           apptainer build $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif docker-daemon://${{ env.DOCKER_IMAGE_NAME }}:latest
           ls -lh $(basename ${{ env.DOCKER_IMAGE_NAME }}).sif
 
       - name: get list of pytest tests
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           pip install .[test]  # for the for-loop below
           pytest --collect-only -q --disable-warnings tests/integration/ | head -n -2 > $SORTED_LIST_OF_TESTS_FILE
           cat $SORTED_LIST_OF_TESTS_FILE
@@ -370,7 +368,7 @@ jobs:
       - if: ${{ matrix.container_platform == 'docker' }}
         name: "docker only: get docker-outside-of-docker helper script"
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           curl -fsSL "$CI_SCRIPT_URL_DOOD_RUN" -o "run-dood.sh"
           chmod +x "run-dood.sh"
 
@@ -378,7 +376,6 @@ jobs:
         timeout-minutes: ${{ matrix.broker_client == 'rabbitmq' && 20  ||  15  }}  # adjust if fails, remember this is only time for *this* step
         run: |
           # set -euo pipefail
-          echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
           set -x
           
           # step 1: CREATE DOCKER NETWORK
@@ -519,7 +516,7 @@ jobs:
       - name: "if pytest failed, dump first failure"
         if: always()
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           file=$(grep -l -m 1 "= FAILURES =" *.test.out 2>/dev/null | head -1 || true)
           if [[ -n "$file" ]]; then
               cat "$file"
@@ -532,7 +529,7 @@ jobs:
       - name: pytest container outputs
         if: always()
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           sleep 15  # sleep a bit more in case there are additional failures we want to dig for
           cat $SORTED_LIST_OF_TESTS_FILE
           while read test; do
@@ -549,7 +546,7 @@ jobs:
       - name: broker output
         if: always()
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           set -x
           cat ./broker.out
           if [ -n "$(ls -A ./broker_logs/ 2>/dev/null)" ]; then
@@ -560,7 +557,7 @@ jobs:
       - name: broker docker logs
         if: always()
         run: |
-          set -euo pipefail; echo "now: $(date -u +"%Y-%m-%dT%H:%M:%S.%3N")"
+          set -euo pipefail
           docker logs $BROKER_CONTAINER_NAME || true
 
 
