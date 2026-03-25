@@ -73,6 +73,7 @@ mypy = [
 Homepage = "https://github.com/Observation-Management-Service/ewms-pilot"
 Tracker = "https://github.com/Observation-Management-Service/ewms-pilot/issues"
 Source = "https://github.com/Observation-Management-Service/ewms-pilot"
+Documentation = "https://observation-management-service.github.io/ewms-docs/internal/pilot.html"
 
 [tool.setuptools]
 packages = [
