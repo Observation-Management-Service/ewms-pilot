@@ -21,7 +21,7 @@ env:
 jobs:
 
   image-publish-apptainer:
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.20
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.23
     permissions: # for GITHUB_TOKEN
       packages: write
     with:
@@ -40,7 +40,7 @@ jobs:
 
   image-publish-docker:
     if: github.event_name != 'delete'
-    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.20
+    uses: WIPACrepo/wipac-dev-workflows/.github/workflows/image-publish.yml@v1.23
     permissions: # for GITHUB_TOKEN
       packages: write
     with:
