@@ -4,14 +4,12 @@
 
 # EWMS Task Pilot
 
-A Task Pilot for EWMS Events
+EWMS's Pilot: A Job Pilot for Processing EWMS Events/Tasks
 <!--- Top of README Metadata Section (automated) --->
 
 <!--- note: this information is pulled from the pyproject.toml --->
 
 <dl>
-    <dt><sub>Description</sub></dt>
-    <dd><sub>EWMS's Pilot: A Job Pilot for Processing EWMS Events/Tasks</sub></dd>
     <dt><sub>Authors</sub></dt>
     <dd><sub>WIPAC Developers / <a href='mailto:developers@icecube.wisc.edu'>developers@icecube.wisc.edu</a></sub></dd>
     <dt><sub>Keywords</sub></dt>
